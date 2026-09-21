@@ -301,6 +301,16 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
           const SectionHeader('Security'),
           const _BiometricTile(),
           const SizedBox(height: 24),
+          const SectionHeader('Direct debit'),
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            leading: const Icon(Icons.account_balance_outlined),
+            title: const Text('Mandates'),
+            subtitle: const Text('Manage automatic collections.'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/mandates'),
+          ),
+          const SizedBox(height: 24),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
               foregroundColor: theme.colorScheme.error,

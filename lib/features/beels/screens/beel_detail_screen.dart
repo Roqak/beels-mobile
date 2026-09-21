@@ -3,6 +3,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
+import '../../payments/data/payments_repository.dart';
+
 import '../../../core/api/api_exception.dart';
 import '../../../core/money.dart';
 import '../../../core/widgets/beels_app_bar.dart';
@@ -43,6 +45,26 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
         setState(() => _busyActions.remove(key));
       }
     }
+  }
+
+  /// Starts a Flutterwave checkout for the contributor's deposit and hands
+  /// the hosted link to the system share sheet (opens in any browser).
+  Future<void> _pay(ContributionContributor contributor) async {
+    final paymentId = contributor.paymentId;
+    if (paymentId == null) return;
+    await _runAction('pay_$paymentId', () async {
+      final url = await ref
+          .read(paymentsRepositoryProvider)
+          .initializePayment(paymentId);
+      if (url.isEmpty) {
+        throw const ApiException('Payment link unavailable. Try again.',
+          statusCode: 0);
+      }
+      await Share.share(url, subject: 'Complete your Beels payment');
+      await ref
+          .read(beelDetailControllerProvider(widget.id).notifier)
+          .refresh();
+    });
   }
 
   void _showSnack(String message, {required bool isError}) {
@@ -127,6 +149,12 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
               (contributor) => _ContributorTile(
                 contributor: contributor,
                 busy: _isBusy('remove_${contributor.id}'),
+                payBusy: contributor.paymentId == null
+                    ? false
+                    : _isBusy('pay_${contributor.paymentId}'),
+                onPay: contributor.canPay
+                    ? () => _pay(contributor)
+                    : null,
                 onRemove: contributor.id == null
                     ? null
                     : () async {
@@ -379,11 +407,15 @@ class _ContributorTile extends StatelessWidget {
   const _ContributorTile({
     required this.contributor,
     required this.busy,
+    required this.payBusy,
+    required this.onPay,
     required this.onRemove,
   });
 
   final ContributionContributor contributor;
   final bool busy;
+  final bool payBusy;
+  final VoidCallback? onPay;
   final VoidCallback? onRemove;
 
   @override
@@ -445,12 +477,30 @@ class _ContributorTile extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(height: 6),
-                Text(
-                  '${formatNaira(paid)} paid of ${formatNaira(unit)}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: const Color(0xFF5B5D6B)),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${formatNaira(paid)} paid of ${formatNaira(unit)}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: const Color(0xFF5B5D6B)),
+                      ),
+                    ),
+                    if (onPay != null)
+                      TextButton(
+                        onPressed: payBusy ? null : onPay,
+                        child: payBusy
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2),
+                              )
+                            : const Text('Pay now'),
+                      ),
+                  ],
                 ),
               ],
             ),

@@ -136,6 +136,7 @@ class ContributionContributor {
     this.amountPaid,
     this.status = '',
     this.bankName,
+    this.paymentId,
   });
 
   final int? id;
@@ -147,6 +148,15 @@ class ContributionContributor {
   final num? amountPaid;
   final String status;
   final String? bankName;
+
+  /// Flutterwave payment identifier for this contributor's deposit. Present
+  /// on beel detail rows; absent on participation projections.
+  final String? paymentId;
+
+  /// Contributors whose deposit can still be paid: no terminal state.
+  bool get canPay => paymentId != null && !_terminalStatuses.contains(status.toLowerCase());
+
+  static const _terminalStatuses = {'settled', 'paid', 'completed', 'cancelled', 'revoked'};
 
   String get fullName => '$firstName $lastName'.trim();
 
@@ -162,6 +172,7 @@ class ContributionContributor {
       amountPaid: _nullableNum(map['amount_paid']),
       status: _asString(map['status']),
       bankName: _nullableString(map['bank_name']),
+      paymentId: _nullableString(map['payment_id']),
     );
   }
 }

@@ -28,6 +28,7 @@ void main() {
             'amount_paid': 10000,
             'status': 'active',
             'bank_name': 'GTBank',
+            'payment_id': 'JYLCWKtfdHVzihITWPSq',
           },
         ],
         'beneficiaries': [
@@ -281,6 +282,37 @@ void main() {
         'phone_number': '08012345678',
         'amount': 5000,
       });
+    });
+  });
+
+  group('ContributionContributor.canPay', () {
+    ContributionContributor fromJson(Map<String, Object?> json) =>
+        Contribution.fromJson({
+          'contributors': [json],
+        }).contributors.single;
+
+    test('is payable with a payment id and a non-terminal status', () {
+      final contributor = fromJson({
+        'id': 3,
+        'status': 'active',
+        'payment_id': 'JYLCWKtfdHVzihITWPSq',
+      });
+      expect(contributor.paymentId, 'JYLCWKtfdHVzihITWPSq');
+      expect(contributor.canPay, isTrue);
+    });
+
+    test('is not payable without a payment id', () {
+      final contributor = fromJson({'id': 3, 'status': 'pending'});
+      expect(contributor.canPay, isFalse);
+    });
+
+    test('is not payable in a terminal status', () {
+      final contributor = fromJson({
+        'id': 3,
+        'status': 'settled',
+        'payment_id': 'JYLCWKtfdHVzihITWPSq',
+      });
+      expect(contributor.canPay, isFalse);
     });
   });
 }
