@@ -30,6 +30,9 @@ import 'package:beels_mobile/features/payments/models/payment_mandate.dart';
 import 'package:beels_mobile/features/payments/screens/mandate_list_screen.dart';
 import 'package:beels_mobile/features/payments/screens/mandate_setup_screen.dart';
 import 'package:beels_mobile/features/groups/screens/group_detail_screen.dart';
+import 'package:beels_mobile/features/beels/create/beel_draft.dart';
+import 'package:beels_mobile/features/beels/create/beel_draft_controller.dart';
+import 'package:beels_mobile/features/beels/data/beels_repository.dart';
 import 'package:beels_mobile/features/beels/screens/create_beel_screen.dart';
 import 'package:beels_mobile/features/auth/screens/lock_screen.dart';
 import 'package:beels_mobile/features/auth/screens/register_screen.dart';
@@ -331,6 +334,107 @@ final _activityOverrides = <Override>[
   flowClockProvider.overrideWithValue(() => _goldenNow),
 ];
 
+class _PresetDraft extends BeelDraftController {
+  _PresetDraft(this.preset);
+  final BeelDraft preset;
+  @override
+  BeelDraft build() => preset;
+}
+
+const _closedDraft = BeelDraft(
+  name: 'Family rent',
+  amount: '60000',
+  recurrenceType: 'weekly',
+  dayOfWeek: 'friday',
+  contributors: [
+    DraftContributor(
+      id: 1,
+      firstName: 'Ada',
+      lastName: 'Obi',
+      email: 'ada@beels.test',
+      phone: '08012345678',
+      amount: '40000',
+    ),
+    DraftContributor(
+      id: 2,
+      firstName: 'Bode',
+      lastName: 'Aliu',
+      email: 'bode@beels.test',
+      phone: '08023456789',
+      amount: '20000',
+    ),
+  ],
+  beneficiaries: [
+    DraftBeneficiary(
+      id: 3,
+      name: 'Ada Obi',
+      accountNumber: '0123456789',
+      bankCode: '058',
+      bankName: 'GTBank',
+    ),
+  ],
+  nextId: 4,
+);
+
+const _openDraft = BeelDraft(
+  mode: BeelMode.open,
+  name: 'Office party',
+  amount: '60000',
+  expectedContributors: '4',
+  beneficiaries: [
+    DraftBeneficiary(
+      id: 1,
+      name: 'Ada Obi',
+      accountNumber: '0123456789',
+      bankCode: '058',
+      bankName: 'GTBank',
+    ),
+  ],
+  nextId: 2,
+);
+
+class _GoldenBeels implements BeelsRepository {
+  @override
+  Future<Contribution> createOpen({
+    required String name,
+    required num amount,
+    num? amountPerContributor,
+    int? expectedContributors,
+    required String recurrenceType,
+    String? dayOfWeek,
+    int? dayOfMonth,
+    required List<BeneficiaryInput> beneficiaries,
+  }) async =>
+      Contribution(
+          id: 1,
+          name: name,
+          contributionMode: 'open_link',
+          paymentLinkToken: 'tok');
+
+  @override
+  Future<Contribution> create({
+    required String name,
+    required num amount,
+    required String recurrenceType,
+    String? dayOfWeek,
+    int? dayOfMonth,
+    required List<ContributorInput> contributors,
+    required List<BeneficiaryInput> beneficiaries,
+  }) async =>
+      Contribution(name: name);
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+List<Override> _createOverrides(BeelDraft draft) => [
+      beelDraftProvider.overrideWith(() => _PresetDraft(draft)),
+      beelsRepositoryProvider.overrideWithValue(_GoldenBeels()),
+      banksProvider.overrideWith((ref) async => const [
+            Bank(id: 1, name: 'GTBank', cbnCode: '058'),
+          ]),
+    ];
+
 class _HiddenBalances extends HideBalancesController {
   @override
   bool build() => true;
@@ -556,14 +660,6 @@ void main() {
     );
   });
 
-  testWidgets('create beel golden', (tester) async {
-    await pumpScreen(tester, const CreateBeelScreen());
-    await expectLater(
-      find.byType(MaterialApp),
-      matchesGoldenFile('goldens/create_beel.png'),
-    );
-  });
-
   testWidgets('register golden', (tester) async {
     await pumpScreen(
       tester,
@@ -774,14 +870,6 @@ void main() {
         matchesGoldenFile('goldens/group_detail_dark.png'),
       );
     });
-
-    testWidgets('create beel dark golden', (tester) async {
-      await pumpScreen(tester, const CreateBeelScreen());
-      await expectLater(
-        find.byType(MaterialApp),
-        matchesGoldenFile('goldens/create_beel_dark.png'),
-      );
-    });
   });
 
   testWidgets('biometric offer golden', (tester) async {
@@ -868,5 +956,67 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/floating_nav_dark.png'),
     );
+  });
+
+  Future<void> createStep(
+      WidgetTester tester, BeelDraft draft, int steps) async {
+    await pumpScreen(
+      tester,
+      CreateBeelScreen(now: DateTime(2026, 9, 21)),
+      overrides: _createOverrides(draft),
+    );
+    for (var i = 0; i < steps; i++) {
+      await tester.tap(find.text('Continue'));
+      await tester.pumpAndSettle();
+    }
+  }
+
+  for (var step = 0; step < 5; step++) {
+    testWidgets('create beel step ${step + 1} golden', (tester) async {
+      await createStep(tester, _closedDraft, step);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/create_beel_${step + 1}.png'),
+      );
+    });
+  }
+
+  testWidgets('create beel open people golden', (tester) async {
+    await createStep(tester, _openDraft, 2);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/create_beel_open_people.png'),
+    );
+  });
+
+  testWidgets('create beel success golden', (tester) async {
+    await createStep(tester, _openDraft, 4);
+    await tester.tap(find.text('Create beel'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/create_beel_success.png'),
+    );
+  });
+
+  group('dark create', () {
+    setUp(() => BeelsColors.apply(Brightness.dark));
+    tearDown(() => BeelsColors.apply(Brightness.light));
+
+    testWidgets('create beel people dark golden', (tester) async {
+      await createStep(tester, _closedDraft, 2);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/create_beel_people_dark.png'),
+      );
+    });
+
+    testWidgets('create beel review dark golden', (tester) async {
+      await createStep(tester, _closedDraft, 4);
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/create_beel_review_dark.png'),
+      );
+    });
   });
 }

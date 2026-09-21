@@ -20,11 +20,15 @@ class FilterChipBar<T> extends StatelessWidget {
     required this.options,
     required this.value,
     required this.onChanged,
+    this.padding = const EdgeInsets.fromLTRB(16, 4, 16, 8),
   });
 
   final List<FilterOption<T>> options;
   final T value;
   final ValueChanged<T> onChanged;
+
+  /// Outer padding; use [EdgeInsets.zero] inside an already-padded form.
+  final EdgeInsetsGeometry padding;
 
   @override
   Widget build(BuildContext context) {
@@ -33,7 +37,7 @@ class FilterChipBar<T> extends StatelessWidget {
       width: double.infinity,
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+        padding: padding,
         child: Row(
           children: [
             for (final option in options) ...[

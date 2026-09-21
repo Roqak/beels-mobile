@@ -3,7 +3,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/api/api_exception.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/common.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -11,7 +10,7 @@ import '../../auth/widgets/error_banner.dart';
 import '../../auth/widgets/fields.dart';
 import '../controllers/mandate_setup_controller.dart';
 import '../controllers/mandates_controller.dart';
-import '../models/bank.dart';
+import '../widgets/bank_picker.dart';
 
 /// Three-step direct-debit setup: bank + account verification, personal
 /// details with BVN, then review and submit.
@@ -81,7 +80,7 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
               const SizedBox(height: 24),
               const SectionHeader('Bank account'),
               const SizedBox(height: 10),
-              _BankPicker(
+              BankPickerField(
                 selected: state.selectedBank,
                 onChanged: (bank) => ref
                     .read(mandateSetupControllerProvider.notifier)
@@ -352,112 +351,6 @@ class _StepIndicator extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _BankPicker extends ConsumerWidget {
-  const _BankPicker({required this.selected, required this.onChanged});
-
-  final Bank? selected;
-  final ValueChanged<Bank> onChanged;
-
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final banks = ref.watch(banksProvider);
-    return banks.when(
-      loading: () => const SkeletonScope(
-        child: SkeletonBox(height: 52, radius: 10),
-      ),
-      error: (error, _) => ErrorView(
-        error: error as ApiException,
-        onRetry: () => ref.invalidate(banksProvider),
-      ),
-      data: (rows) => InkWell(
-        borderRadius: BorderRadius.circular(10),
-        onTap: () => _pick(context, rows),
-        child: InputDecorator(
-          decoration: const InputDecoration(
-            labelText: 'Bank',
-            suffixIcon: Icon(Icons.expand_more),
-          ),
-          child: Text(selected?.name ?? 'Choose your bank'),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _pick(BuildContext context, List<Bank> banks) async {
-    final picked = await showModalBottomSheet<Bank>(
-      context: context,
-      isScrollControlled: true,
-      builder: (sheetContext) => _BankSheet(banks: banks),
-    );
-    if (picked != null) onChanged(picked);
-  }
-}
-
-class _BankSheet extends StatefulWidget {
-  const _BankSheet({required this.banks});
-
-  final List<Bank> banks;
-
-  @override
-  State<_BankSheet> createState() => _BankSheetState();
-}
-
-class _BankSheetState extends State<_BankSheet> {
-  String _query = '';
-
-  @override
-  Widget build(BuildContext context) {
-    final q = _query.trim().toLowerCase();
-    final rows = q.isEmpty
-        ? widget.banks
-        : widget.banks.where((b) => b.name.toLowerCase().contains(q)).toList();
-    final height = MediaQuery.of(context).size.height * 0.75;
-    return Padding(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
-      child: SizedBox(
-        height: height,
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: TextField(
-                autofocus: false,
-                onChanged: (v) => setState(() => _query = v),
-                decoration: const InputDecoration(
-                  hintText: 'Search banks',
-                  prefixIcon: Icon(Icons.search_rounded),
-                ),
-              ),
-            ),
-            Expanded(
-              child: rows.isEmpty
-                  ? Center(
-                      child: Text(
-                        'No bank matches that search.',
-                        style: TextStyle(color: BeelsColors.ink2),
-                      ),
-                    )
-                  : ListView.builder(
-                      keyboardDismissBehavior:
-                          ScrollViewKeyboardDismissBehavior.onDrag,
-                      itemCount: rows.length,
-                      itemBuilder: (context, i) => ListTile(
-                        title: Text(rows[i].name),
-                        onTap: () {
-                          HapticFeedback.selectionClick();
-                          Navigator.of(context).pop(rows[i]);
-                        },
-                      ),
-                    ),
-            ),
-          ],
-        ),
       ),
     );
   }

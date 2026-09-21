@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:beels_mobile/core/contacts/contact_picker.dart';
-import 'package:beels_mobile/features/beels/screens/create_beel_screen.dart';
 import 'package:beels_mobile/features/groups/screens/create_group_screen.dart';
 
 class _FakePicker implements ContactPicker {
@@ -43,24 +42,6 @@ String _text(WidgetTester tester, String hint) {
 }
 
 void main() {
-  testWidgets('create beel: picking a contact fills the contributor row',
-      (tester) async {
-    final picker = _FakePicker(contact: _ada);
-    await _pump(tester, const CreateBeelScreen(), picker);
-    await tester.pumpAndSettle();
-
-    await tester.scrollUntilVisible(find.text('From contacts'), 200,
-        scrollable: find.byType(Scrollable).first);
-    await tester.tap(find.text('From contacts'));
-    await tester.pumpAndSettle();
-
-    expect(picker.calls, 1);
-    expect(_text(tester, 'First name'), 'Ada');
-    expect(_text(tester, 'Last name'), 'Okafor');
-    expect(_text(tester, 'Email'), 'ada@beels.test');
-    expect(_text(tester, 'Phone number'), '08012345678');
-  });
-
   testWidgets('create group: picking a contact fills the member row',
       (tester) async {
     final picker = _FakePicker(contact: _ada);
