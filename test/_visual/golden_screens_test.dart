@@ -19,6 +19,18 @@ import 'package:beels_mobile/features/beels/models/contribution.dart';
 import 'package:beels_mobile/features/beels/screens/beel_detail_screen.dart';
 import 'package:beels_mobile/features/beels/screens/beels_screen.dart';
 import 'package:beels_mobile/features/dashboard/data/dashboard_repository.dart';
+import 'package:beels_mobile/features/groups/data/groups_repository.dart';
+import 'package:beels_mobile/features/groups/models/group.dart';
+import 'package:beels_mobile/features/groups/screens/groups_screen.dart';
+import 'package:beels_mobile/features/groups/screens/group_detail_screen.dart';
+import 'package:beels_mobile/features/beels/screens/create_beel_screen.dart';
+import 'package:beels_mobile/features/auth/screens/lock_screen.dart';
+import 'package:beels_mobile/features/auth/screens/register_screen.dart';
+import 'package:beels_mobile/features/auth/controllers/session_lock_controller.dart';
+import 'package:beels_mobile/features/profile/screens/profile_screen.dart';
+import 'package:beels_mobile/features/transactions/controllers/transactions_controllers.dart';
+import 'package:beels_mobile/features/transactions/models/transaction.dart';
+import 'package:beels_mobile/features/transactions/screens/transactions_screen.dart';
 import 'package:beels_mobile/features/dashboard/screens/dashboard_screen.dart';
 
 Widget _themed(Widget child) {
@@ -198,6 +210,86 @@ class _FakeBeelDetailController extends BeelDetailController {
   Future<void> cancelBeel() async {}
 }
 
+class _FakeTxController extends TransactionsListController {
+  @override
+  Future<TransactionsListState> build() async {
+    // Fixed instants keep the golden stable across runs and days.
+    final now = DateTime(2026, 5, 4, 9, 30);
+    Transaction tx(int id, String type, num amt, String status, String beel,
+            DateTime at) =>
+        Transaction(
+          id: id,
+          type: type,
+          amount: amt,
+          status: status,
+          createdAt: at,
+          reference: 'REF-$id',
+          beelName: beel,
+        );
+    return TransactionsListState(
+      items: [
+        tx(1, 'deposit', 15000, 'successful', 'Family Savings', now),
+        tx(2, 'withdrawal', 8000, 'pending', 'Market Savings', now),
+        tx(3, 'deposit', 5000, 'successful', 'Weekly Ajo',
+            now.subtract(const Duration(days: 1))),
+        tx(4, 'deposit', 2500, 'failed', 'Birthday Fund',
+            now.subtract(const Duration(days: 5))),
+      ],
+      page: 1,
+      lastPage: 1,
+      total: 4,
+    );
+  }
+}
+
+class _FakeGroupsController extends GroupsController {
+  @override
+  Future<List<Group>> build() async => [
+        Group.fromJson({
+          'id': 1,
+          'name': 'Okafor Family',
+          'description': 'Monthly family contributions',
+          'members_count': 5,
+          'members': [
+            {'id': 1, 'first_name': 'Ada', 'last_name': 'Okafor'},
+            {'id': 2, 'first_name': 'Bode', 'last_name': 'Aliu'},
+            {'id': 3, 'first_name': 'Chi', 'last_name': 'Eze'},
+          ],
+        }),
+        Group.fromJson({
+          'id': 2,
+          'name': 'Market Women',
+          'members_count': 1,
+        }),
+      ];
+}
+
+class _FakeGroupDetail extends GroupDetailController {
+  @override
+  Future<Group> build(int arg) async => Group.fromJson({
+        'id': 1,
+        'name': 'Okafor Family',
+        'description': 'Monthly family contributions',
+        'invite_link': 'https://beels.ng/groups/join/abc123',
+        'created_at': '2026-05-04T09:15:00.000Z',
+        'members_count': 3,
+        'members': [
+          {'id': 1, 'first_name': 'Ada', 'last_name': 'Okafor', 'email': 'ada@beels.test'},
+          {'id': 2, 'first_name': 'Bode', 'last_name': 'Aliu', 'phone_number': '08023456789'},
+          {'id': 3, 'first_name': 'Chi', 'last_name': 'Eze', 'email': 'chi@beels.test'},
+        ],
+      });
+}
+
+class _LockedSession extends SessionLockController {
+  @override
+  SessionLockState build() =>
+      const SessionLockState(supported: true, enabled: true, locked: true);
+
+  @override
+  Future<bool> unlock() async => false;
+}
+
 void main() {
   setUpAll(() async {
     // Register the bundled brand TTFs (assets/google_fonts) eagerly:
@@ -313,5 +405,170 @@ void main() {
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/beel_detail.png'),
     );
+  });
+
+  testWidgets('transactions golden', (tester) async {
+    await pumpScreen(
+      tester,
+      const TransactionsScreen(),
+      overrides: [
+        transactionsListControllerProvider
+            .overrideWith(() => _FakeTxController()),
+      ],
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/transactions.png'),
+    );
+  });
+
+  testWidgets('groups golden', (tester) async {
+    await pumpScreen(
+      tester,
+      const GroupsScreen(),
+      overrides: [
+        groupsListProvider.overrideWith(() => _FakeGroupsController()),
+      ],
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/groups.png'),
+    );
+  });
+
+  testWidgets('profile golden', (tester) async {
+    await pumpScreen(
+      tester,
+      const ProfileScreen(),
+      overrides: [
+        authControllerProvider.overrideWith(
+          () => _FakeAuthController(
+            Profile.fromJson({
+              'first_name': 'Ada',
+              'last_name': 'Okafor',
+              'email': 'ada@beels.test',
+              'phone_number': '08012345678',
+              'status': 'active',
+            }),
+          ),
+        ),
+      ],
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/profile.png'),
+    );
+  });
+
+  testWidgets('group detail golden', (tester) async {
+    await pumpScreen(
+      tester,
+      const GroupDetailScreen(id: 1),
+      overrides: [
+        groupDetailProvider.overrideWith(() => _FakeGroupDetail()),
+      ],
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/group_detail.png'),
+    );
+  });
+
+  testWidgets('create beel golden', (tester) async {
+    await pumpScreen(tester, const CreateBeelScreen());
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/create_beel.png'),
+    );
+  });
+
+  testWidgets('register golden', (tester) async {
+    await pumpScreen(
+      tester,
+      const RegisterScreen(),
+      overrides: [
+        authControllerProvider.overrideWith(() => _FakeAuthController(null)),
+      ],
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/register.png'),
+    );
+  });
+
+  testWidgets('lock golden', (tester) async {
+    await pumpScreen(
+      tester,
+      const LockScreen(),
+      overrides: [
+        authControllerProvider.overrideWith(() => _FakeAuthController(null)),
+        sessionLockControllerProvider.overrideWith(() => _LockedSession()),
+      ],
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/lock.png'),
+    );
+  });
+
+  group('dark', () {
+    setUp(() => BeelsColors.apply(Brightness.dark));
+    tearDown(() => BeelsColors.apply(Brightness.light));
+
+    testWidgets('dashboard dark golden', (tester) async {
+      await pumpScreen(
+        tester,
+        const DashboardScreen(),
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _FakeAuthController(
+              Profile.fromJson({
+                'first_name': 'Ada',
+                'last_name': 'Okafor',
+                'email': 'ada@beels.test',
+                'status': 'active',
+              }),
+            ),
+          ),
+          dashboardControllerProvider
+              .overrideWith(() => _FakeDashboardController()),
+          beelsListControllerProvider
+              .overrideWith(() => _FakeBeelsListController()),
+        ],
+      );
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/dashboard_dark.png'),
+      );
+    });
+
+    testWidgets('transactions dark golden', (tester) async {
+      await pumpScreen(
+        tester,
+        const TransactionsScreen(),
+        overrides: [
+          transactionsListControllerProvider
+              .overrideWith(() => _FakeTxController()),
+        ],
+      );
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/transactions_dark.png'),
+      );
+    });
+
+    testWidgets('login dark golden', (tester) async {
+      await pumpScreen(
+        tester,
+        const LoginScreen(),
+        overrides: [
+          authControllerProvider.overrideWith(() => _FakeAuthController(null)),
+        ],
+      );
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/login_dark.png'),
+      );
+    });
   });
 }

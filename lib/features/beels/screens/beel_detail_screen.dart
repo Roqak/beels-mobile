@@ -239,7 +239,7 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
                   },
             style: OutlinedButton.styleFrom(
               foregroundColor: BeelsColors.err,
-              side: const BorderSide(color: BeelsColors.err),
+              side: BorderSide(color: BeelsColors.err),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(999),
               ),
@@ -313,7 +313,7 @@ class _HeaderCard extends StatelessWidget {
       borderRadius: BorderRadius.circular(28),
       child: Stack(
         children: [
-          const Positioned.fill(child: ColoredBox(color: BeelsColors.dye)),
+          Positioned.fill(child: ColoredBox(color: BeelsColors.dye)),
           const Positioned.fill(child: AdirePattern()),
           Padding(
             padding: const EdgeInsets.all(22),
@@ -513,13 +513,13 @@ class _ContributorTile extends StatelessWidget {
               width: 40,
               height: 40,
               alignment: Alignment.center,
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 color: BeelsColors.accentSoft,
                 shape: BoxShape.circle,
               ),
               child: Text(
                 _initials(contributor.fullName),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 13,
                   fontWeight: FontWeight.w700,
                   color: BeelsColors.accent,
@@ -566,8 +566,7 @@ class _ContributorTile extends StatelessWidget {
                       value: progress,
                       minHeight: 6,
                       backgroundColor: BeelsColors.fieldFill,
-                      valueColor:
-                          const AlwaysStoppedAnimation(BeelsColors.accent),
+                      valueColor: AlwaysStoppedAnimation(BeelsColors.accent),
                     ),
                   ),
                   const SizedBox(height: 6),
@@ -693,7 +692,7 @@ class _BeneficiaryTile extends StatelessWidget {
                 onPressed: busy ? null : onDisburse,
                 style: OutlinedButton.styleFrom(
                   foregroundColor: BeelsColors.accent,
-                  side: const BorderSide(color: BeelsColors.accent),
+                  side: BorderSide(color: BeelsColors.accent),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(999),
                   ),
@@ -733,7 +732,7 @@ class _CountBadge extends StatelessWidget {
       ),
       child: Text(
         '$count',
-        style: const TextStyle(
+        style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w700,
           color: BeelsColors.ink1,
@@ -756,7 +755,7 @@ class _SectionEmpty extends StatelessWidget {
         color: BeelsColors.surfaceAlt,
         child: Text(
           message,
-          style: const TextStyle(fontSize: 14, color: BeelsColors.ink2),
+          style: TextStyle(fontSize: 14, color: BeelsColors.ink2),
         ),
       ),
     );

@@ -11,6 +11,7 @@ enum StatusKind { ok, warn, err, muted }
 StatusKind statusKind(String status) {
   switch (status.trim().toLowerCase()) {
     case 'success':
+    case 'successful':
     case 'completed':
     case 'active':
       return StatusKind.ok;

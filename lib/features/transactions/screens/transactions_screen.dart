@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:beels_mobile/core/theme.dart';
-import 'package:beels_mobile/core/widgets/skeleton.dart';
-import 'package:beels_mobile/core/widgets/surface_card.dart';
+import 'package:beels_mobile/core/widgets/common.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/money.dart';
-import '../../../core/widgets/beels_app_bar.dart';
-import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/error_view.dart';
-import '../../../core/widgets/status_chip.dart';
 import '../controllers/transactions_controllers.dart';
 import '../models/transaction.dart';
 
@@ -24,8 +20,11 @@ class TransactionsScreen extends ConsumerStatefulWidget {
   ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
+enum _TxFilter { all, deposits, withdrawals }
+
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   final ScrollController _scrollController = ScrollController();
+  _TxFilter _filter = _TxFilter.all;
 
   @override
   void initState() {
@@ -75,47 +74,194 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     }
 
     final list = state.requireValue;
-    return RefreshIndicator(
-      onRefresh: () =>
-          ref.read(transactionsListControllerProvider.notifier).refresh(),
-      child: list.items.isEmpty
-          ? ListView(
-              children: const [
-                SizedBox(height: 120),
-                KeyedSubtree(
-                  key: Key('empty-state'),
-                  child: EmptyState(
-                    icon: Icons.receipt_long_outlined,
-                    title: 'No transactions yet',
-                    message:
-                        'Payments and disbursements will appear here once activity starts.',
+    if (list.items.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: () =>
+            ref.read(transactionsListControllerProvider.notifier).refresh(),
+        child: ListView(
+          children: const [
+            SizedBox(height: 120),
+            KeyedSubtree(
+              key: Key('empty-state'),
+              child: EmptyState(
+                icon: Icons.receipt_long_outlined,
+                title: 'No transactions yet',
+                message:
+                    'Payments and disbursements will appear here once activity starts.',
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final visible = list.items.where((t) {
+      switch (_filter) {
+        case _TxFilter.all:
+          return true;
+        case _TxFilter.deposits:
+          return t.isDeposit;
+        case _TxFilter.withdrawals:
+          return !t.isDeposit;
+      }
+    }).toList();
+
+    // Flat entries: DateTime header markers (as String) and transactions.
+    final entries = <Object>[];
+    String? lastLabel;
+    for (final t in visible) {
+      final label = _dayLabel(t.createdAt);
+      if (label != lastLabel) {
+        entries.add(label);
+        lastLabel = label;
+      }
+      entries.add(t);
+    }
+
+    return Column(
+      children: [
+        _FilterBar(
+          value: _filter,
+          onChanged: (f) {
+            HapticFeedback.selectionClick();
+            setState(() => _filter = f);
+          },
+        ),
+        Expanded(
+          child: RefreshIndicator(
+            color: BeelsColors.accent,
+            onRefresh: () =>
+                ref.read(transactionsListControllerProvider.notifier).refresh(),
+            child: visible.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      const SizedBox(height: 80),
+                      EmptyState(
+                        icon: Icons.filter_list_rounded,
+                        title: _filter == _TxFilter.deposits
+                            ? 'No deposits loaded'
+                            : 'No withdrawals loaded',
+                        message:
+                            'Nothing of this kind in the activity loaded so far.',
+                        actionLabel: list.hasMore ? 'Load more' : null,
+                        onAction: () => ref
+                            .read(transactionsListControllerProvider.notifier)
+                            .loadMore(),
+                      ),
+                    ],
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.fromLTRB(16, 4, 16, 32),
+                    itemCount: entries.length + (list.hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index >= entries.length) {
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2.5),
+                            ),
+                          ),
+                        );
+                      }
+                      final entry = entries[index];
+                      if (entry is String) {
+                        return Padding(
+                          padding: EdgeInsets.fromLTRB(
+                              4, index == 0 ? 8 : 20, 4, 10),
+                          child: Text(
+                            entry,
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.2,
+                              color: BeelsColors.ink2,
+                            ),
+                          ),
+                        );
+                      }
+                      final t = entry as Transaction;
+                      return TransactionTile(
+                        key: ValueKey(t.id),
+                        transaction: t,
+                      );
+                    },
+                  ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  static String _dayLabel(DateTime? when) {
+    if (when == null) return 'Undated';
+    final d = when.toLocal();
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(d.year, d.month, d.day);
+    final diff = today.difference(day).inDays;
+    if (diff == 0) return 'Today';
+    if (diff == 1) return 'Yesterday';
+    return DateFormat(d.year == now.year ? 'EEE, d MMM' : 'd MMM yyyy')
+        .format(d);
+  }
+}
+
+class _FilterBar extends StatelessWidget {
+  const _FilterBar({required this.value, required this.onChanged});
+
+  final _TxFilter value;
+  final ValueChanged<_TxFilter> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    const labels = {
+      _TxFilter.all: 'All',
+      _TxFilter.deposits: 'Deposits',
+      _TxFilter.withdrawals: 'Withdrawals',
+    };
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+      child: Row(
+        children: [
+          for (final entry in labels.entries) ...[
+            Pressable(
+              onTap: () => onChanged(entry.key),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutQuart,
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                decoration: BoxDecoration(
+                  color:
+                      value == entry.key ? BeelsColors.dye : BeelsColors.panel,
+                  borderRadius: BorderRadius.circular(999),
+                  border: Border.all(
+                    color: value == entry.key
+                        ? BeelsColors.dye
+                        : BeelsColors.borderStrong,
                   ),
                 ),
-              ],
-            )
-          : ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
-              itemCount: list.items.length + (list.hasMore ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index >= list.items.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2.5),
-                      ),
-                    ),
-                  );
-                }
-                return TransactionTile(
-                  key: ValueKey(list.items[index].id),
-                  transaction: list.items[index],
-                );
-              },
+                child: Text(
+                  entry.value,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: value == entry.key ? Colors.white : BeelsColors.ink1,
+                  ),
+                ),
+              ),
             ),
+            const SizedBox(width: 8),
+          ],
+        ],
+      ),
     );
   }
 }
@@ -144,124 +290,130 @@ class _TransactionTileState extends State<TransactionTile> {
         : DateFormat('d MMM, yyyy · HH:mm')
             .format(transaction.createdAt!.toLocal());
 
+    final deposit = transaction.isDeposit;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: () => setState(() => _expanded = !_expanded),
-          child: Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: BeelsColors.border),
-            ),
-            child: Column(
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(14),
+        onTap: () => setState(() => _expanded = !_expanded),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: deposit ? BeelsColors.okSoft : BeelsColors.errSoft,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    deposit
+                        ? Icons.south_west_rounded
+                        : Icons.north_east_rounded,
+                    size: 19,
+                    color: deposit ? BeelsColors.ok : BeelsColors.err,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        deposit ? 'Deposit' : 'Withdrawal',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.3,
+                          color: deposit ? BeelsColors.ok : BeelsColors.err,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        transaction.beelName == null ||
+                                transaction.beelName!.isEmpty
+                            ? (deposit ? 'Deposit' : 'Withdrawal')
+                            : transaction.beelName!,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: BeelsColors.ink0,
+                            ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${transaction.reference ?? 'No reference'}  ·  $date',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: BeelsColors.ink2),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    _TypeBadge(isDeposit: transaction.isDeposit),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            transaction.beelName == null ||
-                                    transaction.beelName!.isEmpty
-                                ? (transaction.isDeposit
-                                    ? 'Deposit'
-                                    : 'Withdrawal')
-                                : transaction.beelName!,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleSmall
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: BeelsColors.ink0,
-                                ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${transaction.reference ?? 'No reference'}  ·  $date',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodySmall
-                                ?.copyWith(color: BeelsColors.ink2),
-                          ),
-                        ],
+                    Text(
+                      formatNairaSigned(
+                        transaction.amount ?? 0,
+                        incoming: deposit,
+                      ),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: deposit ? BeelsColors.ok : BeelsColors.ink0,
+                        fontFeatures: const [FontFeature.tabularFigures()],
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text(
-                          formatNairaSigned(
-                            transaction.amount ?? 0,
-                            incoming: transaction.isDeposit,
-                          ),
-                          style:
-                              Theme.of(context).textTheme.titleSmall?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: transaction.isDeposit
-                                        ? BeelsColors.ok
-                                        : BeelsColors.ink0,
-                                  ),
-                        ),
-                        const SizedBox(height: 4),
-                        StatusChip(
-                          label: transaction.status,
-                          kind: statusKind(transaction.status),
-                        ),
-                      ],
+                    const SizedBox(height: 6),
+                    StatusChip(
+                      label: transaction.status,
+                      kind: statusKind(transaction.status),
                     ),
                   ],
                 ),
-                if (_expanded) ...[
-                  const Divider(height: 20, color: BeelsColors.border),
-                  _detailRow(
-                      'Reference',
-                      transaction.reference == null ||
-                              transaction.reference!.isEmpty
-                          ? '—'
-                          : transaction.reference!),
-                  _detailRow(
-                      'Beel',
-                      transaction.beelName == null ||
-                              transaction.beelName!.isEmpty
-                          ? '—'
-                          : transaction.beelName!),
-                  _detailRow(
-                      'Unit Amount',
-                      transaction.unitAmount == null
-                          ? '—'
-                          : formatNaira(transaction.unitAmount!)),
-                  _detailRow(
-                      'Total Amount',
-                      transaction.totalAmount == null
-                          ? '—'
-                          : formatNaira(transaction.totalAmount!)),
-                  _detailRow(
-                      'Amount',
-                      transaction.amount == null
-                          ? '—'
-                          : formatNaira(transaction.amount!)),
-                  _detailRow('Status',
-                      transaction.status.isEmpty ? '—' : transaction.status),
-                  _detailRow('Date', date),
-                ],
               ],
             ),
-          ),
+            if (_expanded) ...[
+              Divider(height: 20, color: BeelsColors.border),
+              _detailRow(
+                  'Reference',
+                  transaction.reference == null ||
+                          transaction.reference!.isEmpty
+                      ? '—'
+                      : transaction.reference!),
+              _detailRow(
+                  'Beel',
+                  transaction.beelName == null || transaction.beelName!.isEmpty
+                      ? '—'
+                      : transaction.beelName!),
+              _detailRow(
+                  'Unit Amount',
+                  transaction.unitAmount == null
+                      ? '—'
+                      : formatNaira(transaction.unitAmount!)),
+              _detailRow(
+                  'Total Amount',
+                  transaction.totalAmount == null
+                      ? '—'
+                      : formatNaira(transaction.totalAmount!)),
+              _detailRow(
+                  'Amount',
+                  transaction.amount == null
+                      ? '—'
+                      : formatNaira(transaction.amount!)),
+              _detailRow('Status',
+                  transaction.status.isEmpty ? '—' : transaction.status),
+              _detailRow('Date', date),
+            ],
+          ],
         ),
       ),
     );
@@ -293,31 +445,6 @@ class _TransactionTileState extends State<TransactionTile> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _TypeBadge extends StatelessWidget {
-  const _TypeBadge({required this.isDeposit});
-
-  final bool isDeposit;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      decoration: BoxDecoration(
-        color: isDeposit ? BeelsColors.okSoft : BeelsColors.errSoft,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        isDeposit ? 'Deposit' : 'Withdrawal',
-        style: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: isDeposit ? BeelsColors.ok : BeelsColors.err,
-        ),
       ),
     );
   }

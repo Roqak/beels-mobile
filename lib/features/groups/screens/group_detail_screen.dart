@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -274,76 +275,100 @@ class _InfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
     final description = group.description;
-    return SurfaceCard(
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+    final onDark = Colors.white.withOpacity(0.75);
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: Stack(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                alignment: Alignment.center,
-                margin: const EdgeInsets.only(right: 12),
-                decoration: BoxDecoration(
-                  color: BeelsColors.accentSoft,
-                  borderRadius: BorderRadius.circular(16),
+          Positioned.fill(child: ColoredBox(color: BeelsColors.dye)),
+          const Positioned.fill(child: AdirePattern()),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(22, 22, 10, 22),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 52,
+                      height: 52,
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: BeelsColors.turmeric,
+                        borderRadius: BorderRadius.circular(18),
+                      ),
+                      child: Text(
+                        group.name.isNotEmpty
+                            ? group.name[0].toUpperCase()
+                            : '?',
+                        style: GoogleFonts.bricolageGrotesque(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: BeelsColors.dye,
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    IconButton(
+                      tooltip: 'Delete group',
+                      constraints:
+                          const BoxConstraints(minWidth: 48, minHeight: 48),
+                      icon: const Icon(Icons.delete_outline_rounded,
+                          color: Colors.white),
+                      onPressed: onDelete,
+                    ),
+                  ],
                 ),
-                child: Text(
-                  group.name.isNotEmpty ? group.name[0].toUpperCase() : '?',
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: BeelsColors.accent,
+                const SizedBox(height: 16),
+                Padding(
+                  padding: const EdgeInsets.only(right: 12),
+                  child: Text(
+                    group.name,
+                    style: GoogleFonts.bricolageGrotesque(
+                      fontSize: 28,
+                      height: 1.1,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: -0.7,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
-              ),
-              Expanded(
-                child: Text(
-                  group.name,
-                  style: theme.textTheme.titleLarge?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.3,
-                    color: BeelsColors.ink0,
+                if (description != null && description.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 12),
+                    child: Text(
+                      description,
+                      style:
+                          TextStyle(fontSize: 14, height: 1.4, color: onDark),
+                    ),
                   ),
+                ],
+                const SizedBox(height: 16),
+                Wrap(
+                  spacing: 16,
+                  runSpacing: 6,
+                  children: [
+                    _Meta(
+                      icon: Icons.people_outline,
+                      label: group.membersCount == 1
+                          ? '1 member'
+                          : '${group.membersCount} members',
+                      color: onDark,
+                    ),
+                    if (group.createdAt != null)
+                      _Meta(
+                        icon: Icons.event_outlined,
+                        label:
+                            'Created ${DateFormat('d MMM yyyy').format(group.createdAt!)}',
+                        color: onDark,
+                      ),
+                  ],
                 ),
-              ),
-              IconButton(
-                tooltip: 'Delete group',
-                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                icon: const Icon(Icons.delete_outline, color: BeelsColors.err),
-                onPressed: onDelete,
-              ),
-            ],
-          ),
-          if (description != null && description.isNotEmpty) ...[
-            const SizedBox(height: 12),
-            Text(
-              description,
-              style:
-                  theme.textTheme.bodyMedium?.copyWith(color: BeelsColors.ink1),
+              ],
             ),
-          ],
-          const SizedBox(height: 14),
-          Wrap(
-            spacing: 16,
-            runSpacing: 6,
-            children: [
-              _Meta(
-                icon: Icons.people_outline,
-                label: group.membersCount == 1
-                    ? '1 member'
-                    : '${group.membersCount} members',
-              ),
-              if (group.createdAt != null)
-                _Meta(
-                  icon: Icons.event_outlined,
-                  label:
-                      'Created ${DateFormat('d MMM yyyy').format(group.createdAt!)}',
-                ),
-            ],
           ),
         ],
       ),
@@ -352,10 +377,11 @@ class _InfoCard extends StatelessWidget {
 }
 
 class _Meta extends StatelessWidget {
-  const _Meta({required this.icon, required this.label});
+  const _Meta({required this.icon, required this.label, this.color});
 
   final IconData icon;
   final String label;
+  final Color? color;
 
   @override
   Widget build(BuildContext context) {
@@ -363,11 +389,12 @@ class _Meta extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: BeelsColors.ink2),
+        Icon(icon, size: 16, color: color ?? BeelsColors.ink2),
         const SizedBox(width: 4),
         Text(
           label,
-          style: theme.textTheme.bodySmall?.copyWith(color: BeelsColors.ink2),
+          style: theme.textTheme.bodySmall
+              ?.copyWith(color: color ?? BeelsColors.ink2),
         ),
       ],
     );
@@ -395,7 +422,7 @@ class _InviteCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.link, size: 18, color: BeelsColors.accent),
+              Icon(Icons.link, size: 18, color: BeelsColors.accent),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -525,7 +552,7 @@ class _MemberTile extends StatelessWidget {
           if (onRemove != null)
             IconButton(
               tooltip: 'Remove member',
-              icon: const Icon(Icons.remove_circle_outline,
+              icon: Icon(Icons.remove_circle_outline,
                   size: 20, color: BeelsColors.err),
               constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               onPressed: onRemove,

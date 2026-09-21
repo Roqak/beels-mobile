@@ -223,7 +223,7 @@ class _MemberRow extends StatelessWidget {
                 ),
                 IconButton(
                   tooltip: 'Remove member',
-                  icon: const Icon(Icons.remove_circle_outline,
+                  icon: Icon(Icons.remove_circle_outline,
                       size: 20, color: BeelsColors.err),
                   constraints:
                       const BoxConstraints(minWidth: 48, minHeight: 48),

@@ -19,16 +19,16 @@ class RotaRing extends StatelessWidget {
     required this.center,
     this.size = 148,
     this.stroke = 12,
-    this.trackColor = BeelsColors.border,
-    this.paidColor = BeelsColors.accent,
+    this.trackColor,
+    this.paidColor,
   });
 
   final List<RotaSlot> slots;
   final Widget center;
   final double size;
   final double stroke;
-  final Color trackColor;
-  final Color paidColor;
+  final Color? trackColor;
+  final Color? paidColor;
 
   @override
   Widget build(BuildContext context) {
@@ -45,8 +45,8 @@ class RotaRing extends StatelessWidget {
             slots: slots,
             stroke: stroke,
             t: t,
-            trackColor: trackColor,
-            paidColor: paidColor,
+            trackColor: trackColor ?? BeelsColors.border,
+            paidColor: paidColor ?? BeelsColors.accent,
           ),
           child: child,
         ),

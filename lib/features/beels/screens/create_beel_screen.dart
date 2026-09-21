@@ -285,6 +285,31 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
   }
 
   Widget _buildModeSelector() {
+    final helper = _mode == 'closed'
+        ? 'You choose who contributes and how much each person pays.'
+        : 'Anyone with your link can contribute. Share it once and collect.';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(width: double.infinity, child: _segmented()),
+        const SizedBox(height: 10),
+        AnimatedSwitcher(
+          duration: const Duration(milliseconds: 180),
+          child: Text(
+            helper,
+            key: ValueKey(_mode),
+            style: TextStyle(
+              fontSize: 13,
+              height: 1.4,
+              color: BeelsColors.ink2,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _segmented() {
     return SegmentedButton<String>(
       segments: [
         for (final entry in _kModes.entries)
@@ -304,8 +329,8 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
               ? BeelsColors.accent
               : BeelsColors.ink1,
         ),
-        side: const WidgetStatePropertyAll(
-            BorderSide(color: BeelsColors.borderStrong)),
+        side:
+            WidgetStatePropertyAll(BorderSide(color: BeelsColors.borderStrong)),
       ),
       onSelectionChanged: (selection) {
         HapticFeedback.selectionClick();
@@ -383,7 +408,7 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
           ];
 
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: BeelsColors.panel,
         border: Border(top: BorderSide(color: BeelsColors.border)),
       ),
@@ -678,11 +703,18 @@ class MoneyField extends StatelessWidget {
       ),
       decoration: InputDecoration(
         hintText: hint,
-        prefixText: '₦ ',
-        prefixStyle: const TextStyle(
-          color: BeelsColors.ink0,
-          fontWeight: FontWeight.w600,
+        prefixIcon: Padding(
+          padding: const EdgeInsets.only(left: 16, right: 4),
+          child: Text(
+            '₦',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: BeelsColors.ink1,
+            ),
+          ),
         ),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 0),
       ),
     );
   }
@@ -717,7 +749,7 @@ class _LabeledField extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4, left: 12),
             child: Text(
               error!,
-              style: const TextStyle(color: BeelsColors.err, fontSize: 12),
+              style: TextStyle(color: BeelsColors.err, fontSize: 12),
             ),
           ),
       ],
@@ -850,7 +882,7 @@ class _ContributorEditorRow extends StatelessWidget {
                 padding: const EdgeInsets.only(top: 4, left: 12),
                 child: Text(
                   _errorOf('_amount')!,
-                  style: const TextStyle(color: BeelsColors.err, fontSize: 12),
+                  style: TextStyle(color: BeelsColors.err, fontSize: 12),
                 ),
               ),
           ],
@@ -1026,8 +1058,7 @@ class _BeneficiaryEditorRow extends StatelessWidget {
                   padding: const EdgeInsets.only(top: 4, left: 12),
                   child: Text(
                     _errorOf('_amount')!,
-                    style:
-                        const TextStyle(color: BeelsColors.err, fontSize: 12),
+                    style: TextStyle(color: BeelsColors.err, fontSize: 12),
                   ),
                 ),
             ],
@@ -1120,7 +1151,7 @@ class _ReviewPane extends StatelessWidget {
               ),
               child: Text(
                 screen._errors['review']!,
-                style: const TextStyle(color: BeelsColors.err),
+                style: TextStyle(color: BeelsColors.err),
               ),
             )
           else if (screen._errors['review_warning'] != null)
@@ -1133,7 +1164,7 @@ class _ReviewPane extends StatelessWidget {
               ),
               child: Text(
                 screen._errors['review_warning']!,
-                style: const TextStyle(color: BeelsColors.warn),
+                style: TextStyle(color: BeelsColors.warn),
               ),
             )
           else
@@ -1144,7 +1175,7 @@ class _ReviewPane extends StatelessWidget {
                 color: BeelsColors.okSoft,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Text(
+              child: Text(
                 'Everything looks good. Submit to create the beel.',
                 style: TextStyle(color: BeelsColors.ok),
               ),

@@ -138,10 +138,13 @@ void main() {
     );
   });
 
-  testWidgets('saving the edit form updates the header and confirms',
+  testWidgets('saving the edit sheet updates the header and confirms',
       (tester) async {
     final controller = _FakeProfileController(seed: _seed);
     await _pumpProfile(tester, controller: controller);
+
+    await tester.tap(find.text('Edit profile'));
+    await tester.pumpAndSettle();
 
     await tester.enterText(find.byType(TextFormField).at(0), 'Adanna');
     await tester.enterText(find.byType(TextFormField).at(2), '08099999999');
@@ -153,6 +156,8 @@ void main() {
     expect(controller.updateCalls.single['phoneNumber'], '08099999999');
     expect(find.text('Adanna Obi'), findsOneWidget);
     expect(find.text('Profile updated'), findsOneWidget);
+    // Sheet closed after a successful save.
+    expect(find.text('Save changes'), findsNothing);
     await _flushSnackbars(tester);
   });
 
@@ -161,10 +166,12 @@ void main() {
     final controller = _FakeProfileController(seed: _seed);
     await _pumpProfile(tester, controller: controller);
 
-    await tester.enterText(find.byType(TextFormField).at(3), 'old6chars');
-    await tester.enterText(find.byType(TextFormField).at(4), 'new6chars');
-    await tester.enterText(find.byType(TextFormField).at(5), 'different');
-    // The password form sits below the fold in the default test viewport.
+    await tester.tap(find.text('Change password'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'old6chars');
+    await tester.enterText(find.byType(TextFormField).at(1), 'new6chars');
+    await tester.enterText(find.byType(TextFormField).at(2), 'different');
     await tester.ensureVisible(find.text('Change password').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Change password').last);
@@ -174,13 +181,17 @@ void main() {
     expect(controller.changeCalls, 0);
   });
 
-  testWidgets('change password submits and clears the fields', (tester) async {
+  testWidgets('change password submits, closes the sheet and confirms',
+      (tester) async {
     final controller = _FakeProfileController(seed: _seed);
     await _pumpProfile(tester, controller: controller);
 
-    await tester.enterText(find.byType(TextFormField).at(3), 'old6chars');
-    await tester.enterText(find.byType(TextFormField).at(4), 'new6chars');
-    await tester.enterText(find.byType(TextFormField).at(5), 'new6chars');
+    await tester.tap(find.text('Change password'));
+    await tester.pumpAndSettle();
+
+    await tester.enterText(find.byType(TextFormField).at(0), 'old6chars');
+    await tester.enterText(find.byType(TextFormField).at(1), 'new6chars');
+    await tester.enterText(find.byType(TextFormField).at(2), 'new6chars');
     await tester.ensureVisible(find.text('Change password').last);
     await tester.pumpAndSettle();
     await tester.tap(find.text('Change password').last);
@@ -189,12 +200,7 @@ void main() {
     expect(controller.changeCalls, 1);
     expect(controller.lastChange, ['old6chars', 'new6chars']);
     expect(find.text('Password changed'), findsOneWidget);
-    expect(
-      tester.widget<TextFormField>(find.byType(TextFormField).at(3))
-          .controller
-          ?.text,
-      '',
-    );
+    expect(find.byType(TextFormField), findsNothing);
     await _flushSnackbars(tester);
   });
 

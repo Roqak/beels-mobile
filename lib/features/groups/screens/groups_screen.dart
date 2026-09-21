@@ -78,6 +78,53 @@ class GroupsScreen extends ConsumerWidget {
   }
 }
 
+/// Up to three overlapping initials for the group's members.
+class _AvatarStack extends StatelessWidget {
+  const _AvatarStack({required this.members});
+
+  final List<GroupMember> members;
+
+  @override
+  Widget build(BuildContext context) {
+    final shown = members.take(3).toList();
+    if (shown.isEmpty) return const SizedBox.shrink();
+    const size = 24.0;
+    const overlap = 16.0;
+    return SizedBox(
+      width: size + (shown.length - 1) * overlap,
+      height: size,
+      child: Stack(
+        children: [
+          for (var i = 0; i < shown.length; i++)
+            Positioned(
+              left: i * overlap,
+              child: Container(
+                width: size,
+                height: size,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: BeelsColors.accentSoft,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: BeelsColors.panel, width: 2),
+                ),
+                child: Text(
+                  shown[i].fullName.trim().isEmpty
+                      ? '?'
+                      : shown[i].fullName.trim()[0].toUpperCase(),
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: BeelsColors.accent,
+                  ),
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
 class _GroupCard extends StatelessWidget {
   const _GroupCard({required this.group, required this.onOpen});
 
@@ -95,13 +142,18 @@ class _GroupCard extends StatelessWidget {
         onTap: onOpen,
         child: Row(
           children: [
-            CircleAvatar(
-              radius: 22,
-              backgroundColor: BeelsColors.accentSoft,
+            Container(
+              width: 48,
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: BeelsColors.dye,
+                borderRadius: BorderRadius.circular(16),
+              ),
               child: Text(
                 group.name.isNotEmpty ? group.name[0].toUpperCase() : '?',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: BeelsColors.accent,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  color: Colors.white,
                   fontWeight: FontWeight.w700,
                 ),
               ),
@@ -131,9 +183,8 @@ class _GroupCard extends StatelessWidget {
                   const SizedBox(height: 6),
                   Row(
                     children: [
-                      const Icon(Icons.people_outline,
-                          size: 14, color: BeelsColors.ink3),
-                      const SizedBox(width: 4),
+                      _AvatarStack(members: group.members),
+                      if (group.members.isNotEmpty) const SizedBox(width: 8),
                       Text(
                         count == 1 ? '1 member' : '$count members',
                         style: theme.textTheme.bodySmall
@@ -144,7 +195,7 @@ class _GroupCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right, color: BeelsColors.ink3),
+            Icon(Icons.chevron_right, color: BeelsColors.ink3),
           ],
         ),
       ),

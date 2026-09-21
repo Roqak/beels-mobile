@@ -194,7 +194,7 @@ class _GreetingHeader extends StatelessWidget {
             width: 46,
             height: 46,
             alignment: Alignment.center,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: BeelsColors.dye,
               shape: BoxShape.circle,
             ),
@@ -230,7 +230,7 @@ class _HeroPanel extends StatelessWidget {
       borderRadius: BorderRadius.circular(28),
       child: Stack(
         children: [
-          const Positioned.fill(child: ColoredBox(color: BeelsColors.dye)),
+          Positioned.fill(child: ColoredBox(color: BeelsColors.dye)),
           Positioned.fill(
             child: TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: 1),
@@ -474,7 +474,7 @@ class _NextUpCard extends StatelessWidget {
                     beel.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
                       letterSpacing: -0.2,
@@ -484,8 +484,8 @@ class _NextUpCard extends StatelessWidget {
                   const SizedBox(height: 2),
                   Text(
                     recurrenceLabel(beel),
-                    style: const TextStyle(
-                        fontSize: 13, color: BeelsColors.turmericInk),
+                    style:
+                        TextStyle(fontSize: 13, color: BeelsColors.turmericInk),
                   ),
                 ],
               ),
@@ -493,7 +493,7 @@ class _NextUpCard extends StatelessWidget {
             if (amount != null)
               Text(
                 formatNaira(amount),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: BeelsColors.ink0,
@@ -532,7 +532,7 @@ class _UpcomingRow extends StatelessWidget {
                     beel.name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
                       color: BeelsColors.ink0,
@@ -540,8 +540,7 @@ class _UpcomingRow extends StatelessWidget {
                   ),
                   Text(
                     recurrenceLabel(beel),
-                    style:
-                        const TextStyle(fontSize: 12, color: BeelsColors.ink2),
+                    style: TextStyle(fontSize: 12, color: BeelsColors.ink2),
                   ),
                 ],
               ),
@@ -549,7 +548,7 @@ class _UpcomingRow extends StatelessWidget {
             if (amount != null)
               Text(
                 formatNaira(amount),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w700,
                   color: BeelsColors.ink1,

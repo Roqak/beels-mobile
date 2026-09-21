@@ -157,7 +157,7 @@ class _MandateTile extends StatelessWidget {
               color: BeelsColors.accentSoft,
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.account_balance_outlined,
+            child: Icon(Icons.account_balance_outlined,
                 color: BeelsColors.accent, size: 22),
           ),
           const SizedBox(width: 12),

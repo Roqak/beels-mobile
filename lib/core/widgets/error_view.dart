@@ -25,14 +25,14 @@ class ErrorView extends StatelessWidget {
                 color: BeelsColors.errSoft,
                 borderRadius: BorderRadius.circular(24),
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.cloud_off_rounded,
                 color: BeelsColors.err,
                 size: 28,
               ),
             ),
             const SizedBox(height: 20),
-            const Text(
+            Text(
               'Something went wrong',
               textAlign: TextAlign.center,
               style: TextStyle(
@@ -45,7 +45,7 @@ class ErrorView extends StatelessWidget {
             Text(
               error.message,
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                   fontSize: 14, height: 1.45, color: BeelsColors.ink1),
             ),
             if (onRetry != null) ...[

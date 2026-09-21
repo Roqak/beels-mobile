@@ -19,7 +19,7 @@ class AuthHero extends StatelessWidget {
         height: compact ? 132 : 196,
         child: Stack(
           children: [
-            const Positioned.fill(child: ColoredBox(color: BeelsColors.dye)),
+            Positioned.fill(child: ColoredBox(color: BeelsColors.dye)),
             const Positioned.fill(child: AdirePattern()),
             Positioned(
               left: 22,
@@ -31,7 +31,7 @@ class AuthHero extends StatelessWidget {
                   Container(
                     width: 8,
                     height: 8,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       color: BeelsColors.turmeric,
                       shape: BoxShape.circle,
                     ),

@@ -196,7 +196,7 @@ class BeelCard extends StatelessWidget {
               const SizedBox(height: 10),
               Row(
                 children: [
-                  const Icon(Icons.event_repeat_rounded,
+                  Icon(Icons.event_repeat_rounded,
                       size: 15, color: BeelsColors.ink2),
                   const SizedBox(width: 6),
                   Expanded(
@@ -220,7 +220,7 @@ class BeelCard extends StatelessWidget {
                         color: BeelsColors.accentSoft,
                         borderRadius: BorderRadius.circular(999),
                       ),
-                      child: const Text(
+                      child: Text(
                         'Open link',
                         style: TextStyle(
                           fontSize: 12,

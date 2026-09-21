@@ -104,13 +104,13 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.check_circle_rounded,
+                      Icon(Icons.check_circle_rounded,
                           size: 20, color: BeelsColors.ok),
                       const SizedBox(width: 8),
                       Expanded(
                         child: Text(
                           'Verified: ${state.accountName}',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.w600,
                             color: BeelsColors.ok,
                           ),
@@ -183,14 +183,14 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
                 color: BeelsColors.surfaceAlt,
                 child: Row(
                   children: [
-                    const Icon(Icons.account_balance_outlined,
+                    Icon(Icons.account_balance_outlined,
                         size: 20, color: BeelsColors.accent),
                     const SizedBox(width: 10),
                     Expanded(
                       child: Text(
                         '${state.selectedBank?.name ?? ''} •••• ${_last4(state.accountNumber)}'
                         '${state.accountName != null ? ' — ${state.accountName}' : ''}',
-                        style: const TextStyle(color: BeelsColors.ink0),
+                        style: TextStyle(color: BeelsColors.ink0),
                       ),
                     ),
                   ],
@@ -285,7 +285,7 @@ class _StepIndicator extends StatelessWidget {
           const SizedBox(height: 10),
           Text(
             '${currentIndex + 1}. ${labels[currentIndex]}',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
               color: BeelsColors.ink1,
@@ -377,7 +377,7 @@ class _BankSheetState extends State<_BankSheet> {
             ),
             Expanded(
               child: rows.isEmpty
-                  ? const Center(
+                  ? Center(
                       child: Text(
                         'No bank matches that search.',
                         style: TextStyle(color: BeelsColors.ink2),

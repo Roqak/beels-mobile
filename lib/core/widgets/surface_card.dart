@@ -10,24 +10,24 @@ class SurfaceCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(16),
     this.onTap,
-    this.color = BeelsColors.panel,
+    this.color,
     this.radius = 16,
   });
 
   final Widget child;
   final EdgeInsetsGeometry padding;
   final VoidCallback? onTap;
-  final Color color;
+  final Color? color;
   final double radius;
 
   @override
   Widget build(BuildContext context) {
     final shape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(radius),
-      side: const BorderSide(color: BeelsColors.border),
+      side: BorderSide(color: BeelsColors.border),
     );
     return Material(
-      color: color,
+      color: color ?? BeelsColors.panel,
       shape: shape,
       clipBehavior: Clip.antiAlias,
       child: onTap == null

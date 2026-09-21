@@ -82,7 +82,7 @@ class SkeletonBox extends StatelessWidget {
             gradient: LinearGradient(
               begin: Alignment(-1.5 + 3 * t, 0),
               end: Alignment(-0.5 + 3 * t, 0),
-              colors: const [
+              colors: [
                 BeelsColors.fieldFill,
                 BeelsColors.surfaceAlt,
                 BeelsColors.fieldFill,

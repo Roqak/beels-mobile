@@ -10,7 +10,7 @@ class ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const errorColor = BeelsColors.err;
+    final errorColor = BeelsColors.err;
     return Semantics(
       liveRegion: true,
       child: Container(
@@ -21,12 +21,12 @@ class ErrorBanner extends StatelessWidget {
         ),
         child: Row(
           children: [
-            const Icon(Icons.error_outline, color: errorColor, size: 20),
+            Icon(Icons.error_outline, color: errorColor, size: 20),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 message,
-                style: const TextStyle(color: errorColor, fontSize: 14),
+                style: TextStyle(color: errorColor, fontSize: 14),
               ),
             ),
           ],

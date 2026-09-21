@@ -1,43 +1,180 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Beels design tokens (web parity).
-class BeelsColors {
-  BeelsColors._();
+/// One complete colour set. Light and dark palettes share the same roles.
+class BeelsPalette {
+  const BeelsPalette({
+    required this.brightness,
+    required this.accent,
+    required this.accentHover,
+    required this.accentSoft,
+    required this.dye,
+    required this.dyeMid,
+    required this.dyeLine,
+    required this.turmeric,
+    required this.turmericSoft,
+    required this.turmericInk,
+    required this.surface,
+    required this.surfaceAlt,
+    required this.panel,
+    required this.fieldFill,
+    required this.border,
+    required this.borderStrong,
+    required this.ink0,
+    required this.ink1,
+    required this.ink2,
+    required this.ink3,
+    required this.hint,
+    required this.ok,
+    required this.okSoft,
+    required this.warn,
+    required this.warnSoft,
+    required this.err,
+    required this.errSoft,
+  });
+
+  final Brightness brightness;
+  final Color accent,
+      accentHover,
+      accentSoft,
+      dye,
+      dyeMid,
+      dyeLine,
+      turmeric,
+      turmericSoft,
+      turmericInk,
+      surface,
+      surfaceAlt,
+      panel,
+      fieldFill,
+      border,
+      borderStrong,
+      ink0,
+      ink1,
+      ink2,
+      ink3,
+      hint,
+      ok,
+      okSoft,
+      warn,
+      warnSoft,
+      err,
+      errSoft;
 
   // Adire palette: dyed indigo surfaces, live indigo actions, turmeric for
   // "your turn / next" moments only.
-  static const accent = Color(0xFF3D35CC);
-  static const accentHover = Color(0xFF2F28A6);
-  static const accentSoft = Color(0xFFECEBFB);
-  static const dye = Color(0xFF17163F);
-  static const dyeMid = Color(0xFF25236B);
-  static const dyeLine = Color(0xFF5450C4);
-  static const turmeric = Color(0xFFF0A81E);
-  static const turmericSoft = Color(0xFFFCF1D8);
-  static const turmericInk = Color(0xFF7A5200);
-  static const surface = Color(0xFFFCFCFE);
-  static const surfaceAlt = Color(0xFFF7F7FA);
-  static const panel = Color(0xFFFFFFFF);
-  static const fieldFill = Color(0xFFF4F4F8);
-  static const border = Color(0xFFE3E3EA);
-  static const borderStrong = Color(0xFFD5D5DF);
-  static const ink0 = Color(0xFF21222D);
-  static const ink1 = Color(0xFF5B5D6B);
-  static const ink2 = Color(0xFF7B7D8C);
-  static const ink3 = Color(0xFF9DA0AE);
-  static const hint = Color(0xFF8A8C99);
-  static const ok = Color(0xFF1F7A4D);
-  static const okSoft = Color(0xFFEAF6F0);
-  static const warn = Color(0xFFB0700F);
-  static const warnSoft = Color(0xFFFBF3E4);
-  static const err = Color(0xFFB23A3A);
-  static const errSoft = Color(0xFFFBEDED);
+  static const light = BeelsPalette(
+    brightness: Brightness.light,
+    accent: Color(0xFF3D35CC),
+    accentHover: Color(0xFF2F28A6),
+    accentSoft: Color(0xFFECEBFB),
+    dye: Color(0xFF17163F),
+    dyeMid: Color(0xFF25236B),
+    dyeLine: Color(0xFF5450C4),
+    turmeric: Color(0xFFF0A81E),
+    turmericSoft: Color(0xFFFCF1D8),
+    turmericInk: Color(0xFF7A5200),
+    surface: Color(0xFFFCFCFE),
+    surfaceAlt: Color(0xFFF7F7FA),
+    panel: Color(0xFFFFFFFF),
+    fieldFill: Color(0xFFF4F4F8),
+    border: Color(0xFFE3E3EA),
+    borderStrong: Color(0xFFD5D5DF),
+    ink0: Color(0xFF21222D),
+    ink1: Color(0xFF5B5D6B),
+    ink2: Color(0xFF7B7D8C),
+    ink3: Color(0xFF9DA0AE),
+    hint: Color(0xFF8A8C99),
+    ok: Color(0xFF1F7A4D),
+    okSoft: Color(0xFFEAF6F0),
+    warn: Color(0xFFB0700F),
+    warnSoft: Color(0xFFFBF3E4),
+    err: Color(0xFFB23A3A),
+    errSoft: Color(0xFFFBEDED),
+  );
+
+  // Night: indigo-tinted near-black, raised panels one step lighter, the same
+  // dye hero surfaces lifted so they still separate from the page.
+  static const dark = BeelsPalette(
+    brightness: Brightness.dark,
+    accent: Color(0xFF6F67F5),
+    accentHover: Color(0xFF8F89FF),
+    accentSoft: Color(0xFF26244F),
+    dye: Color(0xFF211F5C),
+    dyeMid: Color(0xFF2C2A78),
+    dyeLine: Color(0xFF6763D6),
+    turmeric: Color(0xFFF0A81E),
+    turmericSoft: Color(0xFF3A2E12),
+    turmericInk: Color(0xFFF3C46B),
+    surface: Color(0xFF11111B),
+    surfaceAlt: Color(0xFF161622),
+    panel: Color(0xFF1A1A27),
+    fieldFill: Color(0xFF232332),
+    border: Color(0xFF2C2C3D),
+    borderStrong: Color(0xFF3B3B50),
+    ink0: Color(0xFFF1F1F7),
+    ink1: Color(0xFFBEBFD1),
+    ink2: Color(0xFF9294A9),
+    ink3: Color(0xFF6E7087),
+    hint: Color(0xFF7C7E93),
+    ok: Color(0xFF4FCB8B),
+    okSoft: Color(0xFF14301F),
+    warn: Color(0xFFE2A03F),
+    warnSoft: Color(0xFF33270F),
+    err: Color(0xFFF07676),
+    errSoft: Color(0xFF361B1E),
+  );
+}
+
+/// Beels design tokens. Read at build time from the active [BeelsPalette];
+/// the app root calls [apply] when the system brightness changes.
+class BeelsColors {
+  BeelsColors._();
+
+  static BeelsPalette _p = BeelsPalette.light;
+
+  static void apply(Brightness brightness) {
+    _p = brightness == Brightness.dark ? BeelsPalette.dark : BeelsPalette.light;
+  }
+
+  static Brightness get brightness => _p.brightness;
+
+  static Color get accent => _p.accent;
+  static Color get accentHover => _p.accentHover;
+  static Color get accentSoft => _p.accentSoft;
+  static Color get dye => _p.dye;
+  static Color get dyeMid => _p.dyeMid;
+  static Color get dyeLine => _p.dyeLine;
+  static Color get turmeric => _p.turmeric;
+  static Color get turmericSoft => _p.turmericSoft;
+  static Color get turmericInk => _p.turmericInk;
+  static Color get surface => _p.surface;
+  static Color get surfaceAlt => _p.surfaceAlt;
+  static Color get panel => _p.panel;
+  static Color get fieldFill => _p.fieldFill;
+  static Color get border => _p.border;
+  static Color get borderStrong => _p.borderStrong;
+  static Color get ink0 => _p.ink0;
+  static Color get ink1 => _p.ink1;
+  static Color get ink2 => _p.ink2;
+  static Color get ink3 => _p.ink3;
+  static Color get hint => _p.hint;
+  static Color get ok => _p.ok;
+  static Color get okSoft => _p.okSoft;
+  static Color get warn => _p.warn;
+  static Color get warnSoft => _p.warnSoft;
+  static Color get err => _p.err;
+  static Color get errSoft => _p.errSoft;
 }
 
 /// Material 3 theme: Inter for body/labels, Bricolage Grotesque for headings.
 ThemeData beelsTheme(BuildContext context) {
-  final base = ThemeData(useMaterial3: true);
+  final isDark = BeelsColors.brightness == Brightness.dark;
+  final base = ThemeData(
+    useMaterial3: true,
+    brightness: isDark ? Brightness.dark : Brightness.light,
+  );
 
   final inter = GoogleFonts.interTextTheme(base.textTheme);
   final display = GoogleFonts.bricolageGrotesqueTextTheme(base.textTheme);
@@ -65,9 +202,10 @@ ThemeData beelsTheme(BuildContext context) {
     colorScheme: colorScheme,
     scaffoldBackgroundColor: BeelsColors.surface,
     textTheme: textTheme,
-    textSelectionTheme:
-        const TextSelectionThemeData(cursorColor: BeelsColors.accent),
+    textSelectionTheme: TextSelectionThemeData(cursorColor: BeelsColors.accent),
     appBarTheme: AppBarTheme(
+      systemOverlayStyle:
+          isDark ? SystemUiOverlayStyle.light : SystemUiOverlayStyle.dark,
       backgroundColor: BeelsColors.surface,
       surfaceTintColor: Colors.transparent,
       foregroundColor: BeelsColors.ink0,
@@ -88,21 +226,21 @@ ThemeData beelsTheme(BuildContext context) {
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: const BorderSide(color: BeelsColors.border),
+        side: BorderSide(color: BeelsColors.border),
       ),
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: BeelsColors.fieldFill,
       hintStyle: textTheme.bodyMedium?.copyWith(color: BeelsColors.hint),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      contentPadding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: BorderSide.none,
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: BeelsColors.accent, width: 1.5),
+        borderSide: BorderSide(color: BeelsColors.accent, width: 1.5),
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -110,7 +248,7 @@ ThemeData beelsTheme(BuildContext context) {
       ),
       focusedErrorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: BeelsColors.err, width: 1.5),
+        borderSide: BorderSide(color: BeelsColors.err, width: 1.5),
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
@@ -120,7 +258,7 @@ ThemeData beelsTheme(BuildContext context) {
     chipTheme: base.chipTheme.copyWith(
       backgroundColor: BeelsColors.surfaceAlt,
       selectedColor: BeelsColors.accentSoft,
-      side: const BorderSide(color: BeelsColors.border),
+      side: BorderSide(color: BeelsColors.border),
       shape: const StadiumBorder(),
       showCheckmark: false,
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -142,7 +280,7 @@ ThemeData beelsTheme(BuildContext context) {
     outlinedButtonTheme: OutlinedButtonThemeData(
       style: OutlinedButton.styleFrom(
         foregroundColor: BeelsColors.accent,
-        side: const BorderSide(color: BeelsColors.borderStrong),
+        side: BorderSide(color: BeelsColors.borderStrong),
         minimumSize: const Size(0, 48),
         padding: const EdgeInsets.symmetric(horizontal: 20),
         shape: const StadiumBorder(),
@@ -185,13 +323,14 @@ ThemeData beelsTheme(BuildContext context) {
         TargetPlatform.linux: BeelsPageTransitionsBuilder(),
       },
     ),
-    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+    floatingActionButtonTheme: FloatingActionButtonThemeData(
       backgroundColor: BeelsColors.dye,
       foregroundColor: Colors.white,
       elevation: 2,
       highlightElevation: 3,
-      extendedTextStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-      shape: StadiumBorder(),
+      extendedTextStyle:
+          const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+      shape: const StadiumBorder(),
     ),
     dialogTheme: DialogTheme(
       backgroundColor: BeelsColors.panel,
@@ -202,12 +341,12 @@ ThemeData beelsTheme(BuildContext context) {
         color: BeelsColors.ink0,
       ),
     ),
-    bottomSheetTheme: const BottomSheetThemeData(
+    bottomSheetTheme: BottomSheetThemeData(
       backgroundColor: BeelsColors.panel,
       surfaceTintColor: Colors.transparent,
       showDragHandle: true,
       dragHandleColor: BeelsColors.borderStrong,
-      shape: RoundedRectangleBorder(
+      shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
     ),
@@ -217,12 +356,12 @@ ThemeData beelsTheme(BuildContext context) {
       contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ),
-    dividerTheme: const DividerThemeData(
+    dividerTheme: DividerThemeData(
       color: BeelsColors.border,
       thickness: 1,
       space: 1,
     ),
-    progressIndicatorTheme: const ProgressIndicatorThemeData(
+    progressIndicatorTheme: ProgressIndicatorThemeData(
       color: BeelsColors.accent,
       linearTrackColor: BeelsColors.border,
     ),
