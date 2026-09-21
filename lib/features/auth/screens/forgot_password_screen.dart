@@ -9,6 +9,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../data/auth_repository.dart';
 import '../validation.dart';
 import '../widgets/error_banner.dart';
+import '../widgets/auth_hero.dart';
 import '../widgets/fields.dart';
 import 'package:beels_mobile/core/theme.dart';
 
@@ -89,6 +90,8 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
+          const AuthHero(compact: true),
+          const SizedBox(height: 24),
           Text(
             'Reset your password',
             style: theme.textTheme.headlineMedium?.copyWith(

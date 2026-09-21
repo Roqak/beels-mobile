@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -299,141 +300,171 @@ class _HeaderCard extends StatelessWidget {
         beel.contributors.fold<num>(0, (sum, c) => sum + (c.amountPaid ?? 0));
     final expected =
         beel.contributors.fold<num>(0, (sum, c) => sum + (c.unitAmount ?? 0));
+    final slots = [
+      for (final c in beel.contributors)
+        RotaSlot((c.unitAmount ?? 0) <= 0
+            ? 0
+            : ((c.amountPaid ?? 0) / c.unitAmount!).clamp(0.0, 1.0).toDouble()),
+    ];
+    final paidCount = slots.where((s) => s.fraction >= 1).length;
+    final onDark = Colors.white.withOpacity(0.72);
 
-    return SizedBox(
-      width: double.infinity,
-      child: SurfaceCard(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(28),
+      child: Stack(
+        children: [
+          const Positioned.fill(child: ColoredBox(color: BeelsColors.dye)),
+          const Positioned.fill(child: AdirePattern()),
+          Padding(
+            padding: const EdgeInsets.all(22),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Text(
-                    beel.name,
-                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        beel.name,
+                        style: GoogleFonts.bricolageGrotesque(
+                          fontSize: 26,
+                          height: 1.15,
                           fontWeight: FontWeight.w700,
-                          color: BeelsColors.ink0,
+                          letterSpacing: -0.6,
+                          color: Colors.white,
                         ),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: beel.isOpenLink
-                        ? BeelsColors.accentSoft
-                        : BeelsColors.fieldFill,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    beel.isOpenLink ? 'Open link' : 'Closed',
-                    style: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: beel.isOpenLink
-                          ? BeelsColors.accent
-                          : BeelsColors.ink1,
+                      ),
                     ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.14),
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                      child: Text(
+                        beel.isOpenLink ? 'Open link' : 'Closed',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    StatusChip(
+                        label: beel.status, kind: statusKind(beel.status)),
+                    if (cancelledAt != null) ...[
+                      const SizedBox(width: 8),
+                      Text(
+                        'Cancelled $cancelledAt',
+                        style: TextStyle(fontSize: 12, color: onDark),
+                      ),
+                    ],
+                  ],
+                ),
+                if (expected > 0) ...[
+                  const SizedBox(height: 22),
+                  Row(
+                    children: [
+                      RotaRing(
+                        slots: slots,
+                        size: 132,
+                        stroke: 11,
+                        trackColor: Colors.white.withOpacity(0.16),
+                        paidColor: BeelsColors.turmeric,
+                        center: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              '$paidCount/${slots.length}',
+                              style: GoogleFonts.bricolageGrotesque(
+                                fontSize: 30,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                            Text(
+                              'paid',
+                              style: TextStyle(fontSize: 12, color: onDark),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(width: 22),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'Collected',
+                              style: TextStyle(fontSize: 13, color: onDark),
+                            ),
+                            const SizedBox(height: 2),
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: AnimatedNaira(
+                                collected,
+                                style: GoogleFonts.bricolageGrotesque(
+                                  fontSize: 30,
+                                  height: 1.1,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: -0.8,
+                                  color: Colors.white,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures()
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'of ${formatNaira(expected)}',
+                              style: TextStyle(fontSize: 13, color: onDark),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+                const SizedBox(height: 20),
+                Container(height: 1, color: Colors.white.withOpacity(0.14)),
+                const SizedBox(height: 14),
+                Text(
+                  _amountsLine(),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                    fontFeatures: [FontFeature.tabularFigures()],
                   ),
                 ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              children: [
-                StatusChip(label: beel.status, kind: statusKind(beel.status)),
-                if (cancelledAt != null) ...[
-                  const SizedBox(width: 8),
+                const SizedBox(height: 4),
+                Text(
+                  recurrenceLabel(beel) +
+                      (nextOccurrence == null
+                          ? ''
+                          : '  ·  Next: $nextOccurrence'),
+                  style: TextStyle(fontSize: 13, color: onDark),
+                ),
+                if (beel.isOpenLink && beel.amountPerContributor != null) ...[
+                  const SizedBox(height: 4),
                   Text(
-                    'Cancelled $cancelledAt',
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: BeelsColors.err),
+                    '${formatNaira(beel.amountPerContributor!)} per contributor',
+                    style: TextStyle(fontSize: 13, color: onDark),
                   ),
                 ],
               ],
             ),
-            const SizedBox(height: 12),
-            Text(
-              _amountsLine(),
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.w700,
-                letterSpacing: -0.2,
-                color: BeelsColors.ink0,
-                fontFeatures: const [FontFeature.tabularFigures()],
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              recurrenceLabel(beel) +
-                  (nextOccurrence == null ? '' : '  ·  Next: $nextOccurrence'),
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: BeelsColors.ink1),
-            ),
-            if (beel.isOpenLink && beel.amountPerContributor != null) ...[
-              const SizedBox(height: 4),
-              Text(
-                '${formatNaira(beel.amountPerContributor!)} per contributor',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: BeelsColors.ink1),
-              ),
-            ],
-            if (expected > 0) ...[
-              const SizedBox(height: 16),
-              const Divider(),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  const Text(
-                    'Collected',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: BeelsColors.ink1,
-                    ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${formatNaira(collected)} of ${formatNaira(expected)}',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: BeelsColors.ink0,
-                      fontFeatures: [FontFeature.tabularFigures()],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(999),
-                child: TweenAnimationBuilder<double>(
-                  tween: Tween(
-                      begin: 0,
-                      end: (collected / expected).clamp(0.0, 1.0).toDouble()),
-                  duration: const Duration(milliseconds: 500),
-                  curve: Curves.easeOutQuart,
-                  builder: (_, v, __) => LinearProgressIndicator(
-                    value: v,
-                    minHeight: 8,
-                    backgroundColor: BeelsColors.fieldFill,
-                    valueColor:
-                        const AlwaysStoppedAnimation(BeelsColors.accent),
-                  ),
-                ),
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

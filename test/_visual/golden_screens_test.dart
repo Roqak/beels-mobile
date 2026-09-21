@@ -275,6 +275,8 @@ void main() {
         ),
         dashboardControllerProvider
             .overrideWith(() => _FakeDashboardController()),
+        beelsListControllerProvider
+            .overrideWith(() => _FakeBeelsListController()),
       ],
     );
     await expectLater(

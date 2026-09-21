@@ -147,16 +147,41 @@ class BeelCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  Container(
+                    width: 44,
+                    height: 44,
+                    margin: const EdgeInsets.only(right: 12),
+                    decoration: BoxDecoration(
+                      color: BeelsColors.dye,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: const Icon(Icons.savings_rounded,
+                        size: 22, color: Colors.white),
+                  ),
                   Expanded(
-                    child: Text(
-                      beel.name,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.2,
-                        color: BeelsColors.ink0,
-                      ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          beel.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            letterSpacing: -0.2,
+                            color: BeelsColors.ink0,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _amountSummary(),
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color: BeelsColors.ink1,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -165,15 +190,6 @@ class BeelCard extends StatelessWidget {
                     kind: statusKind(beel.status),
                   ),
                 ],
-              ),
-              const SizedBox(height: 6),
-              Text(
-                _amountSummary(),
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: BeelsColors.ink1,
-                  fontFeatures: const [FontFeature.tabularFigures()],
-                ),
               ),
               const SizedBox(height: 12),
               const Divider(),

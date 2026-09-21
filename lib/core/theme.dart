@@ -5,9 +5,17 @@ import 'package:google_fonts/google_fonts.dart';
 class BeelsColors {
   BeelsColors._();
 
-  static const accent = Color(0xFF4F46E5);
-  static const accentHover = Color(0xFF4338CA);
-  static const accentSoft = Color(0xFFEEEDFB);
+  // Adire palette: dyed indigo surfaces, live indigo actions, turmeric for
+  // "your turn / next" moments only.
+  static const accent = Color(0xFF3D35CC);
+  static const accentHover = Color(0xFF2F28A6);
+  static const accentSoft = Color(0xFFECEBFB);
+  static const dye = Color(0xFF17163F);
+  static const dyeMid = Color(0xFF25236B);
+  static const dyeLine = Color(0xFF5450C4);
+  static const turmeric = Color(0xFFF0A81E);
+  static const turmericSoft = Color(0xFFFCF1D8);
+  static const turmericInk = Color(0xFF7A5200);
   static const surface = Color(0xFFFCFCFE);
   static const surfaceAlt = Color(0xFFF7F7FA);
   static const panel = Color(0xFFFFFFFF);
@@ -67,7 +75,9 @@ ThemeData beelsTheme(BuildContext context) {
       scrolledUnderElevation: 0,
       centerTitle: false,
       titleTextStyle: textTheme.titleLarge?.copyWith(
+        fontSize: 24,
         fontWeight: FontWeight.w700,
+        letterSpacing: -0.6,
         color: BeelsColors.ink0,
       ),
     ),
@@ -168,6 +178,21 @@ ThemeData beelsTheme(BuildContext context) {
         ),
       ),
     ),
+    pageTransitionsTheme: const PageTransitionsTheme(
+      builders: {
+        TargetPlatform.android: BeelsPageTransitionsBuilder(),
+        TargetPlatform.iOS: BeelsPageTransitionsBuilder(),
+        TargetPlatform.linux: BeelsPageTransitionsBuilder(),
+      },
+    ),
+    floatingActionButtonTheme: const FloatingActionButtonThemeData(
+      backgroundColor: BeelsColors.dye,
+      foregroundColor: Colors.white,
+      elevation: 2,
+      highlightElevation: 3,
+      extendedTextStyle: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+      shape: StadiumBorder(),
+    ),
     dialogTheme: DialogTheme(
       backgroundColor: BeelsColors.panel,
       surfaceTintColor: Colors.transparent,
@@ -202,4 +227,30 @@ ThemeData beelsTheme(BuildContext context) {
       linearTrackColor: BeelsColors.border,
     ),
   );
+}
+
+/// Fade + short rise. Quiet, fast (uses the route's duration), ease-out.
+class BeelsPageTransitionsBuilder extends PageTransitionsBuilder {
+  const BeelsPageTransitionsBuilder();
+
+  @override
+  Widget buildTransitions<T>(
+    PageRoute<T> route,
+    BuildContext context,
+    Animation<double> animation,
+    Animation<double> secondaryAnimation,
+    Widget child,
+  ) {
+    if (MediaQuery.of(context).disableAnimations) return child;
+    final curved =
+        CurvedAnimation(parent: animation, curve: Curves.easeOutQuart);
+    return FadeTransition(
+      opacity: curved,
+      child: SlideTransition(
+        position: Tween(begin: const Offset(0, 0.04), end: Offset.zero)
+            .animate(curved),
+        child: child,
+      ),
+    );
+  }
 }

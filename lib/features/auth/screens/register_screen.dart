@@ -9,6 +9,7 @@ import '../../../core/widgets/primary_button.dart';
 import '../controllers/auth_controller.dart';
 import '../validation.dart';
 import '../widgets/error_banner.dart';
+import '../widgets/auth_hero.dart';
 import '../widgets/fields.dart';
 import 'package:beels_mobile/core/theme.dart';
 
@@ -93,6 +94,8 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  const AuthHero(compact: true),
+                  const SizedBox(height: 24),
                   Text(
                     'Join Beels',
                     style: theme.textTheme.headlineMedium?.copyWith(

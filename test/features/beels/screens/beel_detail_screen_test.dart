@@ -158,6 +158,8 @@ void main() {
     // (no payment id) are not.
     expect(find.text('Pay now'), findsOneWidget);
 
+    await tester.ensureVisible(find.text('Pay now'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Pay now'));
     await tester.pumpAndSettle();
 
@@ -173,6 +175,8 @@ void main() {
 
     await _pump(tester, repository: repository);
 
+    await tester.ensureVisible(find.text('Pay now'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Pay now'));
     await tester.pumpAndSettle();
 
@@ -187,6 +191,8 @@ void main() {
 
     await _pump(tester, repository: repository);
 
+    await tester.ensureVisible(find.text('Pay now'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Pay now'));
     await tester.pumpAndSettle();
 

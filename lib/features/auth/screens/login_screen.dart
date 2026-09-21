@@ -8,6 +8,7 @@ import '../../../core/theme.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../controllers/auth_controller.dart';
 import '../validation.dart';
+import '../widgets/auth_hero.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/fields.dart';
 
@@ -76,25 +77,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Container(
-                        width: 48,
-                        height: 48,
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          color: BeelsColors.accent,
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                        child: Text(
-                          'b',
-                          style: theme.textTheme.headlineSmall?.copyWith(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ),
-                    ),
+                    const AuthHero(),
                     const SizedBox(height: 28),
                     Text(
                       'Welcome back',

@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import 'package:beels_mobile/core/api/paginated.dart';
 import 'package:beels_mobile/features/auth/controllers/auth_controller.dart';
 import 'package:beels_mobile/features/auth/models/profile.dart';
+import 'package:beels_mobile/features/beels/data/beels_repository.dart';
+import 'package:beels_mobile/features/beels/models/contribution.dart';
 import 'package:beels_mobile/features/dashboard/data/dashboard_repository.dart';
 import 'package:beels_mobile/features/dashboard/screens/dashboard_screen.dart';
 
@@ -65,6 +67,41 @@ class _FakeDashboardRepository implements DashboardRepository {
   }
 }
 
+class _FakeBeelsRepository implements BeelsRepository {
+  @override
+  Future<Paginated<Contribution>> list({int page = 1, int perPage = 20}) async {
+    return Paginated<Contribution>(
+      items: [
+        Contribution(
+          id: 1,
+          name: 'Weekly Ajo',
+          unitAmount: 5000,
+          status: 'active',
+          recurrenceType: 'weekly',
+          dayOfWeek: 'friday',
+          nextOccurrence: DateTime(2026, 6, 5),
+        ),
+        Contribution(
+          id: 2,
+          name: 'Rent Pool',
+          unitAmount: 20000,
+          status: 'active',
+          recurrenceType: 'monthly',
+          dayOfMonth: 1,
+          nextOccurrence: DateTime(2026, 7, 1),
+        ),
+      ],
+      page: 1,
+      perPage: 20,
+      total: 2,
+      lastPage: 1,
+    );
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 class _SeededAuthController extends AuthController {
   @override
   Future<Profile?> build() async {
@@ -106,6 +143,7 @@ Widget _testApp() {
       dashboardRepositoryProvider.overrideWithValue(
         _FakeDashboardRepository(),
       ),
+      beelsRepositoryProvider.overrideWithValue(_FakeBeelsRepository()),
       authControllerProvider.overrideWith(_SeededAuthController.new),
     ],
     child: MaterialApp.router(routerConfig: router),
@@ -128,8 +166,12 @@ void main() {
     expect(find.text('12'), findsOneWidget);
     expect(find.text('57'), findsOneWidget);
 
+    expect(find.text('Coming up'), findsOneWidget);
+    expect(find.text('Next'), findsOneWidget);
+    expect(find.text('Weekly Ajo'), findsNWidgets(2));
+    expect(find.text('Rent Pool'), findsOneWidget);
+
     expect(find.text('Recent transactions'), findsOneWidget);
-    expect(find.text('Weekly Ajo'), findsOneWidget);
     expect(find.text('Market Savings'), findsOneWidget);
     // core money: '+' prefix for incoming, U+2212 minus for outgoing.
     expect(find.text('+₦5,000'), findsOneWidget);
@@ -140,6 +182,8 @@ void main() {
     await tester.pumpWidget(_testApp());
     await tester.pumpAndSettle();
 
+    await tester.ensureVisible(find.text('View all'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('View all'));
     await tester.pumpAndSettle();
 
