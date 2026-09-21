@@ -128,8 +128,11 @@ class ReviewStep extends ConsumerWidget {
                   ),
                 ]
               : [
-                  for (final c in d.contributors)
-                    _Line(c.fullName, formatNaira(parseMoney(c.amount) ?? 0)),
+                  for (var i = 0; i < d.contributors.length; i++)
+                    _Line(
+                      d.contributors[i].fullName,
+                      formatNaira(d.effectiveContributorAmount(i) ?? 0),
+                    ),
                 ],
         ),
         const SizedBox(height: 12),

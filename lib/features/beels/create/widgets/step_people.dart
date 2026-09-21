@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/money.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/widgets/contact_pick_button.dart';
+import '../../../../core/widgets/filter_chip_bar.dart';
 import '../../../../core/widgets/pressable.dart';
 import '../../../../core/widgets/surface_card.dart';
 import '../beel_draft.dart';
@@ -194,9 +195,33 @@ class _ClosedPeople extends ConsumerWidget {
     final people = draft.contributors;
     final target = draft.target ?? 0;
 
+    final even = draft.sharesEvenly;
+    final shares = draft.evenShares;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        FilterChipBar<ContributorSplit>(
+          padding: EdgeInsets.zero,
+          value: draft.contributorSplit,
+          options: const [
+            FilterOption(ContributorSplit.even, 'Split evenly'),
+            FilterOption(ContributorSplit.custom, 'Set amounts myself'),
+          ],
+          onChanged: notifier.setContributorSplit,
+        ),
+        const SizedBox(height: 4),
+        Text(
+          even
+              ? (shares.isEmpty
+                  ? 'Everyone pays the same share of the target.'
+                  : shares.first == shares.last
+                      ? 'Everyone pays ${formatNaira(shares.first)}. It updates as you add or remove people.'
+                      : 'Everyone pays about ${formatNaira(shares.last)}. A few people pay 1 kobo more so it adds up exactly.')
+              : 'Set what each person pays. The total must match your target.',
+          style: TextStyle(fontSize: 13, height: 1.4, color: BeelsColors.ink2),
+        ),
+        const SizedBox(height: 14),
         // Wrap, not Row: with large text the two buttons must stack rather
         // than squeeze each other.
         Wrap(
@@ -214,7 +239,7 @@ class _ClosedPeople extends ConsumerWidget {
             ),
           ],
         ),
-        if (people.length >= 2 && target > 0)
+        if (!even && people.length >= 2 && target > 0)
           Align(
             alignment: Alignment.centerLeft,
             child: TextButton.icon(
@@ -247,6 +272,7 @@ class _ClosedPeople extends ConsumerWidget {
                   _PersonRow(
                     index: i,
                     person: people[i],
+                    amount: draft.effectiveContributorAmount(i),
                     errorFields: [
                       for (final k in errors.keys)
                         if (k.startsWith('contributor_${i}_'))
@@ -291,18 +317,19 @@ class _PersonRow extends StatelessWidget {
   const _PersonRow({
     required this.index,
     required this.person,
+    required this.amount,
     required this.errorFields,
     this.rowKey,
   });
 
   final int index;
   final DraftContributor person;
+  final num? amount;
   final List<String> errorFields;
   final GlobalKey? rowKey;
 
   @override
   Widget build(BuildContext context) {
-    final amount = parseMoney(person.amount);
     final hasErrors = errorFields.isNotEmpty;
     return KeyedSubtree(
       key: rowKey ?? ValueKey('person-${person.id}'),
@@ -363,9 +390,9 @@ class _PersonRow extends StatelessWidget {
                   ],
                 ),
               ),
-              if (amount != null && amount > 0)
+              if (amount != null && amount! > 0)
                 Text(
-                  formatNaira(amount),
+                  formatNaira(amount!),
                   style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w700,

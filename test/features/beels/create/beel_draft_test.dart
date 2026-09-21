@@ -62,6 +62,7 @@ void main() {
     test('flags every missing field per person by index', () {
       final d = BeelDraft(
         amount: '1000',
+        contributorSplit: ContributorSplit.custom,
         contributors: [
           _person(1),
           const DraftContributor(id: 2),
@@ -91,6 +92,7 @@ void main() {
     test('amounts must add up to the target', () {
       final d = BeelDraft(
         amount: '60000',
+        contributorSplit: ContributorSplit.custom,
         contributors: [_person(1), _person(2, amount: '30000')],
       );
       expect(validatePeople(d)['people'],
@@ -233,6 +235,7 @@ void main() {
     test('remaining goes negative when over-assigned', () {
       final d = BeelDraft(
         amount: '30000',
+        contributorSplit: ContributorSplit.custom,
         contributors: [_person(1), _person(2, amount: '15000')],
       );
       expect(d.contributorTotal, 35000);
@@ -310,6 +313,101 @@ void main() {
       final input = d.toContributorInputs().single;
       expect(input.firstName, 'Ada');
       expect(input.amount, 20000);
+    });
+  });
+
+  group('even split (derived amounts)', () {
+    test('is the default', () {
+      expect(const BeelDraft().contributorSplit, ContributorSplit.even);
+      expect(const BeelDraft().sharesEvenly, isTrue);
+    });
+
+    test('shares are the target divided between everyone, exactly', () {
+      final d = BeelDraft(
+        amount: '60000',
+        contributors: [
+          _person(1, amount: ''),
+          _person(2, amount: ''),
+          _person(3, amount: '')
+        ],
+      );
+      expect(d.evenShares, [20000, 20000, 20000]);
+      expect(d.effectiveContributorAmount(1), 20000);
+      expect(d.contributorTotal, 60000);
+    });
+
+    test('an uneven division still adds up to the kobo', () {
+      final d = BeelDraft(
+        amount: '100',
+        contributors: [
+          _person(1, amount: ''),
+          _person(2, amount: ''),
+          _person(3, amount: '')
+        ],
+      );
+      expect(d.evenShares, [33.34, 33.33, 33.33]);
+      expect(d.contributorTotal.toStringAsFixed(2), '100.00');
+    });
+
+    test('shares re-derive as people are added or removed', () {
+      final two = BeelDraft(
+        amount: '60000',
+        contributors: [_person(1, amount: ''), _person(2, amount: '')],
+      );
+      expect(two.evenShares, [30000, 30000]);
+      final three = two.copyWith(
+          contributors: [...two.contributors, _person(3, amount: '')]);
+      expect(three.evenShares, [20000, 20000, 20000]);
+      final one = two.copyWith(contributors: [two.contributors.first]);
+      expect(one.evenShares, [60000]);
+    });
+
+    test('nothing to derive without a target or people', () {
+      expect(const BeelDraft().evenShares, isEmpty);
+      expect(
+        BeelDraft(contributors: [_person(1, amount: '')]).evenShares,
+        isEmpty,
+      );
+    });
+
+    test('a person needs no typed amount, and totals cannot mismatch', () {
+      final d = BeelDraft(
+        amount: '60000',
+        contributors: [_person(1, amount: ''), _person(2, amount: '')],
+      );
+      expect(validatePeople(d), isEmpty);
+    });
+
+    test('typed amounts are ignored while sharing evenly', () {
+      final d = BeelDraft(
+        amount: '60000',
+        contributors: [_person(1, amount: '1'), _person(2, amount: '2')],
+      );
+      expect(d.effectiveContributorAmount(0), 30000);
+      expect(validatePeople(d), isEmpty);
+    });
+
+    test('inputs carry the derived amounts', () {
+      final d = BeelDraft(
+        amount: '90000',
+        contributors: [
+          _person(1, amount: ''),
+          _person(2, amount: ''),
+          _person(3, amount: '')
+        ],
+      );
+      expect(
+          d.toContributorInputs().map((c) => c.amount), [30000, 30000, 30000]);
+    });
+
+    test('custom mode still requires typed amounts that add up', () {
+      final d = BeelDraft(
+        amount: '60000',
+        contributorSplit: ContributorSplit.custom,
+        contributors: [_person(1, amount: ''), _person(2, amount: '')],
+      );
+      expect(validatePeople(d).keys,
+          containsAll(['contributor_0_amount', 'contributor_1_amount']));
     });
   });
 }

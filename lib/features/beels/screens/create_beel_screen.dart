@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_exception.dart';
+import '../../../core/money.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/common.dart';
 import '../controllers/beels_controllers.dart';
@@ -69,7 +70,9 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
               )
             : (
                 'Who is paying?',
-                'Add each person and what they owe. The total must match your target.'
+                d.sharesEvenly
+                    ? 'Add the people. We split the target between them.'
+                    : 'Add each person and what they owe. The total must match your target.'
               );
       case 3:
         return (
@@ -327,6 +330,9 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
   Widget _pinned(BeelDraft draft) {
     num? assigned;
     String? noun;
+    if (_step == 2 && !draft.isOpen && draft.sharesEvenly) {
+      return _evenSummary(draft);
+    }
     if (_step == 2 && !draft.isOpen) {
       assigned = draft.contributorTotal;
       noun = 'assigned';
@@ -347,6 +353,42 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
           total: draft.target ?? 0,
           noun: noun,
           compact: true,
+        ),
+      ),
+    );
+  }
+
+  /// Even mode has nothing to reconcile, so pin what each person pays instead.
+  Widget _evenSummary(BeelDraft draft) {
+    final shares = draft.evenShares;
+    final text = shares.isEmpty
+        ? 'Add people to see each share'
+        : shares.first == shares.last
+            ? '${formatNaira(draft.target ?? 0)} ÷ ${shares.length} = ${formatNaira(shares.first)} each'
+            : '${formatNaira(draft.target ?? 0)} ÷ ${shares.length} = about ${formatNaira(shares.last)} each';
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: BeelsColors.panel,
+        border: Border(top: BorderSide(color: BeelsColors.border)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: Row(
+          children: [
+            Icon(Icons.balance_rounded, size: 18, color: BeelsColors.accent),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: BeelsColors.ink0,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

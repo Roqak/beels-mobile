@@ -86,6 +86,9 @@ class _PersonSheetState extends ConsumerState<PersonSheet> {
 
   bool get _editing => widget.editing != null;
 
+  /// Even mode: the app works out the amount, so it is not asked for.
+  bool get _even => ref.read(beelDraftProvider).sharesEvenly;
+
   @override
   void initState() {
     super.initState();
@@ -96,7 +99,9 @@ class _PersonSheetState extends ConsumerState<PersonSheet> {
       _phone.text = e.phone;
       _email.text = e.email;
       _amount.text = e.amount;
-      if (widget.showErrors) _errors = validateContributor(e);
+      if (widget.showErrors) {
+        _errors = validateContributor(e, amountRequired: !_even);
+      }
     } else {
       widget.prefill?.fillInto(
         firstName: _first,
@@ -104,7 +109,7 @@ class _PersonSheetState extends ConsumerState<PersonSheet> {
         email: _email,
         phone: _phone,
       );
-      _amount.text = _remainingDefault();
+      _amount.text = _even ? '' : _remainingDefault();
     }
   }
 
@@ -136,12 +141,12 @@ class _PersonSheetState extends ConsumerState<PersonSheet> {
         lastName: _last.text.trim(),
         email: _email.text.trim(),
         phone: _phone.text.trim(),
-        amount: _amount.text.trim(),
+        amount: _even ? '' : _amount.text.trim(),
       );
 
   void _save({required bool another}) {
     final person = _value();
-    final errors = validateContributor(person);
+    final errors = validateContributor(person, amountRequired: !_even);
     if (errors.isNotEmpty) {
       HapticFeedback.heavyImpact();
       setState(() => _errors = errors);
@@ -161,7 +166,7 @@ class _PersonSheetState extends ConsumerState<PersonSheet> {
       _last.clear();
       _phone.clear();
       _email.clear();
-      _amount.text = _remainingDefault();
+      _amount.text = _even ? '' : _remainingDefault();
     });
     _firstFocus.requestFocus();
   }
@@ -264,19 +269,44 @@ class _PersonSheetState extends ConsumerState<PersonSheet> {
               decoration: _deco('Email', 'email'),
             ),
             const SizedBox(height: 12),
-            TextField(
-              controller: _amount,
-              keyboardType:
-                  const TextInputType.numberWithOptions(decimal: true),
-              textInputAction: TextInputAction.done,
-              inputFormatters: const [ThousandsFormatter()],
-              onSubmitted: (_) => _save(another: false),
-              decoration: InputDecoration(
-                labelText: 'Amount this person pays',
-                errorText: _errors['amount'],
-                prefixText: '₦ ',
+            if (_even)
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: BeelsColors.accentSoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.balance_rounded,
+                        size: 18, color: BeelsColors.accent),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'The amount is worked out for you: everyone pays an equal share.',
+                        style: TextStyle(
+                            fontSize: 13,
+                            height: 1.35,
+                            color: BeelsColors.ink1),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              TextField(
+                controller: _amount,
+                keyboardType:
+                    const TextInputType.numberWithOptions(decimal: true),
+                textInputAction: TextInputAction.done,
+                inputFormatters: const [ThousandsFormatter()],
+                onSubmitted: (_) => _save(another: false),
+                decoration: InputDecoration(
+                  labelText: 'Amount this person pays',
+                  errorText: _errors['amount'],
+                  prefixText: '₦ ',
+                ),
               ),
-            ),
             const SizedBox(height: 18),
             PrimaryButton(
               label: _editing ? 'Save' : 'Add person',

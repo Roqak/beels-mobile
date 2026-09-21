@@ -35,6 +35,26 @@ class BeelDraftController extends AutoDisposeNotifier<BeelDraft> {
 
   // -- people (closed) ----------------------------------------------------
 
+  /// Switches between even shares and typed amounts. Going to custom copies
+  /// the current even shares into each person so they can be adjusted.
+  void setContributorSplit(ContributorSplit mode) {
+    if (mode == state.contributorSplit) return;
+    if (mode == ContributorSplit.custom) {
+      final shares = state.evenShares;
+      _set(state.copyWith(
+        contributorSplit: mode,
+        contributors: [
+          for (var i = 0; i < state.contributors.length; i++)
+            state.contributors[i].copyWith(
+              amount: i < shares.length ? _text(shares[i]) : '',
+            ),
+        ],
+      ));
+      return;
+    }
+    _set(state.copyWith(contributorSplit: mode));
+  }
+
   /// Adds a blank person, or one prefilled from a picked contact. Returns the
   /// new person's id so the UI can expand it.
   int addContributor([PickedContact? contact]) {

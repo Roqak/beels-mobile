@@ -253,17 +253,26 @@ Future<void> _addBankAccount(
   await tester.pumpAndSettle();
 }
 
-/// Steps 1-2 with a target, ready for the people step.
-Future<void> _toPeople(WidgetTester tester, {String amount = '60000'}) async {
+/// Steps 1-2 with a target, ready for the people step. People share the
+/// target evenly by default; pass [custom] to type each amount instead.
+Future<void> _toPeople(
+  WidgetTester tester, {
+  String amount = '60000',
+  bool custom = false,
+}) async {
   await _basics(tester, amount: amount);
   await _tapContinue(tester);
   await _tapContinue(tester);
+  if (custom) {
+    await tester.tap(find.text('Set amounts myself'));
+    await tester.pumpAndSettle();
+  }
 }
 
-/// A complete closed beel up to the payout step.
+/// A complete closed beel up to the payout step (one person, even split).
 Future<void> _toPayout(WidgetTester tester, {String amount = '60000'}) async {
   await _toPeople(tester, amount: amount);
-  await _addPerson(tester, amount: amount);
+  await _addPerson(tester);
   await _tapContinue(tester);
 }
 
@@ -330,7 +339,7 @@ void main() {
     testWidgets('adding a person opens a sheet pre-filled with what is left',
         (tester) async {
       await _pump(tester);
-      await _toPeople(tester, amount: '60000');
+      await _toPeople(tester, amount: '60000', custom: true);
 
       await _openPersonSheet(tester);
 
@@ -348,7 +357,7 @@ void main() {
     testWidgets('the running total is pinned and updates as people are added',
         (tester) async {
       await _pump(tester);
-      await _toPeople(tester, amount: '60000');
+      await _toPeople(tester, amount: '60000', custom: true);
       expect(find.text('₦0 of ₦60,000 assigned'), findsOneWidget);
 
       await _addPerson(tester, amount: '40000');
@@ -370,15 +379,17 @@ void main() {
       expect(find.text('Required'), findsNWidgets(2)); // first + last
       expect(find.text('Enter a valid email'), findsOneWidget);
       expect(find.text('At least 11 digits'), findsOneWidget);
+      // Even mode never asks for an amount.
+      expect(find.text('Enter an amount'), findsNothing);
       // Still in the sheet; nobody was added.
       expect(find.text('New person'), findsNothing);
-      expect(find.text('₦0 of ₦60,000 assigned'), findsOneWidget);
+      expect(find.text('Add people to see each share'), findsOneWidget);
     });
 
     testWidgets('save and add another keeps the sheet open for the next person',
         (tester) async {
       await _pump(tester);
-      await _toPeople(tester, amount: '60000');
+      await _toPeople(tester, amount: '60000', custom: true);
       await _openPersonSheet(tester);
 
       await _fillPerson(tester, amount: '40000');
@@ -413,7 +424,7 @@ void main() {
     testWidgets('tapping a person edits them, and they can be removed',
         (tester) async {
       await _pump(tester);
-      await _toPeople(tester, amount: '60000');
+      await _toPeople(tester, amount: '60000', custom: true);
       await _addPerson(tester, amount: '60000');
 
       await tester.tap(find.text('Ada Obi'));
@@ -435,7 +446,7 @@ void main() {
     testWidgets('split equally shares the target between everyone',
         (tester) async {
       await _pump(tester);
-      await _toPeople(tester, amount: '60000');
+      await _toPeople(tester, amount: '60000', custom: true);
       await _addPerson(tester, amount: '10000');
       await _addPerson(tester,
           first: 'Bode',
@@ -453,7 +464,7 @@ void main() {
 
     testWidgets('a mismatch is explained on Continue', (tester) async {
       await _pump(tester);
-      await _toPeople(tester, amount: '60000');
+      await _toPeople(tester, amount: '60000', custom: true);
       await _addPerson(tester, amount: '40000');
 
       await _tapContinue(tester);
@@ -474,6 +485,140 @@ void main() {
           'Bode');
       expect(tester.widget<TextField>(_field('Phone number')).controller!.text,
           '08023456789');
+    });
+  });
+
+  group('people: automatic even split', () {
+    testWidgets('is the default and explains itself', (tester) async {
+      await _pump(tester);
+      await _toPeople(tester, amount: '60000');
+
+      expect(find.text('Split evenly'), findsOneWidget);
+      expect(find.text('Set amounts myself'), findsOneWidget);
+      expect(find.text('Everyone pays the same share of the target.'),
+          findsOneWidget);
+      expect(find.text('Add people to see each share'), findsOneWidget);
+    });
+
+    testWidgets('the sheet asks for no amount and shares are derived',
+        (tester) async {
+      await _pump(tester);
+      await _toPeople(tester, amount: '60000');
+
+      await _openPersonSheet(tester);
+      expect(_field('Amount this person pays'), findsNothing);
+      expect(find.textContaining('worked out for you'), findsOneWidget);
+      await _fillPerson(tester);
+      await tester.tap(find.widgetWithText(FilledButton, 'Add person'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('₦60,000'), findsOneWidget);
+      expect(find.text('₦60,000 ÷ 1 = ₦60,000 each'), findsOneWidget);
+    });
+
+    testWidgets('shares update live as people are added and removed',
+        (tester) async {
+      await _pump(tester);
+      await _toPeople(tester, amount: '60000');
+      await _addPerson(tester);
+      await _addPerson(tester,
+          first: 'Bode',
+          last: 'Aliu',
+          phone: '08023456789',
+          email: 'b@beels.test');
+      await _addPerson(tester,
+          first: 'Chi',
+          last: 'Eze',
+          phone: '08034567890',
+          email: 'c@beels.test');
+
+      expect(find.text('₦20,000'), findsNWidgets(3));
+      expect(find.text('₦60,000 ÷ 3 = ₦20,000 each'), findsOneWidget);
+      expect(
+          find.text(
+              'Everyone pays ₦20,000. It updates as you add or remove people.'),
+          findsOneWidget);
+
+      await tester.tap(find.text('Chi Eze'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove person'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('₦30,000'), findsNWidgets(2));
+      expect(find.text('₦60,000 ÷ 2 = ₦30,000 each'), findsOneWidget);
+    });
+
+    testWidgets('an uneven division is stated honestly', (tester) async {
+      await _pump(tester);
+      await _toPeople(tester, amount: '100');
+      await _addPerson(tester);
+      await _addPerson(tester,
+          first: 'Bode',
+          last: 'Aliu',
+          phone: '08023456789',
+          email: 'b@beels.test');
+      await _addPerson(tester,
+          first: 'Chi',
+          last: 'Eze',
+          phone: '08034567890',
+          email: 'c@beels.test');
+
+      expect(find.textContaining('about ₦33.33'), findsWidgets);
+      expect(find.text('₦33.34'), findsOneWidget); // the first person
+    });
+
+    testWidgets('switching to custom copies the shares so they can be adjusted',
+        (tester) async {
+      await _pump(tester);
+      await _toPeople(tester, amount: '60000');
+      await _addPerson(tester);
+      await _addPerson(tester,
+          first: 'Bode',
+          last: 'Aliu',
+          phone: '08023456789',
+          email: 'b@beels.test');
+
+      await tester.tap(find.text('Set amounts myself'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('₦30,000'), findsNWidgets(2));
+      expect(find.text('₦60,000 of ₦60,000 assigned'), findsOneWidget);
+
+      await tester.tap(find.text('Ada Obi'));
+      await tester.pumpAndSettle();
+      expect(_field('Amount this person pays'), findsOneWidget);
+      await _enter(tester, 'Amount this person pays', '45000');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      expect(find.text('₦75,000 of ₦60,000 assigned'), findsOneWidget);
+    });
+
+    testWidgets('the created beel carries the derived amounts', (tester) async {
+      final h = await _pump(tester);
+      await _toPeople(tester, amount: '90000');
+      await _addPerson(tester);
+      await _addPerson(tester,
+          first: 'Bode',
+          last: 'Aliu',
+          phone: '08023456789',
+          email: 'b@beels.test');
+      await _addPerson(tester,
+          first: 'Chi',
+          last: 'Eze',
+          phone: '08034567890',
+          email: 'c@beels.test');
+      await _tapContinue(tester);
+      await _addBankAccount(tester);
+      await _tapContinue(tester);
+
+      // Review shows each person's derived share.
+      expect(find.text('₦30,000'), findsNWidgets(3));
+
+      await tester.tap(find.text('Create beel'));
+      await tester.pumpAndSettle();
+
+      final people = h.beels.closed!['contributors'] as List;
+      expect(people.map((c) => (c as Map)['amount']), [30000, 30000, 30000]);
     });
   });
 
@@ -594,7 +739,7 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Friday'));
     await tester.pumpAndSettle();
     await _tapContinue(tester);
-    await _addPerson(tester, amount: '60000');
+    await _addPerson(tester);
     await _tapContinue(tester);
     await _addBankAccount(tester);
     await _tapContinue(tester);

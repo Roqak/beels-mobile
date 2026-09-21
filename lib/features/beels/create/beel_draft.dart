@@ -6,6 +6,10 @@ enum BeelMode { closed, open }
 /// How an open-link beel prices each person.
 enum OpenSplit { fixed, even }
 
+/// How a chosen-people beel works out what each person pays: shared evenly
+/// (derived from the target) or typed per person.
+enum ContributorSplit { even, custom }
+
 /// Beneficiary kinds the backend accepts, in display order.
 const kBeneficiaryTypes = <String, String>{
   'bank_transfer': 'Bank transfer',
@@ -140,6 +144,7 @@ class BeelDraft {
     this.dayOfMonth = 1,
     this.contributors = const [],
     this.beneficiaries = const [],
+    this.contributorSplit = ContributorSplit.even,
     this.openSplit = OpenSplit.even,
     this.perContributor = '',
     this.expectedContributors = '',
@@ -154,6 +159,7 @@ class BeelDraft {
   final int dayOfMonth;
   final List<DraftContributor> contributors;
   final List<DraftBeneficiary> beneficiaries;
+  final ContributorSplit contributorSplit;
   final OpenSplit openSplit;
   final String perContributor;
   final String expectedContributors;
@@ -176,8 +182,33 @@ class BeelDraft {
           b.accountNumber.isNotEmpty ||
           b.amount.isNotEmpty);
 
-  num get contributorTotal =>
-      contributors.fold<num>(0, (sum, c) => sum + (parseMoney(c.amount) ?? 0));
+  bool get sharesEvenly => contributorSplit == ContributorSplit.even;
+
+  /// Each person's even share of the target (empty until there is a positive
+  /// target and at least one person). The parts add up exactly.
+  List<num> get evenShares {
+    final t = target;
+    if (t == null || t <= 0 || contributors.isEmpty) return const [];
+    return splitEvenly(t, contributors.length);
+  }
+
+  /// What the person at [index] pays: their even share, or what was typed.
+  num? effectiveContributorAmount(int index) {
+    if (index < 0 || index >= contributors.length) return null;
+    if (sharesEvenly) {
+      final shares = evenShares;
+      return index < shares.length ? shares[index] : null;
+    }
+    return parseMoney(contributors[index].amount);
+  }
+
+  num get contributorTotal {
+    var sum = 0.0;
+    for (var i = 0; i < contributors.length; i++) {
+      sum += effectiveContributorAmount(i) ?? 0;
+    }
+    return sum;
+  }
 
   /// Target minus what contributors are assigned (negative = over-assigned).
   num get contributorRemaining => (target ?? 0) - contributorTotal;
@@ -225,6 +256,7 @@ class BeelDraft {
     int? dayOfMonth,
     List<DraftContributor>? contributors,
     List<DraftBeneficiary>? beneficiaries,
+    ContributorSplit? contributorSplit,
     OpenSplit? openSplit,
     String? perContributor,
     String? expectedContributors,
@@ -239,6 +271,7 @@ class BeelDraft {
         dayOfMonth: dayOfMonth ?? this.dayOfMonth,
         contributors: contributors ?? this.contributors,
         beneficiaries: beneficiaries ?? this.beneficiaries,
+        contributorSplit: contributorSplit ?? this.contributorSplit,
         openSplit: openSplit ?? this.openSplit,
         perContributor: perContributor ?? this.perContributor,
         expectedContributors: expectedContributors ?? this.expectedContributors,
@@ -247,13 +280,13 @@ class BeelDraft {
 
   /// Submission payload pieces.
   List<ContributorInput> toContributorInputs() => [
-        for (final c in contributors)
+        for (var i = 0; i < contributors.length; i++)
           ContributorInput(
-            firstName: c.firstName.trim(),
-            lastName: c.lastName.trim(),
-            email: c.email.trim(),
-            phoneNumber: c.phone.trim(),
-            amount: parseMoney(c.amount) ?? 0,
+            firstName: contributors[i].firstName.trim(),
+            lastName: contributors[i].lastName.trim(),
+            email: contributors[i].email.trim(),
+            phoneNumber: contributors[i].phone.trim(),
+            amount: effectiveContributorAmount(i) ?? 0,
           ),
       ];
 
@@ -303,10 +336,13 @@ Map<String, String> validatePeople(BeelDraft d) {
     return errors;
   }
   for (var i = 0; i < d.contributors.length; i++) {
-    validateContributor(d.contributors[i]).forEach(
-        (field, message) => errors['contributor_${i}_$field'] = message);
+    validateContributor(d.contributors[i], amountRequired: !d.sharesEvenly)
+        .forEach(
+            (field, message) => errors['contributor_${i}_$field'] = message);
   }
-  if (errors.isEmpty && d.contributorTotal != (d.target ?? 0)) {
+  if (errors.isEmpty &&
+      !d.sharesEvenly &&
+      d.contributorTotal != (d.target ?? 0)) {
     errors['people'] =
         'Amounts add up to ${_naira(d.contributorTotal)}, but the target is ${_naira(d.target ?? 0)}';
   }
@@ -314,7 +350,10 @@ Map<String, String> validatePeople(BeelDraft d) {
 }
 
 /// Field errors for one person (keys: first, last, email, phone, amount).
-Map<String, String> validateContributor(DraftContributor c) {
+Map<String, String> validateContributor(
+  DraftContributor c, {
+  bool amountRequired = true,
+}) {
   final errors = <String, String>{};
   if (c.firstName.trim().isEmpty) errors['first'] = 'Required';
   if (c.lastName.trim().isEmpty) errors['last'] = 'Required';
@@ -324,8 +363,10 @@ Map<String, String> validateContributor(DraftContributor c) {
   if (c.phone.replaceAll(RegExp(r'\D'), '').length < 11) {
     errors['phone'] = 'At least 11 digits';
   }
-  final a = parseMoney(c.amount);
-  if (a == null || a <= 0) errors['amount'] = 'Enter an amount';
+  if (amountRequired) {
+    final a = parseMoney(c.amount);
+    if (a == null || a <= 0) errors['amount'] = 'Enter an amount';
+  }
   return errors;
 }
 

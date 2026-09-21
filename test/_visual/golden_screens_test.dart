@@ -342,6 +342,7 @@ class _PresetDraft extends BeelDraftController {
 }
 
 const _closedDraft = BeelDraft(
+  contributorSplit: ContributorSplit.custom,
   name: 'Family rent',
   amount: '60000',
   recurrenceType: 'weekly',
@@ -374,6 +375,35 @@ const _closedDraft = BeelDraft(
     ),
   ],
   nextId: 4,
+);
+
+// Even split with three people: shares are derived, no amounts typed.
+final _evenDraft = _closedDraft.copyWith(
+  contributorSplit: ContributorSplit.even,
+  contributors: const [
+    DraftContributor(
+      id: 1,
+      firstName: 'Ada',
+      lastName: 'Obi',
+      email: 'ada@beels.test',
+      phone: '08012345678',
+    ),
+    DraftContributor(
+      id: 2,
+      firstName: 'Bode',
+      lastName: 'Aliu',
+      email: 'bode@beels.test',
+      phone: '08023456789',
+    ),
+    DraftContributor(
+      id: 3,
+      firstName: 'Chi',
+      lastName: 'Eze',
+      email: 'chi@beels.test',
+      phone: '08034567890',
+    ),
+  ],
+  nextId: 6,
 );
 
 final _blankPayoutDraft = _closedDraft.copyWith(
@@ -1006,6 +1036,24 @@ void main() {
       );
     });
   }
+
+  testWidgets('create beel people even golden', (tester) async {
+    await createStep(tester, _evenDraft, 2);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/create_beel_people_even.png'),
+    );
+  });
+
+  testWidgets('create beel person sheet even golden', (tester) async {
+    await createStep(tester, _evenDraft, 2);
+    await tester.tap(find.text('Add person').first);
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/create_beel_person_sheet_even.png'),
+    );
+  });
 
   testWidgets('create beel person sheet golden', (tester) async {
     await createStep(tester, _closedDraft, 2);
