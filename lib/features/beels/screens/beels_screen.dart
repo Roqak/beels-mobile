@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -66,14 +65,15 @@ class _BeelsScreenState extends ConsumerState<BeelsScreen> {
 
     return Scaffold(
       backgroundColor: BeelsColors.surface,
-      appBar: const BeelsAppBar('Beels'),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          context.push('/beels/new');
-        },
-        icon: const Icon(Icons.add),
-        label: const Text('New Beel'),
+      appBar: BeelsAppBar(
+        'Beels',
+        actions: [
+          IconButton(
+            tooltip: 'New beel',
+            icon: const Icon(Icons.add_rounded),
+            onPressed: () => context.push('/beels/new'),
+          ),
+        ],
       ),
       body: _buildBody(context, state),
     );
@@ -99,14 +99,16 @@ class _BeelsScreenState extends ConsumerState<BeelsScreen> {
         onRefresh: () =>
             ref.read(beelsListControllerProvider.notifier).refresh(),
         child: ListView(
-          children: const [
-            SizedBox(height: 120),
+          children: [
+            const SizedBox(height: 120),
             KeyedSubtree(
-              key: Key('empty-state'),
+              key: const Key('empty-state'),
               child: EmptyState(
                 icon: Icons.savings_outlined,
                 title: 'No beels yet',
                 message: 'Create a beel to start saving with others.',
+                actionLabel: 'Create a beel',
+                onAction: () => context.push('/beels/new'),
               ),
             ),
           ],

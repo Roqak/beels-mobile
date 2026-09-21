@@ -67,6 +67,17 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>((ref) {
   return DashboardRepository(ref.watch(apiClientProvider));
 });
 
+/// The most recent settled/pending activity used to draw Home's net-flow
+/// chart. Independent of [DashboardController] so a chart failure never
+/// blanks the rest of Home.
+final activityRowsProvider =
+    FutureProvider<List<Map<String, dynamic>>>((ref) async {
+  final page = await ref
+      .watch(dashboardRepositoryProvider)
+      .recentTransactions(perPage: 50);
+  return page.items;
+});
+
 class DashboardData {
   final DashboardAnalytics analytics;
   final Paginated<Map<String, dynamic>> recent;

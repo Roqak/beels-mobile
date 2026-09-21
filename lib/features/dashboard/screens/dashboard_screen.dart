@@ -16,6 +16,7 @@ import 'package:beels_mobile/features/auth/models/profile.dart';
 import 'package:beels_mobile/features/beels/controllers/beels_controllers.dart';
 import 'package:beels_mobile/features/beels/models/contribution.dart';
 import 'package:beels_mobile/features/dashboard/data/dashboard_repository.dart';
+import 'package:beels_mobile/features/dashboard/widgets/flow_chart.dart';
 
 /// Active beels with a known next date, soonest first (max 3). Empty until
 /// the beels list has loaded; failures degrade to "nothing upcoming".
@@ -67,19 +68,12 @@ class DashboardScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: BeelsColors.surface,
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () {
-          HapticFeedback.lightImpact();
-          context.push('/beels/new');
-        },
-        icon: const Icon(Icons.add_rounded),
-        label: const Text('New Beel'),
-      ),
       body: SafeArea(
         child: RefreshIndicator(
           color: BeelsColors.accent,
           onRefresh: () async {
             ref.invalidate(beelsListControllerProvider);
+            ref.invalidate(activityRowsProvider);
             await ref.read(dashboardControllerProvider.notifier).refresh();
           },
           child: ListView(
@@ -111,6 +105,10 @@ class DashboardScreen extends ConsumerWidget {
                         ref.read(hideBalancesProvider.notifier).toggle();
                       },
                     ),
+                    const SizedBox(height: 20),
+                    const _QuickActions(),
+                    const SizedBox(height: 20),
+                    const _ActivityChart(),
                     ..._comingUp(context, upcoming, noBeels: noBeels),
                     const SizedBox(height: 32),
                     SectionHeader(
@@ -406,6 +404,103 @@ class _HeroPanel extends StatelessWidget {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// "Now" for the chart; overridden in goldens so they never drift.
+final flowClockProvider = Provider<DateTime Function()>((ref) => DateTime.now);
+
+class _ActivityChart extends ConsumerWidget {
+  const _ActivityChart();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final rows = ref.watch(activityRowsProvider);
+    return rows.when(
+      loading: () => const SkeletonScope(
+        child: SkeletonBox(height: 250, radius: 16),
+      ),
+      // The chart is a bonus; never let its failure disturb the rest of Home.
+      error: (_, __) => const SizedBox.shrink(),
+      data: (data) => data.isEmpty
+          ? const SizedBox.shrink()
+          : FlowChartCard(rows: data, now: ref.watch(flowClockProvider)()),
+    );
+  }
+}
+
+/// Three shortcuts under the balance: the things people do most from Home.
+class _QuickActions extends StatelessWidget {
+  const _QuickActions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        _QuickAction(
+          icon: Icons.add_rounded,
+          label: 'New beel',
+          onTap: () => context.push('/beels/new'),
+        ),
+        _QuickAction(
+          icon: Icons.groups_rounded,
+          label: 'Groups',
+          onTap: () => context.go('/groups'),
+        ),
+        _QuickAction(
+          icon: Icons.account_balance_rounded,
+          label: 'Direct debit',
+          onTap: () => context.push('/mandates'),
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickAction extends StatelessWidget {
+  const _QuickAction({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Pressable(
+        onTap: onTap,
+        haptic: true,
+        semanticLabel: label,
+        child: Column(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: BeelsColors.accentSoft,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, size: 26, color: BeelsColors.accent),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: BeelsColors.ink1,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

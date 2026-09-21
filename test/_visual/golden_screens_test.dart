@@ -40,6 +40,7 @@ import 'package:beels_mobile/features/transactions/controllers/transactions_cont
 import 'package:beels_mobile/features/transactions/models/transaction.dart';
 import 'package:beels_mobile/features/transactions/screens/transactions_screen.dart';
 import 'package:beels_mobile/features/dashboard/screens/dashboard_screen.dart';
+import 'package:beels_mobile/features/shell/app_shell.dart';
 
 Widget _themed(Widget child) {
   return Builder(
@@ -305,6 +306,31 @@ class _FakeGroupDetail extends GroupDetailController {
       });
 }
 
+final _goldenNow = DateTime(2026, 9, 21);
+
+Map<String, dynamic> _flowRow(String type, num amount, int daysAgo) => {
+      'type': type,
+      'amount': amount,
+      'status': 'successful',
+      'created_at':
+          _goldenNow.subtract(Duration(days: daysAgo)).toIso8601String(),
+    };
+
+final _goldenActivity = [
+  _flowRow('deposit', 50000, 27),
+  _flowRow('deposit', 30000, 22),
+  _flowRow('withdrawal', 15000, 19),
+  _flowRow('deposit', 60000, 14),
+  _flowRow('deposit', 25000, 9),
+  _flowRow('withdrawal', 20000, 6),
+  _flowRow('deposit', 40000, 2),
+];
+
+final _activityOverrides = <Override>[
+  activityRowsProvider.overrideWith((ref) async => _goldenActivity),
+  flowClockProvider.overrideWithValue(() => _goldenNow),
+];
+
 class _HiddenBalances extends HideBalancesController {
   @override
   bool build() => true;
@@ -423,6 +449,7 @@ void main() {
             .overrideWith(() => _FakeDashboardController()),
         beelsListControllerProvider
             .overrideWith(() => _FakeBeelsListController()),
+        ..._activityOverrides,
       ],
     );
     await expectLater(
@@ -438,6 +465,7 @@ void main() {
       overrides: [
         beelsListControllerProvider
             .overrideWith(() => _FakeBeelsListController()),
+        ..._activityOverrides,
       ],
     );
     await expectLater(
@@ -588,6 +616,7 @@ void main() {
               .overrideWith(() => _FakeDashboardController()),
           beelsListControllerProvider
               .overrideWith(() => _FakeBeelsListController()),
+          ..._activityOverrides,
         ],
       );
       await expectLater(
@@ -794,11 +823,50 @@ void main() {
         beelsListControllerProvider
             .overrideWith(() => _FakeBeelsListController()),
         hideBalancesProvider.overrideWith(() => _HiddenBalances()),
+        ..._activityOverrides,
       ],
     );
     await expectLater(
       find.byType(MaterialApp),
       matchesGoldenFile('goldens/dashboard_hidden.png'),
+    );
+  });
+
+  testWidgets('floating nav golden', (tester) async {
+    await pumpScreen(
+      tester,
+      Scaffold(
+        body: const SizedBox.expand(),
+        bottomNavigationBar: FloatingNavBar(
+          currentIndex: 1,
+          onSelect: (_) {},
+          onCreate: () {},
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/floating_nav.png'),
+    );
+  });
+
+  testWidgets('floating nav dark golden', (tester) async {
+    BeelsColors.apply(Brightness.dark);
+    addTearDown(() => BeelsColors.apply(Brightness.light));
+    await pumpScreen(
+      tester,
+      Scaffold(
+        body: const SizedBox.expand(),
+        bottomNavigationBar: FloatingNavBar(
+          currentIndex: 0,
+          onSelect: (_) {},
+          onCreate: () {},
+        ),
+      ),
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/floating_nav_dark.png'),
     );
   });
 }

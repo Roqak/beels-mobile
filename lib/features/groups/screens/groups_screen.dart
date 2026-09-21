@@ -17,11 +17,15 @@ class GroupsScreen extends ConsumerWidget {
     final groupsAsync = ref.watch(groupsListProvider);
     return Scaffold(
       backgroundColor: BeelsColors.surface,
-      appBar: const BeelsAppBar('Groups'),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => _openCreate(context, ref),
-        icon: const Icon(Icons.group_add),
-        label: const Text('New group'),
+      appBar: BeelsAppBar(
+        'Groups',
+        actions: [
+          IconButton(
+            tooltip: 'New group',
+            icon: const Icon(Icons.group_add_rounded),
+            onPressed: () => _openCreate(context, ref),
+          ),
+        ],
       ),
       body: groupsAsync.when(
         loading: () => const _ListSkeleton(),

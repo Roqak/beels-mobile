@@ -190,11 +190,11 @@ void main() {
     expect(find.text('TRANSACTIONS_PAGE'), findsOneWidget);
   });
 
-  testWidgets('New Beel FAB navigates to /beels/new', (tester) async {
+  testWidgets('New beel quick action navigates to /beels/new', (tester) async {
     await tester.pumpWidget(_testApp());
     await tester.pumpAndSettle();
 
-    await tester.tap(find.text('New Beel'));
+    await tester.tap(find.text('New beel'));
     await tester.pumpAndSettle();
 
     expect(find.text('NEW_BEEL_PAGE'), findsOneWidget);
