@@ -10,6 +10,7 @@ import 'package:beels_mobile/core/api/api_exception.dart';
 import 'package:beels_mobile/core/widgets/common.dart';
 import 'package:beels_mobile/features/groups/data/groups_repository.dart';
 import 'package:beels_mobile/features/groups/models/group.dart';
+import 'package:beels_mobile/core/contacts/contact_picker.dart';
 import 'package:beels_mobile/core/theme.dart';
 
 class GroupDetailScreen extends ConsumerStatefulWidget {
@@ -592,12 +593,26 @@ class _AddMemberCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Text(
-              'Add a member',
-              style: Theme.of(context)
-                  .textTheme
-                  .titleSmall
-                  ?.copyWith(fontWeight: FontWeight.w700),
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Add a member',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleSmall
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ),
+                ContactPickButton(
+                  onPicked: (c) => c.fillInto(
+                    firstName: firstNameController,
+                    lastName: lastNameController,
+                    email: emailController,
+                    phone: phoneController,
+                  ),
+                ),
+              ],
             ),
             const SizedBox(height: 12),
             Row(

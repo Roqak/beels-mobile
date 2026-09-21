@@ -2,6 +2,7 @@ export 'adire_pattern.dart';
 export 'amount_text.dart';
 export 'animated_number.dart';
 export 'beels_app_bar.dart';
+export 'contact_pick_button.dart';
 export 'empty_state.dart';
 export 'error_view.dart';
 export 'intro_banner.dart';

@@ -6,6 +6,7 @@ import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/money.dart';
+import '../../../core/contacts/contact_picker.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/common.dart';
 import '../controllers/beels_controllers.dart';
@@ -844,6 +845,24 @@ class _ContributorEditorRow extends StatelessWidget {
                           color: BeelsColors.ink0,
                         ),
                   ),
+                ),
+                ContactPickButton(
+                  onPicked: (c) {
+                    c.fillInto(
+                      firstName: row.firstName,
+                      lastName: row.lastName,
+                      email: row.email,
+                      phone: row.phone,
+                    );
+                    for (final key in const [
+                      'first',
+                      'last',
+                      'email',
+                      'phone'
+                    ]) {
+                      onClearError('contributor_${index}_$key');
+                    }
+                  },
                 ),
                 IconButton(
                   tooltip: 'Remove contributor',

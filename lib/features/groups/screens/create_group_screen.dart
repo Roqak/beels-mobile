@@ -7,6 +7,7 @@ import 'package:beels_mobile/core/api/api_exception.dart';
 import 'package:beels_mobile/core/widgets/common.dart';
 import 'package:beels_mobile/features/groups/data/groups_repository.dart';
 import 'package:beels_mobile/features/groups/models/group.dart';
+import 'package:beels_mobile/core/contacts/contact_picker.dart';
 import 'package:beels_mobile/core/theme.dart';
 
 class CreateGroupScreen extends ConsumerStatefulWidget {
@@ -239,6 +240,17 @@ class _MemberRow extends StatelessWidget {
         padding: const EdgeInsets.all(14),
         child: Column(
           children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: ContactPickButton(
+                onPicked: (c) => c.fillInto(
+                  firstName: draft.firstName,
+                  lastName: draft.lastName,
+                  email: draft.email,
+                  phone: draft.phoneNumber,
+                ),
+              ),
+            ),
             Row(
               children: [
                 Expanded(

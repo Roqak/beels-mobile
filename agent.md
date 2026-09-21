@@ -84,6 +84,7 @@ GitHub Actions is currently **blocked by a billing lock** on this account (CI fa
 - Router: go_router 14, shell with 4 branches (`/`, `/beels`, `/transactions`, `/groups`), protected routes redirect via auth state.
 - Models: every `fromJson` tolerant — nullable stays nullable, unknown keys ignored, numeric fields accept int/double/String.
 - No new dependencies without explicit user approval (contract rule).
+- Contact picking uses a native channel (`beels/contacts`, `MainActivity.kt`) that opens the system picker via `ACTION_PICK`: no plugin and no `READ_CONTACTS` permission by design (only the contact the user picks is shared; email is best-effort). Dart side: `lib/core/contacts/`. Android only; the button hides elsewhere.
 - UI text English, **no emojis** in UI code. Theme tokens in `lib/core/theme.dart` (accent `#4F46E5`).
 - Tests mirror `lib/` under `test/`; run `flutter test -j 1 --timeout 600s`.
 - Goldens in `test/_visual/goldens/`: after a legitimate UI change regenerate with `flutter test test/_visual --update-goldens`, then pixel-audit with python3+Pillow (corner `#FCFCFE`, no overflow stripes) — no vision model on this machine, don't try image reads.
