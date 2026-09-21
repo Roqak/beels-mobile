@@ -120,12 +120,14 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
     return Column(
       children: [
-        _FilterBar(
+        FilterChipBar<_TxFilter>(
           value: _filter,
-          onChanged: (f) {
-            HapticFeedback.selectionClick();
-            setState(() => _filter = f);
-          },
+          options: const [
+            FilterOption(_TxFilter.all, 'All'),
+            FilterOption(_TxFilter.deposits, 'Deposits'),
+            FilterOption(_TxFilter.withdrawals, 'Withdrawals'),
+          ],
+          onChanged: (f) => setState(() => _filter = f),
         ),
         Expanded(
           child: RefreshIndicator(
@@ -158,6 +160,19 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     itemCount: entries.length + (list.hasMore ? 1 : 0),
                     itemBuilder: (context, index) {
                       if (index >= entries.length) {
+                        // A filtered list can be too short to scroll, which
+                        // would never trigger infinite scroll: offer a button.
+                        if (_filter != _TxFilter.all) {
+                          return Center(
+                            child: TextButton(
+                              onPressed: () => ref
+                                  .read(transactionsListControllerProvider
+                                      .notifier)
+                                  .loadMore(),
+                              child: const Text('Load more'),
+                            ),
+                          );
+                        }
                         return const Padding(
                           padding: EdgeInsets.symmetric(vertical: 16),
                           child: Center(
@@ -210,59 +225,6 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     if (diff == 1) return 'Yesterday';
     return DateFormat(d.year == now.year ? 'EEE, d MMM' : 'd MMM yyyy')
         .format(d);
-  }
-}
-
-class _FilterBar extends StatelessWidget {
-  const _FilterBar({required this.value, required this.onChanged});
-
-  final _TxFilter value;
-  final ValueChanged<_TxFilter> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    const labels = {
-      _TxFilter.all: 'All',
-      _TxFilter.deposits: 'Deposits',
-      _TxFilter.withdrawals: 'Withdrawals',
-    };
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-      child: Row(
-        children: [
-          for (final entry in labels.entries) ...[
-            Pressable(
-              onTap: () => onChanged(entry.key),
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 180),
-                curve: Curves.easeOutQuart,
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-                decoration: BoxDecoration(
-                  color:
-                      value == entry.key ? BeelsColors.dye : BeelsColors.panel,
-                  borderRadius: BorderRadius.circular(999),
-                  border: Border.all(
-                    color: value == entry.key
-                        ? BeelsColors.dye
-                        : BeelsColors.borderStrong,
-                  ),
-                ),
-                child: Text(
-                  entry.value,
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    color: value == entry.key ? Colors.white : BeelsColors.ink1,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-        ],
-      ),
-    );
   }
 }
 

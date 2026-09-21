@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'core/router.dart';
 import 'features/auth/controllers/auth_controller.dart';
+import 'features/auth/controllers/auto_lock_controller.dart';
 import 'features/auth/controllers/session_lock_controller.dart';
 import 'core/theme.dart';
 
@@ -16,9 +17,6 @@ class BeelsApp extends ConsumerStatefulWidget {
   @override
   ConsumerState<BeelsApp> createState() => _BeelsAppState();
 }
-
-/// How long the app may sit in the background before biometrics are required.
-const kAutoLockAfter = Duration(seconds: 45);
 
 class _BeelsAppState extends ConsumerState<BeelsApp>
     with WidgetsBindingObserver {
@@ -47,7 +45,8 @@ class _BeelsAppState extends ConsumerState<BeelsApp>
       final pausedAt = _pausedAt;
       _pausedAt = null;
       if (pausedAt != null &&
-          DateTime.now().difference(pausedAt) >= kAutoLockAfter) {
+          DateTime.now().difference(pausedAt) >=
+              ref.read(autoLockDelayProvider)) {
         // Only a signed-in session has anything to protect.
         if (ref.read(authControllerProvider).valueOrNull != null) {
           ref.read(sessionLockControllerProvider.notifier).lockNow();

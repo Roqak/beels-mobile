@@ -302,6 +302,45 @@ void main() {
     expect(find.text('Not available on this device.'), findsOneWidget);
     expect(_switch(tester).onChanged, isNull);
   });
+
+  testWidgets('auto-lock delay can be chosen once biometrics are on',
+      (tester) async {
+    final authenticator = _FakeBiometricAuthenticator();
+    final lock = _FakeSessionLockController(authenticator);
+    await _pumpBiometricSection(
+      tester,
+      controller: _FakeProfileController(seed: _seed),
+      lock: lock,
+      authenticator: authenticator,
+    );
+
+    // Hidden until biometric login is on.
+    expect(find.text('Lock after'), findsNothing);
+
+    await tester.ensureVisible(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(SwitchListTile).first);
+    await tester.pumpAndSettle();
+
+    expect(find.text('Lock after'), findsOneWidget);
+    expect(find.text('1 minute'), findsOneWidget);
+
+    await tester.ensureVisible(find.text('Lock after'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Lock after'));
+    await tester.pumpAndSettle();
+
+    // Sheet lists every choice.
+    expect(find.text('Right away'), findsOneWidget);
+    expect(find.text('30 seconds'), findsOneWidget);
+    expect(find.text('5 minutes'), findsOneWidget);
+
+    await tester.tap(find.text('5 minutes'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('5 minutes'), findsOneWidget);
+    expect(find.text('1 minute'), findsNothing);
+  });
 }
 
 Future<void> _pumpBiometricSection(

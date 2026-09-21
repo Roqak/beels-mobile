@@ -11,6 +11,22 @@ import '../../../core/widgets/common.dart';
 import '../controllers/beels_controllers.dart';
 import '../models/contribution.dart';
 
+/// Filter id meaning "no status filter".
+const _allStatuses = 'all';
+
+/// Most useful first; anything else the backend adds follows alphabetically.
+const _statusOrder = [
+  'active',
+  'pending',
+  'processing',
+  'completed',
+  'failed',
+  'cancelled',
+];
+
+String _statusLabel(String status) =>
+    status.isEmpty ? 'Other' : status[0].toUpperCase() + status.substring(1);
+
 /// Tab screen listing the organizer's beels with infinite scroll.
 class BeelsScreen extends ConsumerStatefulWidget {
   const BeelsScreen({super.key});
@@ -21,6 +37,7 @@ class BeelsScreen extends ConsumerStatefulWidget {
 
 class _BeelsScreenState extends ConsumerState<BeelsScreen> {
   final ScrollController _scrollController = ScrollController();
+  String _statusFilter = _allStatuses;
 
   @override
   void initState() {
@@ -77,42 +94,113 @@ class _BeelsScreenState extends ConsumerState<BeelsScreen> {
     }
 
     final list = state.requireValue;
-    return RefreshIndicator(
-      onRefresh: () => ref.read(beelsListControllerProvider.notifier).refresh(),
-      child: list.items.isEmpty
-          ? ListView(
-              children: const [
-                SizedBox(height: 120),
-                KeyedSubtree(
-                  key: Key('empty-state'),
-                  child: EmptyState(
-                    icon: Icons.savings_outlined,
-                    title: 'No beels yet',
-                    message: 'Create a beel to start saving with others.',
-                  ),
-                ),
-              ],
-            )
-          : ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
-              itemCount: list.items.length + (list.hasMore ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index >= list.items.length) {
-                  return const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 16),
-                    child: Center(
-                      child: SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(strokeWidth: 2.5),
-                      ),
-                    ),
-                  );
-                }
-                return BeelCard(beel: list.items[index]);
-              },
+    if (list.items.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: () =>
+            ref.read(beelsListControllerProvider.notifier).refresh(),
+        child: ListView(
+          children: const [
+            SizedBox(height: 120),
+            KeyedSubtree(
+              key: Key('empty-state'),
+              child: EmptyState(
+                icon: Icons.savings_outlined,
+                title: 'No beels yet',
+                message: 'Create a beel to start saving with others.',
+              ),
             ),
+          ],
+        ),
+      );
+    }
+
+    // Filters come from the statuses actually present, so there are never
+    // empty chips. One status only means nothing to filter.
+    final present = {for (final b in list.items) b.status.toLowerCase()};
+    final ordered = [
+      ..._statusOrder.where(present.contains),
+      ...(present.difference(_statusOrder.toSet()).toList()..sort()),
+    ];
+    final showFilters = ordered.length >= 2;
+    final filter =
+        ordered.contains(_statusFilter) ? _statusFilter : _allStatuses;
+    final visible = filter == _allStatuses
+        ? list.items
+        : list.items.where((b) => b.status.toLowerCase() == filter).toList();
+
+    return Column(
+      children: [
+        if (showFilters)
+          FilterChipBar<String>(
+            value: filter,
+            options: [
+              const FilterOption(_allStatuses, 'All'),
+              for (final status in ordered)
+                FilterOption(status, _statusLabel(status)),
+            ],
+            onChanged: (value) => setState(() => _statusFilter = value),
+          ),
+        Expanded(
+          child: RefreshIndicator(
+            color: BeelsColors.accent,
+            onRefresh: () =>
+                ref.read(beelsListControllerProvider.notifier).refresh(),
+            child: visible.isEmpty
+                ? ListView(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    children: [
+                      const SizedBox(height: 80),
+                      EmptyState(
+                        icon: Icons.filter_list_rounded,
+                        title:
+                            'No ${_statusLabel(filter).toLowerCase()} beels loaded',
+                        message:
+                            'Nothing with this status in the beels loaded so far.',
+                        actionLabel: list.hasMore ? 'Load more' : null,
+                        onAction: () => ref
+                            .read(beelsListControllerProvider.notifier)
+                            .loadMore(),
+                      ),
+                    ],
+                  )
+                : ListView.builder(
+                    controller: _scrollController,
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding:
+                        EdgeInsets.fromLTRB(16, showFilters ? 4 : 12, 16, 96),
+                    itemCount: visible.length + (list.hasMore ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (index >= visible.length) {
+                        // A filtered list can be too short to scroll, which
+                        // would never trigger infinite scroll: offer a button.
+                        if (filter != _allStatuses) {
+                          return Center(
+                            child: TextButton(
+                              onPressed: () => ref
+                                  .read(beelsListControllerProvider.notifier)
+                                  .loadMore(),
+                              child: const Text('Load more'),
+                            ),
+                          );
+                        }
+                        return const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 16),
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child:
+                                  CircularProgressIndicator(strokeWidth: 2.5),
+                            ),
+                          ),
+                        );
+                      }
+                      return BeelCard(beel: visible[index]);
+                    },
+                  ),
+          ),
+        ),
+      ],
     );
   }
 }

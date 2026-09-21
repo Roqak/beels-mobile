@@ -35,6 +35,39 @@ class _FakeTransactionsListController extends TransactionsListController {
       );
 }
 
+class _TwoWayController extends TransactionsListController {
+  @override
+  Future<TransactionsListState> build() async => TransactionsListState(
+        items: [
+          Transaction.fromJson({
+            'id': 1,
+            'type': 'deposit',
+            'amount': 5000,
+            'status': 'successful',
+            'created_at': '2026-09-10T08:45:00.000Z',
+            'deposit': {
+              'contributor': {
+                'contribution': {'name': 'Family Savings'},
+              },
+            },
+          }),
+          Transaction.fromJson({
+            'id': 2,
+            'type': 'withdrawal',
+            'amount': 2500,
+            'status': 'pending',
+            'created_at': '2026-09-10T09:45:00.000Z',
+            'withdrawal': {
+              'contribution': {'name': 'Market Savings'},
+            },
+          }),
+        ],
+        page: 1,
+        lastPage: 1,
+        total: 2,
+      );
+}
+
 class _EmptyTransactionsListController extends TransactionsListController {
   @override
   Future<TransactionsListState> build() async => const TransactionsListState(
@@ -108,5 +141,28 @@ void main() {
     await tester.pumpAndSettle();
 
     expect(find.byKey(const Key('error-view')), findsOneWidget);
+  });
+
+  testWidgets('deposit and withdrawal filters narrow the list', (tester) async {
+    await tester.pumpWidget(_app(_TwoWayController()));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Family Savings'), findsOneWidget);
+    expect(find.text('Market Savings'), findsOneWidget);
+
+    await tester.tap(find.text('Deposits'));
+    await tester.pumpAndSettle();
+    expect(find.text('Family Savings'), findsOneWidget);
+    expect(find.text('Market Savings'), findsNothing);
+
+    await tester.tap(find.text('Withdrawals'));
+    await tester.pumpAndSettle();
+    expect(find.text('Family Savings'), findsNothing);
+    expect(find.text('Market Savings'), findsOneWidget);
+
+    await tester.tap(find.text('All'));
+    await tester.pumpAndSettle();
+    expect(find.text('Family Savings'), findsOneWidget);
+    expect(find.text('Market Savings'), findsOneWidget);
   });
 }

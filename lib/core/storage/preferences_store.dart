@@ -13,6 +13,7 @@ class PreferencesStore {
 
   static const _hideBalancesKey = 'beels_hide_balances';
   static const _declinesKey = 'beels_biometric_offer_declines';
+  static const _autoLockKey = 'beels_auto_lock_seconds';
 
   Future<bool> hideBalances() async {
     try {
@@ -41,6 +42,21 @@ class PreferencesStore {
   Future<void> setBiometricOfferDeclines(int value) async {
     try {
       await _storage.write(key: _declinesKey, value: '$value');
+    } catch (_) {}
+  }
+
+  /// Saved auto-lock delay in seconds, or `null` when never chosen.
+  Future<int?> autoLockSeconds() async {
+    try {
+      return int.tryParse(await _storage.read(key: _autoLockKey) ?? '');
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setAutoLockSeconds(int value) async {
+    try {
+      await _storage.write(key: _autoLockKey, value: '$value');
     } catch (_) {}
   }
 }

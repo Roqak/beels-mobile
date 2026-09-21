@@ -5,6 +5,7 @@ export 'beels_app_bar.dart';
 export 'contact_pick_button.dart';
 export 'empty_state.dart';
 export 'error_view.dart';
+export 'filter_chip_bar.dart';
 export 'intro_banner.dart';
 export 'pressable.dart';
 export 'primary_button.dart';

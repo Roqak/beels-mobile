@@ -30,6 +30,14 @@ class _Prefs implements PreferencesStore {
   @override
   Future<void> setBiometricOfferDeclines(int value) async => declines = value;
 
+  int? autoLock;
+
+  @override
+  Future<int?> autoLockSeconds() async => autoLock;
+
+  @override
+  Future<void> setAutoLockSeconds(int value) async => autoLock = value;
+
   @override
   Future<bool> hideBalances() async => hidden;
 

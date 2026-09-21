@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../auth/controllers/auth_controller.dart';
+import '../../auth/controllers/auto_lock_controller.dart';
 import '../../auth/controllers/session_lock_controller.dart';
 import '../../auth/models/profile.dart';
 import '../../auth/validation.dart';
@@ -628,6 +629,18 @@ class _BiometricTileState extends ConsumerState<_BiometricTile> {
     }
   }
 
+  Future<void> _chooseAutoLock(BuildContext context) async {
+    final current = ref.read(autoLockDelayProvider);
+    final picked = await showModalBottomSheet<Duration>(
+      context: context,
+      builder: (_) => _AutoLockSheet(current: current),
+    );
+    if (picked != null) {
+      HapticFeedback.selectionClick();
+      ref.read(autoLockDelayProvider.notifier).set(picked);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -635,7 +648,7 @@ class _BiometricTileState extends ConsumerState<_BiometricTile> {
     final hint = !lock.supported
         ? 'To use this, add a fingerprint or face in your phone settings, then come back.'
         : (lock.enabled
-            ? 'Beels also locks itself after you have been away for a while.'
+            ? 'Beels locks itself when you have been away for the time below.'
             : 'Turn on to skip your password next time.');
     return SurfaceCard(
       padding: EdgeInsets.zero,
@@ -667,14 +680,117 @@ class _BiometricTileState extends ConsumerState<_BiometricTile> {
               onChanged: lock.canEnable && !_saving ? _toggle : null,
             ),
           ),
+          if (lock.supported && lock.enabled) ...[
+            Divider(indent: 72, color: BeelsColors.border),
+            _AutoLockRow(
+              delay: ref.watch(autoLockDelayProvider),
+              onTap: () => _chooseAutoLock(context),
+            ),
+            Divider(indent: 72, color: BeelsColors.border),
+          ],
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 14),
             child: Text(
               hint,
               style:
                   TextStyle(fontSize: 12, height: 1.4, color: BeelsColors.ink2),
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AutoLockRow extends StatelessWidget {
+  const _AutoLockRow({required this.delay, required this.onTap});
+
+  final Duration delay;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: BeelsColors.accentSoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(Icons.timer_outlined,
+                  size: 22, color: BeelsColors.accent),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Text(
+                'Lock after',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: BeelsColors.ink0,
+                ),
+              ),
+            ),
+            Text(
+              autoLockLabel(delay),
+              style: TextStyle(fontSize: 14, color: BeelsColors.ink2),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.chevron_right_rounded, color: BeelsColors.ink3),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AutoLockSheet extends StatelessWidget {
+  const _AutoLockSheet({required this.current});
+
+  final Duration current;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 4, 20, 4),
+            child: Text(
+              'Lock after',
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+                color: BeelsColors.ink0,
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 8),
+            child: Text(
+              'How long Beels can stay in the background before it asks for '
+              'your fingerprint or face.',
+              style:
+                  TextStyle(fontSize: 13, height: 1.4, color: BeelsColors.ink2),
+            ),
+          ),
+          for (final choice in kAutoLockChoices)
+            ListTile(
+              title: Text(autoLockLabel(choice)),
+              trailing: choice == current
+                  ? Icon(Icons.check_rounded, color: BeelsColors.accent)
+                  : null,
+              onTap: () => Navigator.of(context).pop(choice),
+            ),
         ],
       ),
     );

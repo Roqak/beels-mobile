@@ -44,6 +44,48 @@ class _FakeBeelsListController extends BeelsListController {
   Future<void> refresh() async {}
 }
 
+class _MixedController extends BeelsListController {
+  _MixedController({this.hasMore = false, this.statuses});
+
+  final bool hasMore;
+  final List<String>? statuses;
+  int loadMoreCalls = 0;
+
+  @override
+  Future<BeelsListState> build() async {
+    final list = statuses ?? ['active', 'pending', 'failed', 'active'];
+    return BeelsListState(
+      items: [
+        for (var i = 0; i < list.length; i++)
+          Contribution.fromJson({
+            'id': i + 1,
+            'name': 'Beel ${i + 1}',
+            'unit_amount': 1000,
+            'status': list[i],
+            'recurrence_type': 'one_time',
+            'contribution_mode': 'closed',
+          }),
+      ],
+      page: 1,
+      lastPage: hasMore ? 2 : 1,
+      total: list.length,
+    );
+  }
+
+  @override
+  Future<void> loadMore() async => loadMoreCalls++;
+
+  @override
+  Future<void> refresh() async {}
+}
+
+Widget _appWith(BeelsListController controller) {
+  return ProviderScope(
+    overrides: [beelsListControllerProvider.overrideWith(() => controller)],
+    child: const MaterialApp(home: BeelsScreen()),
+  );
+}
+
 Widget _app() {
   return ProviderScope(
     overrides: [
@@ -100,6 +142,74 @@ void main() {
 
     expect(find.text('Family Savings'), findsNothing);
     expect(find.byKey(const Key('error-view')), findsOneWidget);
+  });
+
+  testWidgets('status filters are built from the statuses present',
+      (tester) async {
+    await tester.pumpWidget(_appWith(_MixedController()));
+    await tester.pumpAndSettle();
+
+    // Ordered by usefulness, no chip for statuses that are not there.
+    expect(find.text('All'), findsOneWidget);
+    expect(find.text('Active'), findsOneWidget);
+    expect(find.text('Pending'), findsOneWidget);
+    expect(find.text('Failed'), findsOneWidget);
+    expect(find.text('Cancelled'), findsNothing);
+    expect(find.text('Completed'), findsNothing);
+    // Everything shows by default.
+    expect(find.byType(BeelCard), findsNWidgets(4));
+  });
+
+  testWidgets('choosing a status shows only those beels; All restores',
+      (tester) async {
+    await tester.pumpWidget(_appWith(_MixedController()));
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.text('Active'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BeelCard), findsNWidgets(2));
+    expect(find.text('Beel 1'), findsOneWidget);
+    expect(find.text('Beel 4'), findsOneWidget);
+    expect(find.text('Beel 2'), findsNothing);
+
+    await tester.tap(find.text('Failed'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BeelCard), findsOneWidget);
+    expect(find.text('Beel 3'), findsOneWidget);
+
+    await tester.tap(find.text('All'));
+    await tester.pumpAndSettle();
+    expect(find.byType(BeelCard), findsNWidgets(4));
+  });
+
+  testWidgets('no filter bar when every beel has the same status',
+      (tester) async {
+    await tester.pumpWidget(
+      _appWith(_MixedController(statuses: ['active', 'active'])),
+    );
+    await tester.pumpAndSettle();
+
+    expect(find.text('All'), findsNothing);
+    expect(find.byType(BeelCard), findsNWidgets(2));
+  });
+
+  testWidgets('a filtered list offers Load more when more pages exist',
+      (tester) async {
+    final controller = _MixedController(hasMore: true);
+    await tester.pumpWidget(_appWith(controller));
+    // The trailing spinner never settles, so pump a fixed duration.
+    await tester.pump(const Duration(milliseconds: 500));
+
+    // Unfiltered: infinite scroll (spinner), no button.
+    expect(find.text('Load more'), findsNothing);
+
+    await tester.tap(find.text('Pending'));
+    await tester.pumpAndSettle();
+    expect(find.text('Load more'), findsOneWidget);
+
+    await tester.tap(find.text('Load more'));
+    await tester.pump();
+    expect(controller.loadMoreCalls, 1);
   });
 }
 
