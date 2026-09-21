@@ -225,10 +225,12 @@ void main() {
     await tester.tap(find.text('Log out'));
     await tester.pumpAndSettle();
     // The dialog title is also "Log out"; the action button is the last match.
-    await tester.tap(find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.text('Log out'),
-    ).last);
+    await tester.tap(find
+        .descendant(
+          of: find.byType(AlertDialog),
+          matching: find.text('Log out'),
+        )
+        .last);
     await tester.pumpAndSettle();
 
     expect(controller.logoutCalls, 1);
@@ -301,6 +303,7 @@ void main() {
     expect(_switch(tester).onChanged, isNull);
   });
 }
+
 Future<void> _pumpBiometricSection(
   WidgetTester tester, {
   required _FakeProfileController controller,
@@ -335,7 +338,8 @@ Future<void> _pumpBiometricSection(
 }
 
 class _FakeBiometricAuthenticator implements BiometricAuthenticator {
-  _FakeBiometricAuthenticator({this.available = true, this.promptResult = true});
+  _FakeBiometricAuthenticator(
+      {this.available = true, this.promptResult = true});
 
   bool available;
   bool promptResult;

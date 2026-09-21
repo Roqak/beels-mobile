@@ -139,7 +139,8 @@ void main() {
     );
   });
 
-  testWidgets('Pay now shows only for payable contributors and shares the '
+  testWidgets(
+      'Pay now shows only for payable contributors and shares the '
       'checkout URL', (tester) async {
     final repository = _FakePaymentsRepository();
     var sharedTexts = <String>[];
@@ -167,8 +168,7 @@ void main() {
     expect(sharedTexts, ['https://checkout.flutterwave.com/pay/abc']);
   });
 
-  testWidgets('failed initialization surfaces the API message',
-      (tester) async {
+  testWidgets('failed initialization surfaces the API message', (tester) async {
     final repository = _FakePaymentsRepository();
     repository.initializeError =
         const ApiException('No pending deposit', statusCode: 400);
@@ -196,7 +196,6 @@ void main() {
     await tester.tap(find.text('Pay now'));
     await tester.pumpAndSettle();
 
-    expect(find.text('Payment link unavailable. Try again.'),
-        findsOneWidget);
+    expect(find.text('Payment link unavailable. Try again.'), findsOneWidget);
   });
 }

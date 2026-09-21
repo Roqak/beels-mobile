@@ -28,7 +28,7 @@ void main() {
     test('falls back to the error field', () {
       final e = ApiException.fromResponse({'error': 'Unauthorized'}, 401);
       expect(e.message, 'Unauthorized');
- expect(e.statusCode, 401);
+      expect(e.statusCode, 401);
     });
 
     test('falls back to a generic message for non-map bodies', () {

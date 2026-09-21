@@ -116,26 +116,40 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              TextFormField(
-                controller: _nameController,
-                textInputAction: TextInputAction.next,
-                textCapitalization: TextCapitalization.words,
-                decoration: const InputDecoration(
-                  hintText: 'Group name',
-                ),
-                validator: (value) => (value == null || value.trim().isEmpty)
-                    ? 'Group name is required'
-                    : null,
+              const IntroBanner(
+                title: 'Save with people you trust',
+                body:
+                    'A group keeps your circle in one place, so you can invite the same people to many beels.',
               ),
-              const SizedBox(height: 12),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 3,
-                maxLength: 500,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: const InputDecoration(
-                  hintText: 'Description (optional)',
-                  counterText: '',
+              const SizedBox(height: 20),
+              SurfaceCard(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  children: [
+                    TextFormField(
+                      controller: _nameController,
+                      textInputAction: TextInputAction.next,
+                      textCapitalization: TextCapitalization.words,
+                      decoration: const InputDecoration(
+                        hintText: 'Group name',
+                      ),
+                      validator: (value) =>
+                          (value == null || value.trim().isEmpty)
+                              ? 'Group name is required'
+                              : null,
+                    ),
+                    const SizedBox(height: 12),
+                    TextFormField(
+                      controller: _descriptionController,
+                      maxLines: 3,
+                      maxLength: 500,
+                      textCapitalization: TextCapitalization.sentences,
+                      decoration: const InputDecoration(
+                        hintText: 'Description (optional)',
+                        counterText: '',
+                      ),
+                    ),
+                  ],
                 ),
               ),
               const SizedBox(height: 28),
@@ -149,21 +163,50 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
               ),
               const SizedBox(height: 10),
               ..._listRows(theme),
-              Align(
-                alignment: Alignment.centerLeft,
-                child: TextButton.icon(
-                  onPressed: _addDraft,
-                  icon: const Icon(Icons.person_add_alt, size: 18),
-                  label: const Text('Add member'),
+              Pressable(
+                onTap: _addDraft,
+                haptic: true,
+                child: Container(
+                  height: 52,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: BeelsColors.borderStrong),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.person_add_alt_rounded,
+                          size: 20, color: BeelsColors.accent),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Add member',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: BeelsColors.accent,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 12),
-              PrimaryButton(
-                label: 'Create group',
-                loading: _submitting,
-                onPressed: _submitting ? null : _submit,
-              ),
             ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: DecoratedBox(
+        decoration: BoxDecoration(
+          color: BeelsColors.panel,
+          border: Border(top: BorderSide(color: BeelsColors.border)),
+        ),
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+              16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
+          child: PrimaryButton(
+            label: 'Create group',
+            loading: _submitting,
+            onPressed: _submitting ? null : _submit,
           ),
         ),
       ),

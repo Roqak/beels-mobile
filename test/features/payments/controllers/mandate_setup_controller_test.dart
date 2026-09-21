@@ -82,8 +82,7 @@ void main() {
   test('selectBank requires a CBN code before verifying', () {
     final container = makeContainer();
     addTearDown(container.dispose);
-    final controller =
-        container.read(mandateSetupControllerProvider.notifier);
+    final controller = container.read(mandateSetupControllerProvider.notifier);
 
     controller.selectBank(const Bank(name: 'No-code bank'));
     expect(
@@ -98,12 +97,10 @@ void main() {
     );
   });
 
-  test('verifyAccount success stores the account name and advances',
-      () async {
+  test('verifyAccount success stores the account name and advances', () async {
     final container = makeContainer();
     addTearDown(container.dispose);
-    final controller =
-        container.read(mandateSetupControllerProvider.notifier);
+    final controller = container.read(mandateSetupControllerProvider.notifier);
     controller.selectBank(const Bank(name: 'GTB', cbnCode: '058'));
 
     await controller.verifyAccount(accountNumber: '0123456789');
@@ -119,8 +116,7 @@ void main() {
       () async {
     final container = makeContainer();
     addTearDown(container.dispose);
-    final controller =
-        container.read(mandateSetupControllerProvider.notifier);
+    final controller = container.read(mandateSetupControllerProvider.notifier);
     controller.selectBank(const Bank(name: 'GTB', cbnCode: '058'));
     repository.enquiryError =
         const ApiException('Account not found', statusCode: 404);
@@ -136,8 +132,7 @@ void main() {
   test('backToAccount returns to the account step', () async {
     final container = makeContainer();
     addTearDown(container.dispose);
-    final controller =
-        container.read(mandateSetupControllerProvider.notifier);
+    final controller = container.read(mandateSetupControllerProvider.notifier);
     controller.selectBank(const Bank(name: 'GTB', cbnCode: '058'));
     await controller.verifyAccount(accountNumber: '0123456789');
 
@@ -151,8 +146,7 @@ void main() {
       () async {
     final container = makeContainer();
     addTearDown(container.dispose);
-    final controller =
-        container.read(mandateSetupControllerProvider.notifier);
+    final controller = container.read(mandateSetupControllerProvider.notifier);
     controller.selectBank(const Bank(name: 'GTB', cbnCode: '058'));
     await controller.verifyAccount(accountNumber: '0123456789');
 
@@ -183,8 +177,7 @@ void main() {
   test('submit is a no-op when the BVN is not 11 digits', () async {
     final container = makeContainer();
     addTearDown(container.dispose);
-    final controller =
-        container.read(mandateSetupControllerProvider.notifier);
+    final controller = container.read(mandateSetupControllerProvider.notifier);
     controller.selectBank(const Bank(name: 'GTB', cbnCode: '058'));
     await controller.verifyAccount(accountNumber: '0123456789');
 
@@ -202,12 +195,11 @@ void main() {
   test('submit rethrows repository errors and clears submitting', () async {
     final container = makeContainer();
     addTearDown(container.dispose);
-    final controller =
-        container.read(mandateSetupControllerProvider.notifier);
+    final controller = container.read(mandateSetupControllerProvider.notifier);
     controller.selectBank(const Bank(name: 'GTB', cbnCode: '058'));
     await controller.verifyAccount(accountNumber: '0123456789');
-    repository.setupError = const ApiException('Mandate already exists',
-        statusCode: 400);
+    repository.setupError =
+        const ApiException('Mandate already exists', statusCode: 400);
 
     await expectLater(
       controller.submit(

@@ -128,12 +128,12 @@ Widget _testApp() {
       ),
       GoRoute(
         path: '/beels/new',
-        builder: (context, state) => const Scaffold(body: Text('NEW_BEEL_PAGE')),
+        builder: (context, state) =>
+            const Scaffold(body: Text('NEW_BEEL_PAGE')),
       ),
       GoRoute(
         path: '/profile',
-        builder: (context, state) =>
-            const Scaffold(body: Text('PROFILE_PAGE')),
+        builder: (context, state) => const Scaffold(body: Text('PROFILE_PAGE')),
       ),
     ],
   );

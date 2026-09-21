@@ -71,8 +71,7 @@ void main() {
     authenticator = _FakeAuthenticator();
   });
 
-  test('no stored token leaves the session open and the toggle off',
-      () async {
+  test('no stored token leaves the session open and the toggle off', () async {
     tokens.token = null;
     store.enabledValue = true;
     final container = makeContainer();
@@ -100,8 +99,7 @@ void main() {
     expect(state.supported, isTrue);
   });
 
-  test('opt-in on a device without usable biometrics never locks',
-      () async {
+  test('opt-in on a device without usable biometrics never locks', () async {
     store.enabledValue = true;
     authenticator.available = false;
     final container = makeContainer();
@@ -113,8 +111,7 @@ void main() {
     expect(state.locked, isFalse);
   });
 
-  test('unlock success opens the session; failure keeps it locked',
-      () async {
+  test('unlock success opens the session; failure keeps it locked', () async {
     final container = makeContainer();
     addTearDown(container.dispose);
     await _controller(container).evaluate();
@@ -134,8 +131,7 @@ void main() {
     expect(container.read(sessionLockControllerProvider).locked, isFalse);
   });
 
-  test('dismiss opens the session without touching the preference',
-      () async {
+  test('dismiss opens the session without touching the preference', () async {
     final container = makeContainer();
     addTearDown(container.dispose);
     store.enabledValue = true;

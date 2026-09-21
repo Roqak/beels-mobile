@@ -160,105 +160,129 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
         children: [
           _buildModeSelector(),
           const SizedBox(height: 16),
-          _LabeledField(
-            label: 'Beel name',
-            error: _errors['name'],
-            child: TextField(
-              controller: _nameController,
-              textCapitalization: TextCapitalization.words,
-              onChanged: (_) => _clearError('name'),
-              decoration:
-                  const InputDecoration(hintText: 'e.g. Family Savings'),
-            ),
-          ),
-          const SizedBox(height: 12),
-          _LabeledField(
-            label:
-                _mode == 'closed' ? 'Target amount' : 'Target amount (total)',
-            error: _errors['amount'],
-            child: MoneyField(
-              controller: _amountController,
-              hint: '0',
-              onChanged: (_) => _clearError('amount'),
-            ),
-          ),
-          if (_mode == 'open') ...[
-            const SizedBox(height: 12),
-            _LabeledField(
-              label: 'Amount per contributor (optional)',
-              error: _errors['amount_per_contributor'],
-              child: MoneyField(
-                controller: _amountPerContributorController,
-                hint: 'Leave empty to split by number of people',
-                onChanged: (_) => setState(() {
-                  _errors.remove('amount_per_contributor');
-                }),
-              ),
-            ),
-            if (_amountPerContributorController.text.trim().isEmpty) ...[
-              const SizedBox(height: 12),
-              _LabeledField(
-                label: 'Expected contributors',
-                error: _errors['expected_contributors'],
-                child: TextField(
-                  controller: _expectedContributorsController,
-                  keyboardType: TextInputType.number,
-                  onChanged: (_) => _clearError('expected_contributors'),
-                  decoration: const InputDecoration(hintText: 'e.g. 4 people'),
+          const SectionHeader('The basics'),
+          const SizedBox(height: 10),
+          SurfaceCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _LabeledField(
+                  label: 'Beel name',
+                  error: _errors['name'],
+                  child: TextField(
+                    controller: _nameController,
+                    textCapitalization: TextCapitalization.words,
+                    onChanged: (_) => _clearError('name'),
+                    decoration:
+                        const InputDecoration(hintText: 'e.g. Family Savings'),
+                  ),
                 ),
-              ),
-            ],
-          ],
-          const SizedBox(height: 12),
-          _LabeledField(
-            label: 'Recurrence',
-            error: _errors['recurrence'],
-            child: DropdownButtonFormField<String>(
-              value: _recurrenceType,
-              items: [
-                for (final entry in _kRecurrences.entries)
-                  DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+                const SizedBox(height: 12),
+                _LabeledField(
+                  label: _mode == 'closed'
+                      ? 'Target amount'
+                      : 'Target amount (total)',
+                  error: _errors['amount'],
+                  child: MoneyField(
+                    controller: _amountController,
+                    hint: '0',
+                    onChanged: (_) => _clearError('amount'),
+                  ),
+                ),
+                if (_mode == 'open') ...[
+                  const SizedBox(height: 12),
+                  _LabeledField(
+                    label: 'Amount per contributor (optional)',
+                    error: _errors['amount_per_contributor'],
+                    child: MoneyField(
+                      controller: _amountPerContributorController,
+                      hint: 'Leave empty to split by number of people',
+                      onChanged: (_) => setState(() {
+                        _errors.remove('amount_per_contributor');
+                      }),
+                    ),
+                  ),
+                  if (_amountPerContributorController.text.trim().isEmpty) ...[
+                    const SizedBox(height: 12),
+                    _LabeledField(
+                      label: 'Expected contributors',
+                      error: _errors['expected_contributors'],
+                      child: TextField(
+                        controller: _expectedContributorsController,
+                        keyboardType: TextInputType.number,
+                        onChanged: (_) => _clearError('expected_contributors'),
+                        decoration:
+                            const InputDecoration(hintText: 'e.g. 4 people'),
+                      ),
+                    ),
+                  ],
+                ],
               ],
-              onChanged: (value) => _setRecurrence(value ?? 'one_time'),
-              decoration: const InputDecoration(),
             ),
           ),
-          if (_recurrenceType == 'weekly') ...[
-            const SizedBox(height: 12),
-            _LabeledField(
-              label: 'Day of week',
-              error: _errors['day_of_week'],
-              child: DropdownButtonFormField<String>(
-                value: _dayOfWeek,
-                items: [
-                  for (final entry in _kWeekdays.entries)
-                    DropdownMenuItem(
-                        value: entry.key, child: Text(entry.value)),
+          const SizedBox(height: 28),
+          const SectionHeader('Schedule'),
+          const SizedBox(height: 10),
+          SurfaceCard(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _LabeledField(
+                  label: 'Recurrence',
+                  error: _errors['recurrence'],
+                  child: DropdownButtonFormField<String>(
+                    value: _recurrenceType,
+                    items: [
+                      for (final entry in _kRecurrences.entries)
+                        DropdownMenuItem(
+                            value: entry.key, child: Text(entry.value)),
+                    ],
+                    onChanged: (value) => _setRecurrence(value ?? 'one_time'),
+                    decoration: const InputDecoration(),
+                  ),
+                ),
+                if (_recurrenceType == 'weekly') ...[
+                  const SizedBox(height: 12),
+                  _LabeledField(
+                    label: 'Day of week',
+                    error: _errors['day_of_week'],
+                    child: DropdownButtonFormField<String>(
+                      value: _dayOfWeek,
+                      items: [
+                        for (final entry in _kWeekdays.entries)
+                          DropdownMenuItem(
+                              value: entry.key, child: Text(entry.value)),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => _dayOfWeek = value ?? 'monday'),
+                      decoration: const InputDecoration(),
+                    ),
+                  ),
                 ],
-                onChanged: (value) =>
-                    setState(() => _dayOfWeek = value ?? 'monday'),
-                decoration: const InputDecoration(),
-              ),
-            ),
-          ],
-          if (_recurrenceType == 'monthly') ...[
-            const SizedBox(height: 12),
-            _LabeledField(
-              label: 'Day of month',
-              error: _errors['day_of_month'],
-              child: DropdownButtonFormField<int>(
-                value: _dayOfMonth,
-                items: [
-                  for (var day = 1; day <= 31; day++)
-                    DropdownMenuItem(value: day, child: Text('Day $day')),
+                if (_recurrenceType == 'monthly') ...[
+                  const SizedBox(height: 12),
+                  _LabeledField(
+                    label: 'Day of month',
+                    error: _errors['day_of_month'],
+                    child: DropdownButtonFormField<int>(
+                      value: _dayOfMonth,
+                      items: [
+                        for (var day = 1; day <= 31; day++)
+                          DropdownMenuItem(value: day, child: Text('Day $day')),
+                      ],
+                      onChanged: (value) =>
+                          setState(() => _dayOfMonth = value ?? 1),
+                      decoration: const InputDecoration(),
+                    ),
+                  ),
                 ],
-                onChanged: (value) => setState(() => _dayOfMonth = value ?? 1),
-                decoration: const InputDecoration(),
-              ),
+              ],
             ),
-          ],
+          ),
           if (_mode == 'closed') ...[
-            const SizedBox(height: 20),
+            const SizedBox(height: 28),
             SectionHeader(
               'Contributors',
               action: TextButton.icon(
@@ -269,7 +293,7 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
             ),
             ..._buildContributorRows(),
           ],
-          const SizedBox(height: 20),
+          const SizedBox(height: 28),
           SectionHeader(
             'Beneficiaries',
             action: TextButton.icon(

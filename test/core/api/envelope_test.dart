@@ -6,7 +6,11 @@ void main() {
   group('envelope', () {
     test('unwraps data and passes it to fromData', () {
       final out = envelope<Map>(
-        {'statusCode': 200, 'message': 'ok', 'data': {'id': 5, 'name': 'X'}},
+        {
+          'statusCode': 200,
+          'message': 'ok',
+          'data': {'id': 5, 'name': 'X'}
+        },
         (data) => data as Map,
       );
       expect(out['id'], 5);
@@ -21,7 +25,12 @@ void main() {
   group('envelopeList', () {
     test('maps a flat list payload', () {
       final out = envelopeList<int>(
-        {'data': [{'id': 1}, {'id': 2}]},
+        {
+          'data': [
+            {'id': 1},
+            {'id': 2}
+          ]
+        },
         (json) => json['id'] as int,
       );
       expect(out, [1, 2]);
@@ -45,13 +54,17 @@ void main() {
     });
 
     test('maps a bare list body', () {
-      final out = envelopeList<int>([{'id': 9}], (json) => json['id'] as int);
+      final out = envelopeList<int>([
+        {'id': 9}
+      ], (json) => json['id'] as int);
       expect(out, [9]);
     });
 
     test('returns an empty list when data is not a list', () {
       final out = envelopeList<int>(
-        {'data': {'message': 'no list here'}},
+        {
+          'data': {'message': 'no list here'}
+        },
         (json) => json['id'] as int,
       );
       expect(out, isEmpty);

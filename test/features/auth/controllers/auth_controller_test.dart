@@ -164,7 +164,8 @@ void main() {
   });
 
   test('bootstrap clears the token silently on 401', () async {
-    repository.fetchError = const ApiException('Session expired', statusCode: 401);
+    repository.fetchError =
+        const ApiException('Session expired', statusCode: 401);
 
     final controller = await notifier();
 

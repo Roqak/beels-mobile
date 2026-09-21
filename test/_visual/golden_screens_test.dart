@@ -22,6 +22,13 @@ import 'package:beels_mobile/features/dashboard/data/dashboard_repository.dart';
 import 'package:beels_mobile/features/groups/data/groups_repository.dart';
 import 'package:beels_mobile/features/groups/models/group.dart';
 import 'package:beels_mobile/features/groups/screens/groups_screen.dart';
+import 'package:beels_mobile/features/groups/screens/create_group_screen.dart';
+import 'package:beels_mobile/features/payments/controllers/mandate_setup_controller.dart';
+import 'package:beels_mobile/features/payments/controllers/mandates_controller.dart';
+import 'package:beels_mobile/features/payments/models/bank.dart';
+import 'package:beels_mobile/features/payments/models/payment_mandate.dart';
+import 'package:beels_mobile/features/payments/screens/mandate_list_screen.dart';
+import 'package:beels_mobile/features/payments/screens/mandate_setup_screen.dart';
 import 'package:beels_mobile/features/groups/screens/group_detail_screen.dart';
 import 'package:beels_mobile/features/beels/screens/create_beel_screen.dart';
 import 'package:beels_mobile/features/auth/screens/lock_screen.dart';
@@ -63,47 +70,48 @@ class _FakeDashboardController extends DashboardController {
           {
             'statusCode': 200,
             'data': [
-            {
-              'id': 41,
-              'type': 'deposit',
-              'amount': 15000,
-              'status': 'completed',
-              'created_at': '2026-09-18T09:15:00.000Z',
-              'deposit': {
-                'contributor': {
-                  'contribution': {'name': 'Family Savings'},
+              {
+                'id': 41,
+                'type': 'deposit',
+                'amount': 15000,
+                'status': 'completed',
+                'created_at': '2026-09-18T09:15:00.000Z',
+                'deposit': {
+                  'contributor': {
+                    'contribution': {'name': 'Family Savings'},
+                  },
                 },
               },
-            },
-            {
-              'id': 40,
-              'type': 'withdrawal',
-              'amount': 8000,
-              'status': 'pending',
-              'created_at': '2026-09-17T18:40:00.000Z',
-              'withdrawal': {
-                'contribution': {'name': 'Market Savings'},
-              },
-            },
-            {
-              'id': 39,
-              'type': 'deposit',
-              'amount': 5000,
-              'status': 'completed',
-              'created_at': '2026-09-16T12:05:00.000Z',
-              'deposit': {
-                'contributor': {
-                  'contribution': {'name': 'Weekly Ajo'},
+              {
+                'id': 40,
+                'type': 'withdrawal',
+                'amount': 8000,
+                'status': 'pending',
+                'created_at': '2026-09-17T18:40:00.000Z',
+                'withdrawal': {
+                  'contribution': {'name': 'Market Savings'},
                 },
               },
-            },
-          ],
-          'current_page': 1,
-          'per_page': 5,
-          'total': 3,
-          'last_page': 1,
+              {
+                'id': 39,
+                'type': 'deposit',
+                'amount': 5000,
+                'status': 'completed',
+                'created_at': '2026-09-16T12:05:00.000Z',
+                'deposit': {
+                  'contributor': {
+                    'contribution': {'name': 'Weekly Ajo'},
+                  },
+                },
+              },
+            ],
+            'current_page': 1,
+            'per_page': 5,
+            'total': 3,
+            'last_page': 1,
           },
-          (item) => item is Map ? item.cast<String, dynamic>() : <String, dynamic>{},
+          (item) =>
+              item is Map ? item.cast<String, dynamic>() : <String, dynamic>{},
         ),
       );
 }
@@ -274,9 +282,24 @@ class _FakeGroupDetail extends GroupDetailController {
         'created_at': '2026-05-04T09:15:00.000Z',
         'members_count': 3,
         'members': [
-          {'id': 1, 'first_name': 'Ada', 'last_name': 'Okafor', 'email': 'ada@beels.test'},
-          {'id': 2, 'first_name': 'Bode', 'last_name': 'Aliu', 'phone_number': '08023456789'},
-          {'id': 3, 'first_name': 'Chi', 'last_name': 'Eze', 'email': 'chi@beels.test'},
+          {
+            'id': 1,
+            'first_name': 'Ada',
+            'last_name': 'Okafor',
+            'email': 'ada@beels.test'
+          },
+          {
+            'id': 2,
+            'first_name': 'Bode',
+            'last_name': 'Aliu',
+            'phone_number': '08023456789'
+          },
+          {
+            'id': 3,
+            'first_name': 'Chi',
+            'last_name': 'Eze',
+            'email': 'chi@beels.test'
+          },
         ],
       });
 }
@@ -289,6 +312,31 @@ class _LockedSession extends SessionLockController {
   @override
   Future<bool> unlock() async => false;
 }
+
+class _FakeSetup extends MandateSetupController {
+  _FakeSetup(this.initial);
+  final MandateSetupState initial;
+  @override
+  MandateSetupState build() => initial;
+}
+
+class _FakeMandates extends MandatesController {
+  @override
+  Future<List<PaymentMandate>> build() async => [
+        PaymentMandate(
+            id: 1,
+            accountNumber: '0123456789',
+            bankName: 'GTBank',
+            status: 'active'),
+        PaymentMandate(
+            id: 2,
+            accountNumber: '2034567890',
+            bankName: 'Access Bank',
+            status: 'pending'),
+      ];
+}
+
+const _bank = Bank(id: 1, name: 'GTBank', cbnCode: '058');
 
 void main() {
   setUpAll(() async {
@@ -307,8 +355,8 @@ void main() {
     };
     for (final family in const ['Inter', 'BricolageGrotesque']) {
       final loader = FontLoader('$family' '_regular');
-      final first = await rootBundle
-          .load('assets/google_fonts/$family-Regular.ttf');
+      final first =
+          await rootBundle.load('assets/google_fonts/$family-Regular.ttf');
       loader.addFont(Future.value(first));
       await loader.load();
       for (final weight in const ['500', '600', '700']) {
@@ -568,6 +616,135 @@ void main() {
       await expectLater(
         find.byType(MaterialApp),
         matchesGoldenFile('goldens/login_dark.png'),
+      );
+    });
+  });
+
+  testWidgets('mandate setup step 1 golden', (tester) async {
+    await pumpScreen(
+      tester,
+      const MandateSetupScreen(),
+      overrides: [
+        authControllerProvider.overrideWith(() => _FakeAuthController(null)),
+        banksProvider.overrideWith((ref) async => [_bank]),
+        mandateSetupControllerProvider.overrideWith(() => _FakeSetup(
+            const MandateSetupState(
+                selectedBank: _bank,
+                accountNumber: '0123456789',
+                accountName: 'ADA OKAFOR'))),
+      ],
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/mandate_setup_1.png'),
+    );
+  });
+
+  testWidgets('mandate setup step 2 golden', (tester) async {
+    await pumpScreen(
+      tester,
+      const MandateSetupScreen(),
+      overrides: [
+        authControllerProvider.overrideWith(() => _FakeAuthController(null)),
+        banksProvider.overrideWith((ref) async => [_bank]),
+        mandateSetupControllerProvider.overrideWith(() => _FakeSetup(
+            const MandateSetupState(
+                step: MandateSetupStep.personal,
+                selectedBank: _bank,
+                accountNumber: '0123456789',
+                accountName: 'ADA OKAFOR'))),
+      ],
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/mandate_setup_2.png'),
+    );
+  });
+
+  testWidgets('mandate list golden', (tester) async {
+    await pumpScreen(
+      tester,
+      const MandateListScreen(),
+      overrides: [
+        mandatesControllerProvider.overrideWith(() => _FakeMandates()),
+      ],
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/mandate_list.png'),
+    );
+  });
+
+  testWidgets('create group golden', (tester) async {
+    await pumpScreen(tester, const CreateGroupScreen());
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/create_group.png'),
+    );
+  });
+
+  group('dark more', () {
+    setUp(() => BeelsColors.apply(Brightness.dark));
+    tearDown(() => BeelsColors.apply(Brightness.light));
+
+    testWidgets('beel detail dark golden', (tester) async {
+      await pumpScreen(
+        tester,
+        const BeelDetailScreen(id: 27),
+        overrides: [
+          beelDetailControllerProvider
+              .overrideWith(() => _FakeBeelDetailController()),
+        ],
+      );
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/beel_detail_dark.png'),
+      );
+    });
+
+    testWidgets('profile dark golden', (tester) async {
+      await pumpScreen(
+        tester,
+        const ProfileScreen(),
+        overrides: [
+          authControllerProvider.overrideWith(
+            () => _FakeAuthController(
+              Profile.fromJson({
+                'first_name': 'Ada',
+                'last_name': 'Okafor',
+                'email': 'ada@beels.test',
+                'phone_number': '08012345678',
+                'status': 'active',
+              }),
+            ),
+          ),
+        ],
+      );
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/profile_dark.png'),
+      );
+    });
+
+    testWidgets('group detail dark golden', (tester) async {
+      await pumpScreen(
+        tester,
+        const GroupDetailScreen(id: 1),
+        overrides: [
+          groupDetailProvider.overrideWith(() => _FakeGroupDetail()),
+        ],
+      );
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/group_detail_dark.png'),
+      );
+    });
+
+    testWidgets('create beel dark golden', (tester) async {
+      await pumpScreen(tester, const CreateBeelScreen());
+      await expectLater(
+        find.byType(MaterialApp),
+        matchesGoldenFile('goldens/create_beel_dark.png'),
       );
     });
   });

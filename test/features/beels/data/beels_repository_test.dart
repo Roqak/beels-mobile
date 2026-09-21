@@ -89,7 +89,8 @@ void main() {
   });
 
   group('BeelsRepository.buildOpenPayload', () {
-    test('amount_per_contributor and expected_contributors are mutually exclusive',
+    test(
+        'amount_per_contributor and expected_contributors are mutually exclusive',
         () {
       final perContributor = BeelsRepository.buildOpenPayload(
         name: 'Birthday Fund',

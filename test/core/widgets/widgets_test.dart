@@ -34,7 +34,8 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(
         home: Scaffold(
-          body: Center(child: StatusChip(label: 'Pending', kind: StatusKind.warn)),
+          body: Center(
+              child: StatusChip(label: 'Pending', kind: StatusKind.warn)),
         ),
       ),
     );

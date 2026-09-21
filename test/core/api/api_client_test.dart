@@ -67,9 +67,13 @@ void main() {
       handler: (options) {
         captured = options;
         return ResponseBody.fromString(
-          jsonEncode({'data': {'ok': true}}),
+          jsonEncode({
+            'data': {'ok': true}
+          }),
           200,
-          headers: {Headers.contentTypeHeader: [Headers.jsonContentType]},
+          headers: {
+            Headers.contentTypeHeader: [Headers.jsonContentType]
+          },
         );
       },
     );
@@ -131,7 +135,9 @@ void main() {
       handler: (options) => ResponseBody.fromString(
         jsonEncode({'statusCode': 401, 'message': 'Unauthenticated.'}),
         401,
-        headers: {Headers.contentTypeHeader: [Headers.jsonContentType]},
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType]
+        },
       ),
     );
 
@@ -190,7 +196,9 @@ void main() {
           'message': ['Name is required', 'Amount must be positive'],
         }),
         422,
-        headers: {Headers.contentTypeHeader: [Headers.jsonContentType]},
+        headers: {
+          Headers.contentTypeHeader: [Headers.jsonContentType]
+        },
       ),
     );
     final client = ApiClient(

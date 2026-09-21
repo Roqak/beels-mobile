@@ -219,10 +219,14 @@ void main() {
   });
 
   test('changePassword sends old, new and matching confirm fields', () async {
-    api.handlers['/auth/password/change'] = () =>
-        {'statusCode': 200, 'message': 'Password Changed Successfully', 'data': {}};
+    api.handlers['/auth/password/change'] = () => {
+          'statusCode': 200,
+          'message': 'Password Changed Successfully',
+          'data': {}
+        };
 
-    await repository.changePassword(oldPassword: 'old6chars', newPassword: 'new6chars');
+    await repository.changePassword(
+        oldPassword: 'old6chars', newPassword: 'new6chars');
 
     expect(api.calls.single.body, {
       'old_password': 'old6chars',
@@ -233,9 +237,9 @@ void main() {
 
   test('logout clears the token even when the request fails', () async {
     tokens.token = 'jwt-token';
-    api.handlers['/auth/logout'] = () =>
-        throw const ApiException('You appear to be offline. Check your connection.',
-            statusCode: 0);
+    api.handlers['/auth/logout'] = () => throw const ApiException(
+        'You appear to be offline. Check your connection.',
+        statusCode: 0);
 
     await repository.logout();
 

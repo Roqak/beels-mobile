@@ -149,8 +149,7 @@ void main() {
   });
 
   group('create', () {
-    test('POSTs /groups with name, description and member payloads',
-        () async {
+    test('POSTs /groups with name, description and member payloads', () async {
       api.responses['POST /groups'] = () => {
             'statusCode': 200,
             'message': 'Group created',
@@ -201,8 +200,7 @@ void main() {
   });
 
   group('addMember', () {
-    test('POSTs /groups/:id/members and parses the returned member',
-        () async {
+    test('POSTs /groups/:id/members and parses the returned member', () async {
       api.responses['POST /groups/12/members'] = () => {
             'statusCode': 200,
             'message': 'Member added',
@@ -250,8 +248,8 @@ void main() {
 
   group('removeMember', () {
     test('DELETEs /groups/:id/members/:memberId', () async {
-      api.responses['DELETE /groups/12/members/33'] = () =>
-          {'statusCode': 200, 'message': 'Member removed'};
+      api.responses['DELETE /groups/12/members/33'] =
+          () => {'statusCode': 200, 'message': 'Member removed'};
 
       await repository.removeMember(12, 33);
 
@@ -261,8 +259,7 @@ void main() {
   });
 
   group('regenerateInvite', () {
-    test('POSTs /groups/:id/invite-link and parses the token pair',
-        () async {
+    test('POSTs /groups/:id/invite-link and parses the token pair', () async {
       api.responses['POST /groups/12/invite-link'] = () => {
             'statusCode': 200,
             'message': 'Invite link generated',
@@ -283,8 +280,8 @@ void main() {
 
   group('delete', () {
     test('DELETEs /groups/:id', () async {
-      api.responses['DELETE /groups/12'] = () =>
-          {'statusCode': 200, 'message': 'Group deleted'};
+      api.responses['DELETE /groups/12'] =
+          () => {'statusCode': 200, 'message': 'Group deleted'};
 
       await repository.delete(12);
 

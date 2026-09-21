@@ -151,7 +151,8 @@ void main() {
           };
 
       expect(
-        await repository.nameEnquiry(accountNumber: '0123456789', bankCode: '058'),
+        await repository.nameEnquiry(
+            accountNumber: '0123456789', bankCode: '058'),
         '',
       );
     });

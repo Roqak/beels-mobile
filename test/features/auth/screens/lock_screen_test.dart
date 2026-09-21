@@ -136,7 +136,8 @@ Future<void> _pumpLock(
 }
 
 void main() {
-  testWidgets('successful biometric prompt opens the dashboard', (tester) async {
+  testWidgets('successful biometric prompt opens the dashboard',
+      (tester) async {
     final authenticator = _FakeAuthenticator();
     final auth = _FakeAuthController(_seed);
     await _pumpLock(tester, auth: auth, authenticator: authenticator);
@@ -145,7 +146,8 @@ void main() {
     expect(find.text('HOME-SENTINEL'), findsOneWidget);
   });
 
-  testWidgets('failed prompt shows an error and keeps the lock', (tester) async {
+  testWidgets('failed prompt shows an error and keeps the lock',
+      (tester) async {
     final authenticator = _FakeAuthenticator(promptResult: false);
     final auth = _FakeAuthController(_seed);
     await _pumpLock(tester, auth: auth, authenticator: authenticator);

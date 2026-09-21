@@ -122,8 +122,7 @@ void main() {
   });
 
   group('recentTransactions', () {
-    test(
-        'GETs /transactions with per_page=5 and parses the paginated envelope',
+    test('GETs /transactions with per_page=5 and parses the paginated envelope',
         () async {
       api.responses['GET /transactions'] = () => {
             'statusCode': 200,
@@ -191,8 +190,7 @@ void main() {
       );
     });
 
-    test(
-        'row labels fall back to the transaction reference then the type',
+    test('row labels fall back to the transaction reference then the type',
         () async {
       api.responses['GET /transactions'] = () => {
             'statusCode': 200,

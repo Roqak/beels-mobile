@@ -73,6 +73,12 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
               const SizedBox(height: 12),
             ],
             if (state.step == MandateSetupStep.details) ...[
+              const IntroBanner(
+                title: 'Automatic collections',
+                body:
+                    'Let Beels collect your contributions on collection day, straight from your bank account.',
+              ),
+              const SizedBox(height: 24),
               const SectionHeader('Bank account'),
               const SizedBox(height: 10),
               _BankPicker(
@@ -128,6 +134,12 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
                     .verifyAccount(accountNumber: _accountController.text),
               ),
             ] else ...[
+              _BankCard(
+                bankName: state.selectedBank?.name ?? '',
+                last4: _last4(state.accountNumber),
+                holder: state.accountName,
+              ),
+              const SizedBox(height: 24),
               const SectionHeader('Your details'),
               const SizedBox(height: 10),
               BeelsTextField(
@@ -167,6 +179,7 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
               BeelsTextField(
                 controller: _bvnController,
                 label: 'Bank Verification Number (BVN)',
+                helper: '11 digits. Used to verify your identity.',
                 keyboardType: TextInputType.number,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
@@ -177,24 +190,6 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
                     RegExp(r'^\d{11}$').hasMatch((value ?? '').trim())
                         ? null
                         : 'BVN must be 11 digits',
-              ),
-              const SizedBox(height: 12),
-              SurfaceCard(
-                color: BeelsColors.surfaceAlt,
-                child: Row(
-                  children: [
-                    Icon(Icons.account_balance_outlined,
-                        size: 20, color: BeelsColors.accent),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Text(
-                        '${state.selectedBank?.name ?? ''} •••• ${_last4(state.accountNumber)}'
-                        '${state.accountName != null ? ' — ${state.accountName}' : ''}',
-                        style: TextStyle(color: BeelsColors.ink0),
-                      ),
-                    ),
-                  ],
-                ),
               ),
               const SizedBox(height: 12),
               PrimaryButton(
@@ -244,6 +239,71 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
         ),
       );
     }
+  }
+}
+
+/// Mini bank card summarising the account being linked.
+class _BankCard extends StatelessWidget {
+  const _BankCard({
+    required this.bankName,
+    required this.last4,
+    required this.holder,
+  });
+
+  final String bankName;
+  final String last4;
+  final String? holder;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(20),
+      child: Stack(
+        children: [
+          Positioned.fill(child: ColoredBox(color: BeelsColors.dye)),
+          const Positioned.fill(child: AdirePattern(cell: 24)),
+          Padding(
+            padding: const EdgeInsets.all(18),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  bankName,
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white.withOpacity(0.75),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Text(
+                  '\u2022\u2022\u2022\u2022  \u2022\u2022\u2022\u2022  $last4',
+                  style: const TextStyle(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 1,
+                    color: Colors.white,
+                    fontFeatures: [FontFeature.tabularFigures()],
+                  ),
+                ),
+                if (holder != null) ...[
+                  const SizedBox(height: 12),
+                  Text(
+                    holder!,
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      letterSpacing: 0.4,
+                      color: BeelsColors.turmeric,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

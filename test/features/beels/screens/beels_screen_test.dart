@@ -79,8 +79,7 @@ void main() {
   testWidgets('shows the empty state when there are no beels', (tester) async {
     await tester.pumpWidget(ProviderScope(
       overrides: [
-        beelsListControllerProvider
-            .overrideWith(_EmptyBeelsListController.new),
+        beelsListControllerProvider.overrideWith(_EmptyBeelsListController.new),
       ],
       child: const MaterialApp(home: BeelsScreen()),
     ));
@@ -116,6 +115,5 @@ class _EmptyBeelsListController extends BeelsListController {
 
 class _FailingController extends BeelsListController {
   @override
-  Future<BeelsListState> build() async =>
-      throw Exception('network down');
+  Future<BeelsListState> build() async => throw Exception('network down');
 }

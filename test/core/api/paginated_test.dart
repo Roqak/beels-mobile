@@ -34,7 +34,13 @@ void main() {
 
     test('hasMore is false on the last page', () {
       final result = Paginated.parse<_Item>(
-        {'current_page': 3, 'last_page': 3, 'data': [{'id': 9}]},
+        {
+          'current_page': 3,
+          'last_page': 3,
+          'data': [
+            {'id': 9}
+          ]
+        },
         (json) => _Item(json['id'] as int),
       );
       expect(result.hasMore, isFalse);
@@ -78,7 +84,9 @@ void main() {
           'current_page': 1,
           'last_page': 1,
           'data': {
-            'data': [{'id': 7}],
+            'data': [
+              {'id': 7}
+            ],
           },
         },
         (json) => _Item(json['id'] as int),

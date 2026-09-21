@@ -19,7 +19,10 @@ void main() {
               'transaction_reference': 'DEP-0001',
               'contributor': {
                 'unit_amount': 5000,
-                'contribution': {'name': 'Family Savings', 'total_amount': 60000},
+                'contribution': {
+                  'name': 'Family Savings',
+                  'total_amount': 60000
+                },
               },
             },
           },

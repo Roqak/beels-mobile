@@ -9,6 +9,7 @@ class BeelsTextField extends StatelessWidget {
     required this.controller,
     required this.label,
     this.hint,
+    this.helper,
     this.validator,
     this.keyboardType,
     this.textInputAction,
@@ -24,6 +25,7 @@ class BeelsTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String? hint;
+  final String? helper;
   final List<TextInputFormatter>? inputFormatters;
   final TextCapitalization textCapitalization;
   final String? Function(String?)? validator;
@@ -42,6 +44,7 @@ class BeelsTextField extends StatelessWidget {
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        helperText: helper,
         suffixIcon: suffix,
       ),
       validator: validator,

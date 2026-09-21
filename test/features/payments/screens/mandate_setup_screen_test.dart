@@ -79,6 +79,13 @@ Future<void> _pump(
   await tester.pumpAndSettle();
 }
 
+Future<void> _enter(WidgetTester tester, String label, String value) async {
+  final finder = find.widgetWithText(BeelsTextField, label);
+  await tester.scrollUntilVisible(finder, 200,
+      scrollable: find.byType(Scrollable).first);
+  await tester.enterText(finder, value);
+}
+
 void main() {
   testWidgets('verify flow advances to personal details with account name',
       (tester) async {
@@ -90,10 +97,7 @@ void main() {
     await tester.tap(find.text('Guaranty Trust Bank'));
     await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.widgetWithText(BeelsTextField, 'Account number'),
-      '0123456789',
-    );
+    await _enter(tester, 'Account number', '0123456789');
     await tester.tap(find.text('Verify account'));
     await tester.pumpAndSettle();
 
@@ -110,32 +114,18 @@ void main() {
     final container = ProviderScope.containerOf(
       tester.element(find.byType(MandateSetupScreen)),
     );
-    final controller =
-        container.read(mandateSetupControllerProvider.notifier);
+    final controller = container.read(mandateSetupControllerProvider.notifier);
     controller.selectBank(const Bank(name: 'GTB', cbnCode: '058'));
     await controller.verifyAccount(accountNumber: '0123456789');
     await tester.pumpAndSettle();
 
-    await tester.enterText(
-      find.widgetWithText(BeelsTextField, 'First name'),
-      'Ada',
-    );
-    await tester.enterText(
-      find.widgetWithText(BeelsTextField, 'Last name'),
-      'Lovelace',
-    );
-    await tester.enterText(
-      find.widgetWithText(BeelsTextField, 'Email'),
-      'ada@beels.ng',
-    );
-    await tester.enterText(
-      find.widgetWithText(BeelsTextField, 'Phone number'),
-      '08012345678',
-    );
-    await tester.enterText(
-      find.widgetWithText(BeelsTextField, 'Bank Verification Number (BVN)'),
-      '12345',
-    );
+    await _enter(tester, 'First name', 'Ada');
+    await _enter(tester, 'Last name', 'Lovelace');
+    await _enter(tester, 'Email', 'ada@beels.ng');
+    await _enter(tester, 'Phone number', '08012345678');
+    await _enter(tester, 'Bank Verification Number (BVN)', '12345');
+    await tester.ensureVisible(find.text('Set up mandate'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Set up mandate'));
     await tester.pumpAndSettle();
 
