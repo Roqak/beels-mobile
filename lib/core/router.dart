@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../features/auth/controllers/auth_controller.dart';
+import '../features/auth/controllers/session_lock_controller.dart';
 import '../features/auth/screens/forgot_password_screen.dart';
+import '../features/auth/screens/lock_screen.dart';
 import '../features/auth/screens/login_screen.dart';
 import '../features/auth/screens/register_screen.dart';
 import '../features/beels/screens/beel_detail_screen.dart';
@@ -31,7 +33,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/login',
-        builder: (context, state) => const LoginScreen(),
+        builder: (context, state) => LoginScreen(
+          prefilledEmail: state.extra is String ? state.extra as String : null,
+        ),
+      ),
+      GoRoute(
+        path: '/lock',
+        builder: (context, state) => const LockScreen(),
       ),
       GoRoute(
         path: '/register',
@@ -135,6 +143,18 @@ String? _redirect(Ref ref, GoRouterState state) {
   if (location == '/splash') {
     return authed ? '/' : '/login';
   }
+
+  // A biometric-locked session must land on the lock screen before any
+  // protected content mounts.
+  final locked = ref.read(sessionLockControllerProvider).locked;
+  if (location == '/lock') {
+    if (!authed) return '/login';
+    return locked ? null : '/';
+  }
+  if (authed && locked) {
+    return '/lock';
+  }
+
   if (authed && _publicLocations.contains(location)) {
     return '/';
   }

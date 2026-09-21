@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../auth/controllers/auth_controller.dart';
+import '../../auth/controllers/session_lock_controller.dart';
 import '../../auth/models/profile.dart';
 import '../../auth/validation.dart';
 import '../../auth/widgets/fields.dart';
@@ -297,6 +298,9 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
             ),
           ),
           const SizedBox(height: 24),
+          const SectionHeader('Security'),
+          const _BiometricTile(),
+          const SizedBox(height: 24),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
               foregroundColor: theme.colorScheme.error,
@@ -311,6 +315,67 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
             label: const Text('Log out'),
           ),
         ],
+      ),
+    );
+  }
+}
+class _BiometricTile extends ConsumerStatefulWidget {
+  const _BiometricTile();
+
+  @override
+  ConsumerState<_BiometricTile> createState() => _BiometricTileState();
+}
+
+class _BiometricTileState extends ConsumerState<_BiometricTile> {
+  bool _saving = false;
+
+  Future<void> _toggle(bool value) async {
+    if (_saving) return;
+    setState(() => _saving = true);
+    try {
+      final ok = await ref
+          .read(sessionLockControllerProvider.notifier)
+          .setEnabled(value);
+      if (!mounted) return;
+      if (!ok) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+            content: Text('Biometric verification failed. Try again.'),
+          ));
+      }
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(const SnackBar(
+            content: Text('Something went wrong. Please try again.'),
+          ));
+      }
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final lock = ref.watch(sessionLockControllerProvider);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        child: SwitchListTile(
+          title: const Text('Biometric login'),
+          subtitle: Text(
+            lock.supported
+                ? 'Unlock Beels with your fingerprint or face.'
+                : 'Not available on this device.',
+            style: theme.textTheme.bodySmall
+                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          ),
+          value: lock.enabled,
+          onChanged: lock.canEnable && !_saving ? _toggle : null,
+        ),
       ),
     );
   }

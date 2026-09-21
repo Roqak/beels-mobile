@@ -4,7 +4,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:go_router/go_router.dart';
 
 import 'package:beels_mobile/core/api/api_exception.dart';
+import 'package:beels_mobile/core/biometrics/biometric_authenticator.dart';
 import 'package:beels_mobile/features/auth/controllers/auth_controller.dart';
+import 'package:beels_mobile/features/auth/controllers/session_lock_controller.dart';
 import 'package:beels_mobile/features/auth/models/profile.dart';
 import 'package:beels_mobile/features/profile/screens/profile_screen.dart';
 
@@ -105,6 +107,9 @@ Future<void> _flushSnackbars(WidgetTester tester) async {
   await tester.pump(const Duration(seconds: 5));
   await tester.pumpAndSettle();
 }
+
+SwitchListTile _switch(WidgetTester tester) =>
+    tester.widget<SwitchListTile>(find.byType(SwitchListTile));
 
 void main() {
   testWidgets('renders profile fields and status', (tester) async {
@@ -223,4 +228,146 @@ void main() {
     expect(controller.logoutCalls, 1);
     expect(find.text('LOGIN-SENTINEL'), findsOneWidget);
   });
+
+  testWidgets('biometric toggle prompts, then persists the opt-in',
+      (tester) async {
+    final authenticator = _FakeBiometricAuthenticator();
+    final lock = _FakeSessionLockController(authenticator);
+    await _pumpBiometricSection(
+      tester,
+      controller: _FakeProfileController(seed: _seed),
+      lock: lock,
+      authenticator: authenticator,
+    );
+
+    expect(find.text('Biometric login'), findsOneWidget);
+    expect(find.text('Not available on this device.'), findsNothing);
+    expect(find.byType(SwitchListTile), findsOneWidget);
+    expect(_switch(tester).value, isFalse);
+
+    await tester.ensureVisible(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(SwitchListTile).first);
+    await tester.pumpAndSettle();
+
+    expect(authenticator.prompts, 1);
+    expect(_switch(tester).value, isTrue);
+  });
+
+  testWidgets('failed biometric prompt leaves the toggle off with an error',
+      (tester) async {
+    final authenticator = _FakeBiometricAuthenticator(promptResult: false);
+    final lock = _FakeSessionLockController(authenticator);
+    await _pumpBiometricSection(
+      tester,
+      controller: _FakeProfileController(seed: _seed),
+      lock: lock,
+      authenticator: authenticator,
+    );
+
+    await tester.ensureVisible(find.byType(SwitchListTile));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(SwitchListTile).first);
+    await _flushSnackbars(tester);
+
+    expect(authenticator.prompts, 1);
+    expect(_switch(tester).value, isFalse);
+    expect(
+      find.text('Biometric verification failed. Try again.'),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('unsupported devices show a disabled toggle', (tester) async {
+    final authenticator = _FakeBiometricAuthenticator(available: false);
+    final lock = _FakeSessionLockController(
+      authenticator,
+      supported: false,
+    );
+    await _pumpBiometricSection(
+      tester,
+      controller: _FakeProfileController(seed: _seed),
+      lock: lock,
+      authenticator: authenticator,
+    );
+
+    expect(find.text('Not available on this device.'), findsOneWidget);
+    expect(_switch(tester).onChanged, isNull);
+  });
+}
+Future<void> _pumpBiometricSection(
+  WidgetTester tester, {
+  required _FakeProfileController controller,
+  required _FakeSessionLockController lock,
+  required _FakeBiometricAuthenticator authenticator,
+}) async {
+  final router = GoRouter(
+    initialLocation: '/profile',
+    routes: [
+      GoRoute(
+        path: '/profile',
+        builder: (_, __) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/login',
+        builder: (_, __) => const Scaffold(body: Text('LOGIN-SENTINEL')),
+      ),
+    ],
+  );
+  addTearDown(router.dispose);
+  await tester.pumpWidget(
+    ProviderScope(
+      overrides: [
+        authControllerProvider.overrideWith(() => controller),
+        sessionLockControllerProvider.overrideWith(() => lock),
+        biometricAuthenticatorProvider.overrideWithValue(authenticator),
+      ],
+      child: MaterialApp.router(routerConfig: router),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+class _FakeBiometricAuthenticator implements BiometricAuthenticator {
+  _FakeBiometricAuthenticator({this.available = true, this.promptResult = true});
+
+  bool available;
+  bool promptResult;
+  int prompts = 0;
+
+  @override
+  Future<bool> isAvailable() async => available;
+
+  @override
+  Future<bool> authenticate({required String reason}) async {
+    prompts++;
+    return promptResult;
+  }
+}
+
+class _FakeSessionLockController extends SessionLockController {
+  _FakeSessionLockController(this.authenticator, {this.supported = true});
+
+  final _FakeBiometricAuthenticator authenticator;
+  final bool supported;
+
+  @override
+  SessionLockState build() => SessionLockState(
+        supported: supported,
+        enabled: false,
+        locked: false,
+      );
+
+  @override
+  Future<bool> setEnabled(bool value) async {
+    if (value && !state.supported) return false;
+    if (value) {
+      final ok = await ref
+          .read(biometricAuthenticatorProvider)
+          .authenticate(reason: 'test');
+      if (!ok) return false;
+    }
+    state = state.copyWith(enabled: value);
+    return true;
+  }
 }

@@ -8,7 +8,7 @@ Beels (ajo/esusu group savings fintech) member app. Flutter, Android-first, iOS-
 Backend: NestJS at `https://dev-production-80a4.up.railway.app` (source: `../beels`).
 Web frontend reference: `../beels-frontend`. PRD: `../PRD.md`.
 
-Shipped scope (v0.1.0): auth (password login, register, forgot password, session), dashboard, beels (list/detail/create/cancel/retry/disburse), transactions, groups with invite links, profile. Out of scope for now: bills payment, chatbot, financial wrapped.
+Shipped scope (v0.1.0 + main): auth (password login, register, forgot password, session), biometric quick-unlock (local_auth; lock screen at boot when enabled, profile toggle), dashboard, beels (list/detail/create/cancel/retry/disburse), transactions, groups with invite links, profile. Out of scope for now: bills payment, chatbot, financial wrapped.
 
 ## Environment (this machine — non-negotiable)
 

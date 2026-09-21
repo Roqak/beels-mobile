@@ -3,9 +3,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../features/auth/controllers/auth_controller.dart';
 import 'api/api_client.dart';
+import 'storage/session_lock_store.dart';
 import 'storage/token_store.dart';
 
 final tokenStoreProvider = Provider<TokenStore>((ref) => TokenStore());
+
+final sessionLockStoreProvider = Provider<SessionLockStore>(
+  (ref) => SessionLockStore(),
+);
 
 final apiClientProvider = Provider<ApiClient>((ref) {
   return ApiClient(

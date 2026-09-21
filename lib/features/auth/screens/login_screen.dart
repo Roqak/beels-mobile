@@ -10,7 +10,10 @@ import '../widgets/error_banner.dart';
 import '../widgets/fields.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({super.key, this.prefilledEmail});
+
+  /// Email remembered from a biometric session, offered as a default.
+  final String? prefilledEmail;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -18,7 +21,8 @@ class LoginScreen extends ConsumerStatefulWidget {
 
 class _LoginScreenState extends ConsumerState<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _email = TextEditingController();
+  late final _email =
+      TextEditingController(text: widget.prefilledEmail ?? '');
   final _password = TextEditingController();
   bool _submitting = false;
   String? _error;

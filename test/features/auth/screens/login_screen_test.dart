@@ -32,13 +32,14 @@ class _FakeAuthController extends AuthController {
 Future<void> _pumpLogin(
   WidgetTester tester, {
   required _FakeAuthController controller,
+  String? prefilledEmail,
 }) async {
   final router = GoRouter(
     initialLocation: '/login',
     routes: [
       GoRoute(
         path: '/login',
-        builder: (_, __) => const LoginScreen(),
+        builder: (_, __) => LoginScreen(prefilledEmail: prefilledEmail),
       ),
       GoRoute(
         path: '/',
@@ -101,5 +102,16 @@ void main() {
     expect(find.text('Email does not exist'), findsOneWidget);
     expect(find.text('HOME'), findsNothing);
     expect(controller.loginCalls, 1);
+  });
+
+  testWidgets('prefilled email seeds the email field', (tester) async {
+    final controller = _FakeAuthController();
+    await _pumpLogin(
+      tester,
+      controller: controller,
+      prefilledEmail: 'ada@beels.ng',
+    );
+
+    expect(find.text('ada@beels.ng'), findsOneWidget);
   });
 }
