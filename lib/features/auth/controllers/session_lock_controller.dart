@@ -64,6 +64,30 @@ class SessionLockController extends Notifier<SessionLockState> {
     );
   }
 
+  /// Re-reads device support and the saved opt-in without touching the lock.
+  /// Call after sign-in (support is only probed at boot when a token exists)
+  /// and whenever a screen needs an accurate answer.
+  Future<void> refreshSupport() async {
+    final supported = await _authenticator.isAvailable();
+    final enabled = await _store.enabled();
+    state = state.copyWith(supported: supported, enabled: enabled && supported);
+  }
+
+  /// Locks a running session (used after time away). No-op unless biometric
+  /// unlock is on and usable.
+  void lockNow() {
+    if (state.supported && state.enabled) {
+      state = state.copyWith(locked: true);
+    }
+  }
+
+  /// Extra confirmation before sensitive actions (disburse, revoke). Returns
+  /// `true` straight away when biometric login is off.
+  Future<bool> confirmSensitive(String reason) async {
+    if (!(state.supported && state.enabled)) return true;
+    return _authenticator.authenticate(reason: reason);
+  }
+
   /// Shows the biometric prompt. `true` when the session opened.
   Future<bool> unlock() async {
     final ok = await _authenticator.authenticate(

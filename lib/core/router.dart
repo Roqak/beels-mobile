@@ -41,7 +41,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/lock',
-        builder: (context, state) => const LockScreen(),
+        builder: (context, state) =>
+            LockScreen(from: state.uri.queryParameters['from']),
       ),
       GoRoute(
         path: '/register',
@@ -137,6 +138,21 @@ final routerProvider = Provider<GoRouter>((ref) {
   return router;
 });
 
+/// The lock route for a user currently at [here], carrying the way back.
+@visibleForTesting
+String lockLocationFor(String here) => (here == '/' || here.isEmpty)
+    ? '/lock'
+    : '/lock?from=${Uri.encodeQueryComponent(here)}';
+
+/// Where to go after unlocking. Only in-app paths are honoured, so a crafted
+/// link can never bounce the user to another site or back onto the lock.
+String resumeLocationFrom(String? from) => (from != null &&
+        from.startsWith('/') &&
+        !from.startsWith('//') &&
+        !from.startsWith('/lock'))
+    ? from
+    : '/';
+
 const _publicLocations = {'/login', '/register', '/forgot-password'};
 
 String? _redirect(Ref ref, GoRouterState state) {
@@ -161,10 +177,12 @@ String? _redirect(Ref ref, GoRouterState state) {
   final locked = ref.read(sessionLockControllerProvider).locked;
   if (location == '/lock') {
     if (!authed) return '/login';
-    return locked ? null : '/';
+    if (locked) return null;
+    return resumeLocationFrom(state.uri.queryParameters['from']);
   }
   if (authed && locked) {
-    return '/lock';
+    // Remember where the user was so unlocking resumes there.
+    return lockLocationFor(state.uri.toString());
   }
 
   if (authed && _publicLocations.contains(location)) {

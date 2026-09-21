@@ -383,12 +383,10 @@ class _TransactionTileState extends State<TransactionTile> {
             ),
             if (_expanded) ...[
               Divider(height: 20, color: BeelsColors.border),
-              _detailRow(
-                  'Reference',
-                  transaction.reference == null ||
-                          transaction.reference!.isEmpty
-                      ? '—'
-                      : transaction.reference!),
+              _referenceRow(transaction.reference == null ||
+                      transaction.reference!.isEmpty
+                  ? '—'
+                  : transaction.reference!),
               _detailRow(
                   'Beel',
                   transaction.beelName == null || transaction.beelName!.isEmpty
@@ -415,6 +413,54 @@ class _TransactionTileState extends State<TransactionTile> {
             ],
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _referenceRow(String value) {
+    final copyable = value != '\u2014';
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          SizedBox(
+            width: 110,
+            child: Text(
+              'Reference',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: BeelsColors.ink2),
+            ),
+          ),
+          Expanded(
+            child: Text(
+              value,
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: BeelsColors.ink0),
+            ),
+          ),
+          if (copyable)
+            IconButton(
+              tooltip: 'Copy reference',
+              visualDensity: VisualDensity.compact,
+              constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+              icon:
+                  Icon(Icons.copy_rounded, size: 18, color: BeelsColors.accent),
+              onPressed: () {
+                HapticFeedback.mediumImpact();
+                Clipboard.setData(ClipboardData(text: value));
+                ScaffoldMessenger.of(context)
+                  ..hideCurrentSnackBar()
+                  ..showSnackBar(
+                    const SnackBar(content: Text('Reference copied')),
+                  );
+              },
+            ),
+        ],
       ),
     );
   }

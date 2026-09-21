@@ -11,6 +11,7 @@ import '../../../core/api/api_exception.dart';
 import '../../../core/money.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/common.dart';
+import '../../auth/controllers/session_lock_controller.dart';
 import '../controllers/beels_controllers.dart';
 import '../models/contribution.dart';
 
@@ -193,6 +194,13 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
                           confirmLabel: 'Disburse',
                         );
                         if (!confirmed) return;
+                        final verified = await ref
+                            .read(sessionLockControllerProvider.notifier)
+                            .confirmSensitive('Confirm to disburse funds');
+                        if (!verified) {
+                          _showSnack('Verification cancelled.', isError: true);
+                          return;
+                        }
                         await _runAction(
                           'disburse_${beneficiary.id}',
                           () => ref

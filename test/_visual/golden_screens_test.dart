@@ -34,6 +34,7 @@ import 'package:beels_mobile/features/beels/screens/create_beel_screen.dart';
 import 'package:beels_mobile/features/auth/screens/lock_screen.dart';
 import 'package:beels_mobile/features/auth/screens/register_screen.dart';
 import 'package:beels_mobile/features/auth/controllers/session_lock_controller.dart';
+import 'package:beels_mobile/features/auth/widgets/biometric_offer.dart';
 import 'package:beels_mobile/features/profile/screens/profile_screen.dart';
 import 'package:beels_mobile/features/transactions/controllers/transactions_controllers.dart';
 import 'package:beels_mobile/features/transactions/models/transaction.dart';
@@ -302,6 +303,11 @@ class _FakeGroupDetail extends GroupDetailController {
           },
         ],
       });
+}
+
+class _HiddenBalances extends HideBalancesController {
+  @override
+  bool build() => true;
 }
 
 class _LockedSession extends SessionLockController {
@@ -747,5 +753,52 @@ void main() {
         matchesGoldenFile('goldens/create_beel_dark.png'),
       );
     });
+  });
+
+  testWidgets('biometric offer golden', (tester) async {
+    await pumpScreen(
+      tester,
+      const Scaffold(
+        body: Align(
+          alignment: Alignment.bottomCenter,
+          child: Material(child: BiometricOfferSheet()),
+        ),
+      ),
+      overrides: [
+        sessionLockControllerProvider.overrideWith(() => _LockedSession()),
+      ],
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/biometric_offer.png'),
+    );
+  });
+
+  testWidgets('dashboard hidden balances golden', (tester) async {
+    await pumpScreen(
+      tester,
+      const DashboardScreen(),
+      overrides: [
+        authControllerProvider.overrideWith(
+          () => _FakeAuthController(
+            Profile.fromJson({
+              'first_name': 'Ada',
+              'last_name': 'Okafor',
+              'email': 'ada@beels.test',
+              'status': 'active',
+            }),
+          ),
+        ),
+        dashboardControllerProvider
+            .overrideWith(() => _FakeDashboardController()),
+        beelsListControllerProvider
+            .overrideWith(() => _FakeBeelsListController()),
+        hideBalancesProvider.overrideWith(() => _HiddenBalances()),
+      ],
+    );
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/dashboard_hidden.png'),
+    );
   });
 }

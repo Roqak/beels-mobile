@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import '../../../core/router.dart' show resumeLocationFrom;
 import '../../../core/theme.dart';
 import '../../../core/widgets/adire_pattern.dart';
 import '../../auth/controllers/auth_controller.dart';
@@ -10,7 +11,10 @@ import '../controllers/session_lock_controller.dart';
 
 /// Gate screen shown when a session is locked behind biometrics.
 class LockScreen extends ConsumerStatefulWidget {
-  const LockScreen({super.key});
+  const LockScreen({super.key, this.from});
+
+  /// Location to resume after unlocking (set by the router on auto-lock).
+  final String? from;
 
   @override
   ConsumerState<LockScreen> createState() => _LockScreenState();
@@ -40,7 +44,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
     if (_locked) {
       setState(() => _error = 'We could not verify you. Try again.');
     } else {
-      context.go('/');
+      context.go(resumeLocationFrom(widget.from));
     }
   }
 

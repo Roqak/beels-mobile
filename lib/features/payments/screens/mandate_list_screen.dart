@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/api/api_exception.dart';
 import 'package:flutter/services.dart';
 import 'package:beels_mobile/core/theme.dart';
+import '../../auth/controllers/session_lock_controller.dart';
 import '../controllers/mandates_controller.dart';
 import '../models/payment_mandate.dart';
 import 'package:beels_mobile/core/widgets/common.dart';
@@ -115,6 +116,17 @@ class MandateListScreen extends ConsumerWidget {
       ),
     );
     if (confirmed != true) return;
+    final verified = await ref
+        .read(sessionLockControllerProvider.notifier)
+        .confirmSensitive('Confirm to revoke this mandate');
+    if (!verified) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Verification cancelled.')),
+        );
+      }
+      return;
+    }
     try {
       await ref.read(mandatesControllerProvider.notifier).revoke(mandate);
       HapticFeedback.mediumImpact();

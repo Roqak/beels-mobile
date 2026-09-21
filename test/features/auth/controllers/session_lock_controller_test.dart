@@ -178,4 +178,66 @@ void main() {
     expect(await _controller(container).setEnabled(true), isFalse);
     expect(store.writes, 0);
   });
+
+  test('refreshSupport picks up support after sign-in without locking',
+      () async {
+    tokens.token = null; // boot with no session: support was never probed
+    final container = makeContainer();
+    addTearDown(container.dispose);
+    await _controller(container).evaluate();
+    expect(container.read(sessionLockControllerProvider).supported, isFalse);
+
+    tokens.token = 'fresh-token';
+    store.enabledValue = true;
+    await _controller(container).refreshSupport();
+
+    final state = container.read(sessionLockControllerProvider);
+    expect(state.supported, isTrue);
+    expect(state.enabled, isTrue);
+    expect(state.locked, isFalse);
+  });
+
+  test('refreshSupport reports disabled when the device lost biometrics',
+      () async {
+    store.enabledValue = true;
+    authenticator.available = false;
+    final container = makeContainer();
+    addTearDown(container.dispose);
+
+    await _controller(container).refreshSupport();
+
+    final state = container.read(sessionLockControllerProvider);
+    expect(state.supported, isFalse);
+    expect(state.enabled, isFalse);
+  });
+
+  test('lockNow only locks when biometric login is on and usable', () async {
+    final container = makeContainer();
+    addTearDown(container.dispose);
+    await _controller(container).evaluate();
+
+    _controller(container).lockNow();
+    expect(container.read(sessionLockControllerProvider).locked, isFalse);
+
+    expect(await _controller(container).setEnabled(true), isTrue);
+    _controller(container).lockNow();
+    expect(container.read(sessionLockControllerProvider).locked, isTrue);
+  });
+
+  test('confirmSensitive passes silently when off, prompts when on', () async {
+    final container = makeContainer();
+    addTearDown(container.dispose);
+    await _controller(container).evaluate();
+
+    expect(await _controller(container).confirmSensitive('Confirm'), isTrue);
+    expect(authenticator.prompts, 0);
+
+    await _controller(container).setEnabled(true);
+    final before = authenticator.prompts;
+    authenticator.promptResult = false;
+    expect(await _controller(container).confirmSensitive('Confirm'), isFalse);
+    expect(authenticator.prompts, before + 1);
+    authenticator.promptResult = true;
+    expect(await _controller(container).confirmSensitive('Confirm'), isTrue);
+  });
 }

@@ -6,6 +6,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:beels_mobile/core/api/api_exception.dart';
+import 'package:beels_mobile/core/providers.dart';
+import 'package:beels_mobile/features/auth/widgets/biometric_offer.dart';
 import 'package:beels_mobile/core/money.dart';
 import 'package:beels_mobile/core/theme.dart';
 import 'package:beels_mobile/core/widgets/common.dart';
@@ -29,6 +31,28 @@ final upcomingBeelsProvider = Provider<AsyncValue<List<Contribution>>>((ref) {
 
 const _tabular = [FontFeature.tabularFigures()];
 
+/// Privacy toggle: masks money on Home. Persisted on the device.
+class HideBalancesController extends Notifier<bool> {
+  @override
+  bool build() {
+    _load();
+    return false;
+  }
+
+  Future<void> _load() async {
+    final saved = await ref.read(preferencesStoreProvider).hideBalances();
+    if (saved != state) state = saved;
+  }
+
+  void toggle() {
+    state = !state;
+    ref.read(preferencesStoreProvider).setHideBalances(state);
+  }
+}
+
+final hideBalancesProvider =
+    NotifierProvider<HideBalancesController, bool>(HideBalancesController.new);
+
 class DashboardScreen extends ConsumerWidget {
   const DashboardScreen({super.key});
 
@@ -37,6 +61,9 @@ class DashboardScreen extends ConsumerWidget {
     final profile = ref.watch(authControllerProvider).valueOrNull;
     final dashboard = ref.watch(dashboardControllerProvider);
     final upcoming = ref.watch(upcomingBeelsProvider);
+    final hidden = ref.watch(hideBalancesProvider);
+    final beelsLoaded = ref.watch(beelsListControllerProvider).valueOrNull;
+    final noBeels = beelsLoaded != null && beelsLoaded.items.isEmpty;
 
     return Scaffold(
       backgroundColor: BeelsColors.surface,
@@ -59,6 +86,7 @@ class DashboardScreen extends ConsumerWidget {
             physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 104),
             children: [
+              const BiometricOfferTrigger(),
               _GreetingHeader(profile: profile),
               dashboard.when(
                 loading: () => const _DashboardSkeleton(),
@@ -75,8 +103,15 @@ class DashboardScreen extends ConsumerWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 20),
-                    _HeroPanel(analytics: data.analytics),
-                    ..._comingUp(context, upcoming),
+                    _HeroPanel(
+                      analytics: data.analytics,
+                      hidden: hidden,
+                      onToggleHidden: () {
+                        HapticFeedback.selectionClick();
+                        ref.read(hideBalancesProvider.notifier).toggle();
+                      },
+                    ),
+                    ..._comingUp(context, upcoming, noBeels: noBeels),
                     const SizedBox(height: 32),
                     SectionHeader(
                       'Recent transactions',
@@ -115,14 +150,19 @@ class DashboardScreen extends ConsumerWidget {
 
   List<Widget> _comingUp(
     BuildContext context,
-    AsyncValue<List<Contribution>> upcoming,
-  ) {
-    final rows = upcoming.valueOrNull;
-    if (rows == null) return const [];
-    if (rows.isEmpty) {
-      // Only nudge once the list has definitely loaded and is empty.
-      return const [];
+    AsyncValue<List<Contribution>> upcoming, {
+    required bool noBeels,
+  }) {
+    if (noBeels) {
+      return [
+        const SizedBox(height: 32),
+        const SectionHeader('Get started'),
+        const SizedBox(height: 12),
+        const _FirstBeelCard(),
+      ];
     }
+    final rows = upcoming.valueOrNull;
+    if (rows == null || rows.isEmpty) return const [];
     return [
       const SizedBox(height: 32),
       const SectionHeader('Coming up'),
@@ -215,9 +255,15 @@ class _GreetingHeader extends StatelessWidget {
 /// Drenched dye surface with the adire motif field. Deposited total is the
 /// focus; withdrawn reads as a share of it; counters link to their tabs.
 class _HeroPanel extends StatelessWidget {
-  const _HeroPanel({required this.analytics});
+  const _HeroPanel({
+    required this.analytics,
+    required this.hidden,
+    required this.onToggleHidden,
+  });
 
   final DashboardAnalytics analytics;
+  final bool hidden;
+  final VoidCallback onToggleHidden;
 
   @override
   Widget build(BuildContext context) {
@@ -244,21 +290,41 @@ class _HeroPanel extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Total Deposited',
-                  style: TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 0.2,
-                    color: Colors.white.withOpacity(0.72),
-                  ),
+                Row(
+                  children: [
+                    Text(
+                      'Total Deposited',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                        color: Colors.white.withOpacity(0.72),
+                      ),
+                    ),
+                    const Spacer(),
+                    Pressable(
+                      onTap: onToggleHidden,
+                      semanticLabel: hidden ? 'Show balances' : 'Hide balances',
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Icon(
+                          hidden
+                              ? Icons.visibility_off_outlined
+                              : Icons.visibility_outlined,
+                          size: 20,
+                          color: Colors.white.withOpacity(0.8),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
                 const SizedBox(height: 6),
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: AnimatedNaira(
+                  child: _Money(
                     deposited,
+                    hidden: hidden,
                     style: GoogleFonts.bricolageGrotesque(
                       fontSize: 46,
                       height: 1.1,
@@ -281,7 +347,9 @@ class _HeroPanel extends StatelessWidget {
                     ),
                     const Spacer(),
                     Text(
-                      formatNaira(analytics.totalWithdrawn),
+                      hidden
+                          ? '\u20A6 \u2022\u2022\u2022\u2022'
+                          : formatNaira(analytics.totalWithdrawn),
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.w700,
@@ -336,6 +404,73 @@ class _HeroPanel extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Naira amount that counts up, or a mask when balances are hidden.
+class _Money extends StatelessWidget {
+  const _Money(this.value, {required this.hidden, required this.style});
+
+  final num value;
+  final bool hidden;
+  final TextStyle style;
+
+  @override
+  Widget build(BuildContext context) {
+    if (hidden) {
+      return Text('\u20A6 \u2022\u2022\u2022\u2022\u2022\u2022',
+          maxLines: 1, style: style);
+    }
+    return AnimatedNaira(value, style: style);
+  }
+}
+
+class _FirstBeelCard extends StatelessWidget {
+  const _FirstBeelCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: BeelsColors.accentSoft,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(Icons.savings_rounded, color: BeelsColors.accent),
+          ),
+          const SizedBox(height: 14),
+          Text(
+            'Start your first beel',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.3,
+              color: BeelsColors.ink0,
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Collect contributions from friends, family or a group, on a schedule you choose.',
+            style:
+                TextStyle(fontSize: 14, height: 1.45, color: BeelsColors.ink1),
+          ),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () {
+              HapticFeedback.lightImpact();
+              context.push('/beels/new');
+            },
+            child: const Text('Create a beel'),
           ),
         ],
       ),

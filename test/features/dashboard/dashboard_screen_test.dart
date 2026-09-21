@@ -209,4 +209,20 @@ void main() {
 
     expect(find.text('PROFILE_PAGE'), findsOneWidget);
   });
+
+  testWidgets('eye icon hides and shows balances', (tester) async {
+    await tester.pumpWidget(_testApp());
+    await tester.pumpAndSettle();
+
+    expect(find.text('₦150,000'), findsOneWidget);
+
+    await tester.tap(find.bySemanticsLabel('Hide balances'));
+    await tester.pumpAndSettle();
+    expect(find.text('₦150,000'), findsNothing);
+    expect(find.text('₦40,000'), findsNothing);
+
+    await tester.tap(find.bySemanticsLabel('Show balances'));
+    await tester.pumpAndSettle();
+    expect(find.text('₦150,000'), findsOneWidget);
+  });
 }

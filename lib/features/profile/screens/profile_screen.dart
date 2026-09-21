@@ -585,6 +585,18 @@ class _BiometricTile extends ConsumerStatefulWidget {
 class _BiometricTileState extends ConsumerState<_BiometricTile> {
   bool _saving = false;
 
+  @override
+  void initState() {
+    super.initState();
+    // Support is only probed at boot when a session already existed, so a
+    // fresh sign-in must re-check before showing "not available".
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(sessionLockControllerProvider.notifier).refreshSupport();
+      }
+    });
+  }
+
   Future<void> _toggle(bool value) async {
     if (_saving) return;
     setState(() => _saving = true);
@@ -593,7 +605,10 @@ class _BiometricTileState extends ConsumerState<_BiometricTile> {
           .read(sessionLockControllerProvider.notifier)
           .setEnabled(value);
       if (!mounted) return;
-      if (!ok) {
+      if (ok) {
+        HapticFeedback.mediumImpact();
+      } else {
+        HapticFeedback.heavyImpact();
         ScaffoldMessenger.of(context)
           ..hideCurrentSnackBar()
           ..showSnackBar(const SnackBar(
@@ -617,20 +632,50 @@ class _BiometricTileState extends ConsumerState<_BiometricTile> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final lock = ref.watch(sessionLockControllerProvider);
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        child: SwitchListTile(
-          title: const Text('Biometric login'),
-          subtitle: Text(
-            lock.supported
-                ? 'Unlock Beels with your fingerprint or face.'
-                : 'Not available on this device.',
-            style: theme.textTheme.bodySmall?.copyWith(color: BeelsColors.ink2),
+    final hint = !lock.supported
+        ? 'To use this, add a fingerprint or face in your phone settings, then come back.'
+        : (lock.enabled
+            ? 'Beels also locks itself after you have been away for a while.'
+            : 'Turn on to skip your password next time.');
+    return SurfaceCard(
+      padding: EdgeInsets.zero,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            child: SwitchListTile(
+              secondary: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: BeelsColors.accentSoft,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Icon(Icons.fingerprint_rounded,
+                    size: 22, color: BeelsColors.accent),
+              ),
+              title: const Text('Biometric login'),
+              subtitle: Text(
+                lock.supported
+                    ? 'Unlock Beels with your fingerprint or face.'
+                    : 'Not available on this device.',
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: BeelsColors.ink2),
+              ),
+              value: lock.enabled,
+              onChanged: lock.canEnable && !_saving ? _toggle : null,
+            ),
           ),
-          value: lock.enabled,
-          onChanged: lock.canEnable && !_saving ? _toggle : null,
-        ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
+            child: Text(
+              hint,
+              style:
+                  TextStyle(fontSize: 12, height: 1.4, color: BeelsColors.ink2),
+            ),
+          ),
+        ],
       ),
     );
   }
