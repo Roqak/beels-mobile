@@ -376,6 +376,32 @@ const _closedDraft = BeelDraft(
   nextId: 4,
 );
 
+final _blankPayoutDraft = _closedDraft.copyWith(
+  beneficiaries: const [DraftBeneficiary(id: 3)],
+);
+
+final _splitPayoutDraft = _closedDraft.copyWith(
+  beneficiaries: const [
+    DraftBeneficiary(
+      id: 3,
+      name: 'Ada Obi',
+      accountNumber: '0123456789',
+      bankCode: '058',
+      bankName: 'GTBank',
+      amount: '35000',
+    ),
+    DraftBeneficiary(
+      id: 4,
+      name: 'Chi Eze',
+      accountNumber: '2034567890',
+      bankCode: '044',
+      bankName: 'Access Bank',
+      amount: '20000',
+    ),
+  ],
+  nextId: 5,
+);
+
 const _openDraft = BeelDraft(
   mode: BeelMode.open,
   name: 'Office party',
@@ -980,6 +1006,42 @@ void main() {
       );
     });
   }
+
+  testWidgets('create beel person sheet golden', (tester) async {
+    await createStep(tester, _closedDraft, 2);
+    await tester.tap(find.text('Add person').first);
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/create_beel_person_sheet.png'),
+    );
+  });
+
+  testWidgets('create beel payout empty golden', (tester) async {
+    await createStep(tester, _blankPayoutDraft, 3);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/create_beel_payout_empty.png'),
+    );
+  });
+
+  testWidgets('create beel account sheet golden', (tester) async {
+    await createStep(tester, _blankPayoutDraft, 3);
+    await tester.tap(find.text('Add payout account'));
+    await tester.pumpAndSettle();
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/create_beel_account_sheet.png'),
+    );
+  });
+
+  testWidgets('create beel payout split golden', (tester) async {
+    await createStep(tester, _splitPayoutDraft, 3);
+    await expectLater(
+      find.byType(MaterialApp),
+      matchesGoldenFile('goldens/create_beel_payout_split.png'),
+    );
+  });
 
   testWidgets('create beel open people golden', (tester) async {
     await createStep(tester, _openDraft, 2);

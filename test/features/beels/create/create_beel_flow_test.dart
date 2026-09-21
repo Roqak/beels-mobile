@@ -182,28 +182,89 @@ Future<void> _tapContinue(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-/// Fields are found by their label above them (FormBlock), so locate the
-/// TextField that follows a label text.
-Finder _fieldAfter(String label) => find.descendant(
-      of: find
-          .ancestor(of: find.text(label), matching: find.byType(Column))
-          .first,
-      matching: find.byType(TextField),
-    );
+Finder _field(String label) => find.widgetWithText(TextField, label);
 
-Future<void> _type(WidgetTester tester, String label, String value) async {
-  final f = _fieldAfter(label);
-  await tester.ensureVisible(f.first);
-  await tester.enterText(f.first, value);
+Future<void> _enter(WidgetTester tester, String label, String value) async {
+  await tester.enterText(_field(label), value);
   await tester.pump();
 }
 
 Future<void> _basics(WidgetTester tester,
     {String name = 'Family rent', String amount = '60000'}) async {
-  await _type(tester, 'Name your beel', name);
-  final big = find.byType(TextField).at(1);
-  await tester.enterText(big, amount);
+  await tester.enterText(find.byType(TextField).at(0), name);
+  await tester.enterText(find.byType(TextField).at(1), amount);
   await tester.pump();
+}
+
+/// Opens the person sheet from the page button (the first "Add person").
+Future<void> _openPersonSheet(WidgetTester tester) async {
+  await tester.tap(find.text('Add person').first);
+  await tester.pumpAndSettle();
+}
+
+Future<void> _fillPerson(
+  WidgetTester tester, {
+  String first = 'Ada',
+  String last = 'Obi',
+  String phone = '08012345678',
+  String email = 'ada@beels.test',
+  String? amount,
+}) async {
+  await _enter(tester, 'First name', first);
+  await _enter(tester, 'Last name', last);
+  await _enter(tester, 'Phone number', phone);
+  await _enter(tester, 'Email', email);
+  if (amount != null) {
+    await _enter(tester, 'Amount this person pays', amount);
+  }
+}
+
+/// Adds one person end to end (sheet open, filled, saved).
+Future<void> _addPerson(
+  WidgetTester tester, {
+  String first = 'Ada',
+  String last = 'Obi',
+  String phone = '08012345678',
+  String email = 'ada@beels.test',
+  String? amount,
+}) async {
+  await _openPersonSheet(tester);
+  await _fillPerson(tester,
+      first: first, last: last, phone: phone, email: email, amount: amount);
+  // Only the sheet's primary button is a plain FilledButton.
+  await tester.tap(find.widgetWithText(FilledButton, 'Add person'));
+  await tester.pumpAndSettle();
+}
+
+Future<void> _addBankAccount(
+  WidgetTester tester, {
+  String bank = 'GTBank',
+  String account = '0123456789',
+}) async {
+  await tester.tap(find.text('Add payout account'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('Choose a bank'));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text(bank));
+  await tester.pumpAndSettle();
+  await _enter(tester, 'Account number', account);
+  await tester.pumpAndSettle();
+  await tester.tap(find.widgetWithText(FilledButton, 'Add account'));
+  await tester.pumpAndSettle();
+}
+
+/// Steps 1-2 with a target, ready for the people step.
+Future<void> _toPeople(WidgetTester tester, {String amount = '60000'}) async {
+  await _basics(tester, amount: amount);
+  await _tapContinue(tester);
+  await _tapContinue(tester);
+}
+
+/// A complete closed beel up to the payout step.
+Future<void> _toPayout(WidgetTester tester, {String amount = '60000'}) async {
+  await _toPeople(tester, amount: amount);
+  await _addPerson(tester, amount: amount);
+  await _tapContinue(tester);
 }
 
 void main() {
@@ -219,14 +280,22 @@ void main() {
     expect(find.text('Step 1 of 5'), findsOneWidget);
   });
 
-  testWidgets('the mode choices use plain words and switch the flow',
-      (tester) async {
+  testWidgets('the mode choices use plain words', (tester) async {
     await _pump(tester);
 
     expect(find.text('I choose the people'), findsOneWidget);
     expect(find.text('Anyone with a link'), findsOneWidget);
     expect(find.text('Closed'), findsNothing);
     expect(find.text('Open link'), findsNothing);
+  });
+
+  testWidgets('the target is formatted with thousands separators as typed',
+      (tester) async {
+    await _pump(tester);
+    await tester.enterText(find.byType(TextField).at(1), '1250000');
+    await tester.pump();
+
+    expect(find.text('1,250,000'), findsOneWidget);
   });
 
   testWidgets('schedule explains the result and the next date', (tester) async {
@@ -257,63 +326,266 @@ void main() {
     expect(find.text('Ajo circle'), findsOneWidget);
   });
 
-  testWidgets('people step shows live totals and can split equally',
-      (tester) async {
-    await _pump(tester);
-    await _basics(tester, amount: '60000');
-    await _tapContinue(tester);
-    await _tapContinue(tester); // schedule
+  group('people', () {
+    testWidgets('adding a person opens a sheet pre-filled with what is left',
+        (tester) async {
+      await _pump(tester);
+      await _toPeople(tester, amount: '60000');
 
-    expect(find.text('Step 3 of 5'), findsOneWidget);
-    expect(find.text('₦0 of ₦60,000 assigned'), findsOneWidget);
+      await _openPersonSheet(tester);
 
-    await tester.tap(find.text('Add person'));
-    await tester.pumpAndSettle();
-    expect(find.text('Split ₦60,000 equally between 2'), findsOneWidget);
+      expect(find.text('Add person'), findsWidgets);
+      // The amount box starts at the whole remaining amount.
+      expect(
+        tester
+            .widget<TextField>(_field('Amount this person pays'))
+            .controller!
+            .text,
+        '60,000',
+      );
+    });
 
-    await tester.tap(find.text('Split ₦60,000 equally between 2'));
-    await tester.pumpAndSettle();
+    testWidgets('the running total is pinned and updates as people are added',
+        (tester) async {
+      await _pump(tester);
+      await _toPeople(tester, amount: '60000');
+      expect(find.text('₦0 of ₦60,000 assigned'), findsOneWidget);
 
-    expect(find.text('₦60,000 of ₦60,000 assigned'), findsOneWidget);
-    expect(find.text('Perfect. Every naira is assigned.'), findsOneWidget);
+      await _addPerson(tester, amount: '40000');
+
+      expect(find.text('Ada Obi'), findsOneWidget);
+      expect(find.text('₦40,000 of ₦60,000 assigned'), findsOneWidget);
+      expect(find.text('₦20,000 left'), findsOneWidget);
+    });
+
+    testWidgets('the sheet explains what is missing and does not save',
+        (tester) async {
+      await _pump(tester);
+      await _toPeople(tester);
+      await _openPersonSheet(tester);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Add person'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Required'), findsNWidgets(2)); // first + last
+      expect(find.text('Enter a valid email'), findsOneWidget);
+      expect(find.text('At least 11 digits'), findsOneWidget);
+      // Still in the sheet; nobody was added.
+      expect(find.text('New person'), findsNothing);
+      expect(find.text('₦0 of ₦60,000 assigned'), findsOneWidget);
+    });
+
+    testWidgets('save and add another keeps the sheet open for the next person',
+        (tester) async {
+      await _pump(tester);
+      await _toPeople(tester, amount: '60000');
+      await _openPersonSheet(tester);
+
+      await _fillPerson(tester, amount: '40000');
+      await tester.tap(find.text('Save and add another'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Added Ada Obi'), findsOneWidget);
+      // Fields cleared; amount offers what is left.
+      expect(
+          tester.widget<TextField>(_field('First name')).controller!.text, '');
+      expect(
+        tester
+            .widget<TextField>(_field('Amount this person pays'))
+            .controller!
+            .text,
+        '20,000',
+      );
+
+      await _fillPerson(tester,
+          first: 'Bode',
+          last: 'Aliu',
+          phone: '08023456789',
+          email: 'b@beels.test');
+      await tester.tap(find.widgetWithText(FilledButton, 'Add person'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Ada Obi'), findsOneWidget);
+      expect(find.text('Bode Aliu'), findsOneWidget);
+      expect(find.text('All set'), findsOneWidget);
+    });
+
+    testWidgets('tapping a person edits them, and they can be removed',
+        (tester) async {
+      await _pump(tester);
+      await _toPeople(tester, amount: '60000');
+      await _addPerson(tester, amount: '60000');
+
+      await tester.tap(find.text('Ada Obi'));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit person'), findsOneWidget);
+      await _enter(tester, 'Amount this person pays', '30000');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+      expect(find.text('₦30,000 of ₦60,000 assigned'), findsOneWidget);
+
+      await tester.tap(find.text('Ada Obi'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Remove person'));
+      await tester.pumpAndSettle();
+      expect(find.text('Ada Obi'), findsNothing);
+      expect(find.text('₦0 of ₦60,000 assigned'), findsOneWidget);
+    });
+
+    testWidgets('split equally shares the target between everyone',
+        (tester) async {
+      await _pump(tester);
+      await _toPeople(tester, amount: '60000');
+      await _addPerson(tester, amount: '10000');
+      await _addPerson(tester,
+          first: 'Bode',
+          last: 'Aliu',
+          phone: '08023456789',
+          email: 'b@beels.test',
+          amount: '10000');
+
+      await tester.tap(find.text('Split ₦60,000 equally between 2'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('₦60,000 of ₦60,000 assigned'), findsOneWidget);
+      expect(find.text('All set'), findsOneWidget);
+    });
+
+    testWidgets('a mismatch is explained on Continue', (tester) async {
+      await _pump(tester);
+      await _toPeople(tester, amount: '60000');
+      await _addPerson(tester, amount: '40000');
+
+      await _tapContinue(tester);
+
+      expect(find.text('Amounts add up to ₦40,000, but the target is ₦60,000'),
+          findsOneWidget);
+      expect(find.text('Step 3 of 5'), findsOneWidget);
+    });
+
+    testWidgets('a person can be added from contacts', (tester) async {
+      await _pump(tester);
+      await _toPeople(tester);
+
+      await tester.tap(find.text('From contacts').first);
+      await tester.pumpAndSettle();
+
+      expect(tester.widget<TextField>(_field('First name')).controller!.text,
+          'Bode');
+      expect(tester.widget<TextField>(_field('Phone number')).controller!.text,
+          '08023456789');
+    });
   });
 
-  testWidgets('a mismatch is explained on Continue, with the person flagged',
-      (tester) async {
-    await _pump(tester);
-    await _basics(tester, amount: '60000');
-    await _tapContinue(tester);
-    await _tapContinue(tester);
+  group('payout', () {
+    testWidgets('starts with one clear call to action', (tester) async {
+      await _pump(tester);
+      await _toPayout(tester);
 
-    await _type(tester, 'First name', 'Ada');
-    await _type(tester, 'Last name', 'Obi');
-    await _type(tester, 'Phone number', '08012345678');
-    await _type(tester, 'Email', 'ada@beels.test');
-    await _type(tester, 'Amount this person pays', '40000');
-    await _tapContinue(tester);
+      expect(find.text('Step 4 of 5'), findsOneWidget);
+      expect(find.text('Add payout account'), findsOneWidget);
+    });
 
-    expect(find.text('₦40,000 of ₦60,000 assigned'), findsOneWidget);
-    expect(find.text('₦20,000 left to go'), findsOneWidget);
-    expect(find.text('Amounts add up to ₦40,000, but the target is ₦60,000'),
-        findsOneWidget);
-    expect(find.text('Step 3 of 5'), findsOneWidget);
+    testWidgets('bank check fills the name and the account becomes a row',
+        (tester) async {
+      final h = await _pump(tester);
+      await _toPayout(tester);
+
+      await tester.tap(find.text('Add payout account'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Choose a bank'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GTBank'));
+      await tester.pumpAndSettle();
+      await _enter(tester, 'Account number', '0123456789');
+      await tester.pumpAndSettle();
+
+      expect(h.payments.enquiries, 1);
+      expect(find.text('Verified: ADA OBI'), findsOneWidget);
+      expect(tester.widget<TextField>(_field('Account name')).controller!.text,
+          'ADA OBI');
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Add account'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('ADA OBI'), findsOneWidget);
+      expect(find.text('GTBank · •••• 6789'), findsOneWidget);
+      expect(find.text('Add payout account'), findsNothing);
+    });
+
+    testWidgets('a failed bank check never blocks: the name can be typed',
+        (tester) async {
+      await _pump(tester, accountName: 'FAIL');
+      await _toPayout(tester);
+
+      await tester.tap(find.text('Add payout account'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Choose a bank'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('GTBank'));
+      await tester.pumpAndSettle();
+      await _enter(tester, 'Account number', '0123456789');
+      await tester.pumpAndSettle();
+
+      expect(
+          find.textContaining('could not verify this account'), findsOneWidget);
+      await _enter(tester, 'Account name', 'Ada Obi');
+      await tester.tap(find.widgetWithText(FilledButton, 'Add account'));
+      await tester.pumpAndSettle();
+      await _tapContinue(tester);
+
+      expect(find.text('Step 5 of 5'), findsOneWidget);
+    });
+
+    testWidgets('the sheet lists what is missing and does not save',
+        (tester) async {
+      await _pump(tester);
+      await _toPayout(tester);
+      await tester.tap(find.text('Add payout account'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Add account'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Choose a bank'), findsWidgets);
+      expect(find.text('Enter the 10-digit account number'), findsOneWidget);
+      expect(find.text('Required'), findsOneWidget); // name
+      expect(find.text('Add payout account'), findsOneWidget); // still empty
+    });
+
+    testWidgets('a second account defaults to half, and the total is pinned',
+        (tester) async {
+      await _pump(tester);
+      await _toPayout(tester);
+      await _addBankAccount(tester);
+
+      await tester.tap(find.text('Split to another account'));
+      await tester.pumpAndSettle();
+      // Half the target is suggested for the new account.
+      expect(
+        tester
+            .widget<TextField>(_field('Amount for this account'))
+            .controller!
+            .text,
+        '30,000',
+      );
+      await tester.tap(find.text('Choose a bank'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Access Bank'));
+      await tester.pumpAndSettle();
+      await _enter(tester, 'Account number', '2034567890');
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, 'Add account'));
+      await tester.pumpAndSettle();
+
+      // The first account was given the rest, so the two add up.
+      expect(find.text('₦60,000 of ₦60,000 paid out'), findsOneWidget);
+      expect(find.text('₦30,000'), findsNWidgets(2));
+      expect(find.text('All set'), findsOneWidget);
+    });
   });
 
-  testWidgets('a person can be added from contacts', (tester) async {
-    await _pump(tester);
-    await _basics(tester);
-    await _tapContinue(tester);
-    await _tapContinue(tester);
-
-    await tester.tap(find.text('From contacts').last);
-    await tester.pumpAndSettle();
-
-    expect(find.text('Bode Aliu'), findsOneWidget);
-  });
-
-  testWidgets(
-      'full closed flow: bank check fills the name, review, create, finish',
-      (tester) async {
+  testWidgets('full closed flow: review, create, finish', (tester) async {
     final h = await _pump(tester);
     await _basics(tester, name: 'Family rent', amount: '60000');
     await _tapContinue(tester);
@@ -322,27 +594,9 @@ void main() {
     await tester.tap(find.bySemanticsLabel('Friday'));
     await tester.pumpAndSettle();
     await _tapContinue(tester);
-
-    await _type(tester, 'First name', 'Ada');
-    await _type(tester, 'Last name', 'Obi');
-    await _type(tester, 'Phone number', '08012345678');
-    await _type(tester, 'Email', 'ada@beels.test');
-    await _type(tester, 'Amount this person pays', '60000');
+    await _addPerson(tester, amount: '60000');
     await _tapContinue(tester);
-
-    expect(find.text('Step 4 of 5'), findsOneWidget);
-    // Pick a bank from the searchable sheet, then type the account.
-    await tester.tap(find.text('Choose a bank'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('GTBank'));
-    await tester.pumpAndSettle();
-    await _type(tester, 'Account number', '0123456789');
-    await tester.pumpAndSettle();
-
-    expect(h.payments.enquiries, 1);
-    expect(find.text('Verified: ADA OBI'), findsOneWidget);
-    // The verified name was filled in for the user.
-    expect(find.text('ADA OBI'), findsWidgets);
+    await _addBankAccount(tester);
     await _tapContinue(tester);
 
     expect(find.text('Step 5 of 5'), findsOneWidget);
@@ -362,7 +616,7 @@ void main() {
     final b = (payload['beneficiaries'] as List).single as Map;
     expect(b['bank_code'], '058');
     expect(b['account_number'], '0123456789');
-    expect(b['amount'], 60000); // single payout defaults to the whole target
+    expect(b['amount'], 60000); // a single payout takes the whole target
 
     expect(find.text('Your beel is live'), findsOneWidget);
     expect(find.text('View my beels'), findsOneWidget);
@@ -391,14 +645,8 @@ void main() {
     expect(find.text('₦20,000'), findsOneWidget); // 60,000 / 3
     await _tapContinue(tester);
 
-    await tester.tap(find.text('Choose a bank'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('Access Bank'));
-    await tester.pumpAndSettle();
-    await _type(tester, 'Account number', '2034567890');
-    await tester.pumpAndSettle();
+    await _addBankAccount(tester, bank: 'Access Bank', account: '2034567890');
     await _tapContinue(tester);
-
     await tester.tap(find.text('Create beel'));
     await tester.pumpAndSettle();
 
@@ -408,74 +656,13 @@ void main() {
     expect(find.text('View beel'), findsOneWidget);
   });
 
-  testWidgets('a failed bank check never blocks: the name can be typed',
-      (tester) async {
-    await _pump(tester, accountName: 'FAIL');
-    await _basics(tester);
-    await _tapContinue(tester);
-    await _tapContinue(tester);
-    await _type(tester, 'First name', 'Ada');
-    await _type(tester, 'Last name', 'Obi');
-    await _type(tester, 'Phone number', '08012345678');
-    await _type(tester, 'Email', 'ada@beels.test');
-    await _type(tester, 'Amount this person pays', '60000');
-    await _tapContinue(tester);
-
-    await tester.tap(find.text('Choose a bank'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('GTBank'));
-    await tester.pumpAndSettle();
-    await _type(tester, 'Account number', '0123456789');
-    await tester.pumpAndSettle();
-
-    expect(
-        find.textContaining('could not verify this account'), findsOneWidget);
-    await _type(tester, 'Account name', 'Ada Obi');
-    await _tapContinue(tester);
-    expect(find.text('Step 5 of 5'), findsOneWidget);
-  });
-
-  testWidgets('several payout accounts must add up, with a live bar',
-      (tester) async {
-    await _pump(tester);
-    await _basics(tester, amount: '60000');
-    await _tapContinue(tester);
-    await _tapContinue(tester);
-    await _type(tester, 'First name', 'Ada');
-    await _type(tester, 'Last name', 'Obi');
-    await _type(tester, 'Phone number', '08012345678');
-    await _type(tester, 'Email', 'ada@beels.test');
-    await _type(tester, 'Amount this person pays', '60000');
-    await _tapContinue(tester);
-
-    await tester.tap(find.text('Split between another account'));
-    await tester.pumpAndSettle();
-
-    expect(find.text('Account 1'), findsOneWidget);
-    expect(find.text('Account 2'), findsOneWidget);
-    expect(find.text('Amount for this account'), findsNWidgets(2));
-  });
-
   testWidgets('a failed create keeps you on review with the reason',
       (tester) async {
     final h = await _pump(tester);
     h.beels.failWith =
         const ApiException('Beneficiary Allocation Mismatch', statusCode: 401);
-    await _basics(tester, amount: '1000');
-    await _tapContinue(tester);
-    await _tapContinue(tester);
-    await _type(tester, 'First name', 'Ada');
-    await _type(tester, 'Last name', 'Obi');
-    await _type(tester, 'Phone number', '08012345678');
-    await _type(tester, 'Email', 'ada@beels.test');
-    await _type(tester, 'Amount this person pays', '1000');
-    await _tapContinue(tester);
-    await tester.tap(find.text('Choose a bank'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('GTBank'));
-    await tester.pumpAndSettle();
-    await _type(tester, 'Account number', '0123456789');
-    await tester.pumpAndSettle();
+    await _toPayout(tester, amount: '1000');
+    await _addBankAccount(tester);
     await _tapContinue(tester);
 
     await tester.tap(find.text('Create beel'));
@@ -488,7 +675,8 @@ void main() {
 
   testWidgets('leaving with unsaved input asks first', (tester) async {
     await _pump(tester);
-    await _type(tester, 'Name your beel', 'Half done');
+    await tester.enterText(find.byType(TextField).at(0), 'Half done');
+    await tester.pump();
 
     await tester.tap(find.byTooltip('Close'));
     await tester.pumpAndSettle();

@@ -360,7 +360,11 @@ class AllocationBar extends StatelessWidget {
     required this.assigned,
     required this.total,
     required this.noun,
+    this.compact = false,
   });
+
+  /// One tight row for pinning above the action bar.
+  final bool compact;
 
   final num assigned;
   final num total;
@@ -385,6 +389,67 @@ class AllocationBar extends StatelessWidget {
             : '${formatNaira(diff)} left to go';
     final fraction =
         total <= 0 ? 0.0 : (assigned / total).clamp(0.0, 1.0).toDouble();
+
+    if (compact) {
+      return Semantics(
+        liveRegion: true,
+        label:
+            '${formatNaira(assigned)} of ${formatNaira(total)} $noun. $status',
+        child: ExcludeSemantics(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${formatNaira(assigned)} of ${formatNaira(total)} $noun',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: BeelsColors.ink0,
+                        fontFeatures: const [FontFeature.tabularFigures()],
+                      ),
+                    ),
+                  ),
+                  if (exact)
+                    Icon(Icons.check_circle_rounded, size: 16, color: color),
+                  if (exact) const SizedBox(width: 4),
+                  Text(
+                    exact
+                        ? 'All set'
+                        : over
+                            ? '${formatNaira(diff)} over'
+                            : '${formatNaira(diff)} left',
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: exact || over ? color : BeelsColors.ink2,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(begin: 0, end: fraction),
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutQuart,
+                  builder: (_, v, __) => LinearProgressIndicator(
+                    value: v,
+                    minHeight: 6,
+                    backgroundColor: BeelsColors.fieldFill,
+                    valueColor: AlwaysStoppedAnimation(color),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Semantics(
       liveRegion: true,

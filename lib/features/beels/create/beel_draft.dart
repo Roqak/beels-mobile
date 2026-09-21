@@ -303,22 +303,56 @@ Map<String, String> validatePeople(BeelDraft d) {
     return errors;
   }
   for (var i = 0; i < d.contributors.length; i++) {
-    final c = d.contributors[i];
-    final p = 'contributor_$i';
-    if (c.firstName.trim().isEmpty) errors['${p}_first'] = 'Required';
-    if (c.lastName.trim().isEmpty) errors['${p}_last'] = 'Required';
-    if (!_emailRegExp.hasMatch(c.email.trim())) {
-      errors['${p}_email'] = 'Enter a valid email';
-    }
-    if (c.phone.replaceAll(RegExp(r'\D'), '').length < 11) {
-      errors['${p}_phone'] = 'At least 11 digits';
-    }
-    final a = parseMoney(c.amount);
-    if (a == null || a <= 0) errors['${p}_amount'] = 'Enter an amount';
+    validateContributor(d.contributors[i]).forEach(
+        (field, message) => errors['contributor_${i}_$field'] = message);
   }
   if (errors.isEmpty && d.contributorTotal != (d.target ?? 0)) {
     errors['people'] =
         'Amounts add up to ${_naira(d.contributorTotal)}, but the target is ${_naira(d.target ?? 0)}';
+  }
+  return errors;
+}
+
+/// Field errors for one person (keys: first, last, email, phone, amount).
+Map<String, String> validateContributor(DraftContributor c) {
+  final errors = <String, String>{};
+  if (c.firstName.trim().isEmpty) errors['first'] = 'Required';
+  if (c.lastName.trim().isEmpty) errors['last'] = 'Required';
+  if (!_emailRegExp.hasMatch(c.email.trim())) {
+    errors['email'] = 'Enter a valid email';
+  }
+  if (c.phone.replaceAll(RegExp(r'\D'), '').length < 11) {
+    errors['phone'] = 'At least 11 digits';
+  }
+  final a = parseMoney(c.amount);
+  if (a == null || a <= 0) errors['amount'] = 'Enter an amount';
+  return errors;
+}
+
+/// Field errors for one payout account (keys: name, bank, account,
+/// service_number, service_identifier, amount). [amountRequired] is true when
+/// the amount is a real choice (several accounts), false when a single
+/// account implicitly receives the whole target.
+Map<String, String> validateBeneficiary(
+  DraftBeneficiary b, {
+  required bool amountRequired,
+}) {
+  final errors = <String, String>{};
+  if (b.name.trim().isEmpty) errors['name'] = 'Required';
+  if (b.isBank) {
+    if (b.bankCode.trim().isEmpty) errors['bank'] = 'Choose a bank';
+    if (b.accountNumber.trim().length < 10) {
+      errors['account'] = 'Enter the 10-digit account number';
+    }
+  } else {
+    if (b.serviceNumber.trim().isEmpty) errors['service_number'] = 'Required';
+    if (b.serviceIdentifier.trim().isEmpty) {
+      errors['service_identifier'] = 'Required';
+    }
+  }
+  if (b.wantsAmount && amountRequired) {
+    final a = parseMoney(b.amount);
+    if (a == null || a <= 0) errors['amount'] = 'Enter an amount';
   }
   return errors;
 }
@@ -332,24 +366,17 @@ Map<String, String> validatePayout(BeelDraft d) {
   }
   for (var i = 0; i < d.beneficiaries.length; i++) {
     final b = d.beneficiaries[i];
-    final p = 'beneficiary_$i';
-    if (b.name.trim().isEmpty) errors['${p}_name'] = 'Required';
-    if (b.isBank) {
-      if (b.bankCode.trim().isEmpty) errors['${p}_bank'] = 'Choose a bank';
-      if (b.accountNumber.trim().length < 10) {
-        errors['${p}_account'] = 'Enter the 10-digit account number';
-      }
-    } else {
-      if (b.serviceNumber.trim().isEmpty) {
-        errors['${p}_service_number'] = 'Required';
-      }
-      if (b.serviceIdentifier.trim().isEmpty) {
-        errors['${p}_service_identifier'] = 'Required';
-      }
-    }
-    if (b.wantsAmount) {
+    // A single account receives the whole target without typing it.
+    final needsAmount =
+        d.beneficiaries.length > 1 || d.effectiveBeneficiaryAmount(b) == null;
+    validateBeneficiary(b, amountRequired: b.wantsAmount && needsAmount)
+        .forEach(
+            (field, message) => errors['beneficiary_${i}_$field'] = message);
+    if (b.wantsAmount && !errors.containsKey('beneficiary_${i}_amount')) {
       final a = d.effectiveBeneficiaryAmount(b);
-      if (a == null || a <= 0) errors['${p}_amount'] = 'Enter an amount';
+      if (a == null || a <= 0) {
+        errors['beneficiary_${i}_amount'] = 'Enter an amount';
+      }
     }
   }
   if (errors.isEmpty) {

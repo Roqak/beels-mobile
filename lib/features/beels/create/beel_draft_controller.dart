@@ -60,6 +60,32 @@ class BeelDraftController extends AutoDisposeNotifier<BeelDraft> {
     ]));
   }
 
+  /// Adds a new person (id < 0) or replaces an existing one; returns the id.
+  int upsertContributor(DraftContributor person) {
+    if (person.id >= 0 && state.contributors.any((c) => c.id == person.id)) {
+      _set(state.copyWith(contributors: [
+        for (final c in state.contributors) c.id == person.id ? person : c,
+      ]));
+      return person.id;
+    }
+    final id = state.nextId;
+    _set(state.copyWith(
+      contributors: [
+        ...state.contributors,
+        DraftContributor(
+          id: id,
+          firstName: person.firstName,
+          lastName: person.lastName,
+          email: person.email,
+          phone: person.phone,
+          amount: person.amount,
+        ),
+      ],
+      nextId: id + 1,
+    ));
+    return id;
+  }
+
   void removeContributor(int id) => _set(state.copyWith(
         contributors: [
           for (final c in state.contributors)
@@ -94,6 +120,57 @@ class BeelDraftController extends AutoDisposeNotifier<BeelDraft> {
       int id, DraftBeneficiary Function(DraftBeneficiary) f) {
     _set(state.copyWith(beneficiaries: [
       for (final b in state.beneficiaries) b.id == id ? f(b) : b,
+    ]));
+  }
+
+  /// Adds a new account (id < 0) or replaces an existing one. When a second
+  /// account joins a lone account that was implicitly taking everything, that
+  /// first account is given what is left so the two still add up.
+  int upsertBeneficiary(DraftBeneficiary account) {
+    if (account.id >= 0 && state.beneficiaries.any((b) => b.id == account.id)) {
+      _set(state.copyWith(beneficiaries: [
+        for (final b in state.beneficiaries) b.id == account.id ? account : b,
+      ]));
+      return account.id;
+    }
+    final id = state.nextId;
+    final added = DraftBeneficiary(
+      id: id,
+      type: account.type,
+      name: account.name,
+      accountNumber: account.accountNumber,
+      bankCode: account.bankCode,
+      bankName: account.bankName,
+      serviceNumber: account.serviceNumber,
+      serviceIdentifier: account.serviceIdentifier,
+      amount: account.amount,
+    );
+    var existing = state.beneficiaries;
+    final target = state.target;
+    if (existing.length == 1 &&
+        existing.first.wantsAmount &&
+        existing.first.amount.trim().isEmpty &&
+        target != null) {
+      final taken = parseMoney(added.amount) ?? 0;
+      final rest = target - taken;
+      if (rest > 0) {
+        existing = [existing.first.copyWith(amount: _text(rest))];
+      }
+    }
+    _set(state.copyWith(beneficiaries: [...existing, added], nextId: id + 1));
+    return id;
+  }
+
+  /// Gives every amount-carrying account an equal share of the target.
+  void splitBeneficiariesEvenly() {
+    final target = state.target;
+    final rows = state.beneficiaries.where((b) => b.wantsAmount).toList();
+    if (target == null || target <= 0 || rows.isEmpty) return;
+    final parts = splitEvenly(target, rows.length);
+    var i = 0;
+    _set(state.copyWith(beneficiaries: [
+      for (final b in state.beneficiaries)
+        b.wantsAmount ? b.copyWith(amount: _text(parts[i++])) : b,
     ]));
   }
 

@@ -308,6 +308,7 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
                 ),
               ),
             ),
+            _pinned(draft),
             _BottomBar(
               step: _step,
               last: last,
@@ -316,6 +317,36 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
               onNext: last ? _submit : _next,
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  /// Running total kept in view above the action bar, so the user never
+  /// scrolls up to check whether the amounts add up.
+  Widget _pinned(BeelDraft draft) {
+    num? assigned;
+    String? noun;
+    if (_step == 2 && !draft.isOpen) {
+      assigned = draft.contributorTotal;
+      noun = 'assigned';
+    } else if (_step == 3 && draft.beneficiaries.length > 1) {
+      assigned = draft.payoutTotal;
+      noun = 'paid out';
+    }
+    if (assigned == null || noun == null) return const SizedBox.shrink();
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: BeelsColors.panel,
+        border: Border(top: BorderSide(color: BeelsColors.border)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 10),
+        child: AllocationBar(
+          assigned: assigned,
+          total: draft.target ?? 0,
+          noun: noun,
+          compact: true,
         ),
       ),
     );
