@@ -31,13 +31,13 @@ class BeelsListController extends AsyncNotifier<BeelsListState> {
 
   @override
   Future<BeelsListState> build() async {
-    final page =
-        await ref.watch(beelsRepositoryProvider).list(page: 1, perPage: perPage);
+    final page = await ref
+        .watch(beelsRepositoryProvider)
+        .list(page: 1, perPage: perPage);
     return _fromPaginated(page);
   }
 
-  BeelsListState _fromPaginated(Paginated<Contribution> page) =>
-      BeelsListState(
+  BeelsListState _fromPaginated(Paginated<Contribution> page) => BeelsListState(
         items: page.items,
         page: page.page,
         lastPage: page.lastPage,
@@ -46,13 +46,10 @@ class BeelsListController extends AsyncNotifier<BeelsListState> {
 
   /// Reloads the first page, keeping current data visible while refreshing.
   Future<void> refresh() async {
-    state = const AsyncLoading<BeelsListState>()
-        .copyWithPrevious(state);
+    state = const AsyncLoading<BeelsListState>().copyWithPrevious(state);
     state = await AsyncValue.guard(() async {
       return _fromPaginated(
-        await ref
-            .read(beelsRepositoryProvider)
-            .list(page: 1, perPage: perPage),
+        await ref.read(beelsRepositoryProvider).list(page: 1, perPage: perPage),
       );
     });
   }
@@ -97,8 +94,7 @@ class BeelDetailController extends FamilyAsyncNotifier<Contribution, int> {
 
   /// Reloads the beel, keeping current data visible while refreshing.
   Future<void> refresh() async {
-    state = const AsyncLoading<Contribution>()
-        .copyWithPrevious(state);
+    state = const AsyncLoading<Contribution>().copyWithPrevious(state);
     state = await AsyncValue.guard(
       () => ref.read(beelsRepositoryProvider).get(arg),
     );
@@ -132,8 +128,9 @@ class BeelDetailController extends FamilyAsyncNotifier<Contribution, int> {
   }
 }
 
-final beelDetailControllerProvider = AsyncNotifierProvider.family<
-    BeelDetailController, Contribution, int>(BeelDetailController.new);
+final beelDetailControllerProvider =
+    AsyncNotifierProvider.family<BeelDetailController, Contribution, int>(
+        BeelDetailController.new);
 
 /// Submits new beels (closed and open-link modes).
 class CreateBeelController extends AsyncNotifier<Contribution?> {

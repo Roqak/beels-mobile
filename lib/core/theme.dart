@@ -57,7 +57,8 @@ ThemeData beelsTheme(BuildContext context) {
     colorScheme: colorScheme,
     scaffoldBackgroundColor: BeelsColors.surface,
     textTheme: textTheme,
-    textSelectionTheme: const TextSelectionThemeData(cursorColor: BeelsColors.accent),
+    textSelectionTheme:
+        const TextSelectionThemeData(cursorColor: BeelsColors.accent),
     appBarTheme: AppBarTheme(
       backgroundColor: BeelsColors.surface,
       surfaceTintColor: Colors.transparent,
@@ -179,15 +180,17 @@ ThemeData beelsTheme(BuildContext context) {
     bottomSheetTheme: const BottomSheetThemeData(
       backgroundColor: BeelsColors.panel,
       surfaceTintColor: Colors.transparent,
+      showDragHandle: true,
+      dragHandleColor: BeelsColors.borderStrong,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
     ),
     snackBarTheme: SnackBarThemeData(
       behavior: SnackBarBehavior.floating,
       backgroundColor: BeelsColors.ink0,
       contentTextStyle: textTheme.bodyMedium?.copyWith(color: Colors.white),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
     ),
     dividerTheme: const DividerThemeData(
       color: BeelsColors.border,

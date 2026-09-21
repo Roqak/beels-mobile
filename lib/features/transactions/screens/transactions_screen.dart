@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+
+import 'package:beels_mobile/core/theme.dart';
+import 'package:beels_mobile/core/widgets/skeleton.dart';
+import 'package:beels_mobile/core/widgets/surface_card.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
@@ -17,8 +21,7 @@ class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
 
   @override
-  ConsumerState<TransactionsScreen> createState() =>
-      _TransactionsScreenState();
+  ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
 }
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
@@ -50,7 +53,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final state = ref.watch(transactionsListControllerProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFE),
+      backgroundColor: BeelsColors.surface,
       appBar: const BeelsAppBar('Transactions'),
       body: _buildBody(context, state),
     );
@@ -60,7 +63,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       BuildContext context, AsyncValue<TransactionsListState> state) {
     if (!state.hasValue) {
       if (state.isLoading) {
-        return const Center(child: CircularProgressIndicator());
+        return const _ListSkeleton();
       }
       return KeyedSubtree(
         key: const Key('error-view'),
@@ -153,7 +156,7 @@ class _TransactionTileState extends State<TransactionTile> {
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE3E3EA)),
+              border: Border.all(color: BeelsColors.border),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -181,7 +184,7 @@ class _TransactionTileState extends State<TransactionTile> {
                                 .titleSmall
                                 ?.copyWith(
                                   fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF21222D),
+                                  color: BeelsColors.ink0,
                                 ),
                           ),
                           const SizedBox(height: 2),
@@ -192,7 +195,7 @@ class _TransactionTileState extends State<TransactionTile> {
                             style: Theme.of(context)
                                 .textTheme
                                 .bodySmall
-                                ?.copyWith(color: const Color(0xFF7B7D8C)),
+                                ?.copyWith(color: BeelsColors.ink2),
                           ),
                         ],
                       ),
@@ -206,15 +209,13 @@ class _TransactionTileState extends State<TransactionTile> {
                             transaction.amount ?? 0,
                             incoming: transaction.isDeposit,
                           ),
-                          style: Theme.of(context)
-                              .textTheme
-                              .titleSmall
-                              ?.copyWith(
-                                fontWeight: FontWeight.w600,
-                                color: transaction.isDeposit
-                                    ? const Color(0xFF1F7A4D)
-                                    : const Color(0xFF21222D),
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: transaction.isDeposit
+                                        ? BeelsColors.ok
+                                        : BeelsColors.ink0,
+                                  ),
                         ),
                         const SizedBox(height: 4),
                         StatusChip(
@@ -226,28 +227,36 @@ class _TransactionTileState extends State<TransactionTile> {
                   ],
                 ),
                 if (_expanded) ...[
-                  const Divider(height: 20, color: Color(0xFFE3E3EA)),
-                  _detailRow('Reference',
-                      transaction.reference == null || transaction.reference!.isEmpty
+                  const Divider(height: 20, color: BeelsColors.border),
+                  _detailRow(
+                      'Reference',
+                      transaction.reference == null ||
+                              transaction.reference!.isEmpty
                           ? '—'
                           : transaction.reference!),
-                  _detailRow('Beel',
-                      transaction.beelName == null || transaction.beelName!.isEmpty
+                  _detailRow(
+                      'Beel',
+                      transaction.beelName == null ||
+                              transaction.beelName!.isEmpty
                           ? '—'
                           : transaction.beelName!),
-                  _detailRow('Unit Amount',
+                  _detailRow(
+                      'Unit Amount',
                       transaction.unitAmount == null
                           ? '—'
                           : formatNaira(transaction.unitAmount!)),
-                  _detailRow('Total Amount',
+                  _detailRow(
+                      'Total Amount',
                       transaction.totalAmount == null
                           ? '—'
                           : formatNaira(transaction.totalAmount!)),
-                  _detailRow('Amount',
+                  _detailRow(
+                      'Amount',
                       transaction.amount == null
                           ? '—'
                           : formatNaira(transaction.amount!)),
-                  _detailRow('Status', transaction.status.isEmpty ? '—' : transaction.status),
+                  _detailRow('Status',
+                      transaction.status.isEmpty ? '—' : transaction.status),
                   _detailRow('Date', date),
                 ],
               ],
@@ -271,7 +280,7 @@ class _TransactionTileState extends State<TransactionTile> {
               style: Theme.of(context)
                   .textTheme
                   .bodySmall
-                  ?.copyWith(color: const Color(0xFF7B7D8C)),
+                  ?.copyWith(color: BeelsColors.ink2),
             ),
           ),
           Expanded(
@@ -280,7 +289,7 @@ class _TransactionTileState extends State<TransactionTile> {
               style: Theme.of(context)
                   .textTheme
                   .bodySmall
-                  ?.copyWith(color: const Color(0xFF21222D)),
+                  ?.copyWith(color: BeelsColors.ink0),
             ),
           ),
         ],
@@ -299,7 +308,7 @@ class _TypeBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: isDeposit ? const Color(0xFFEAF6F0) : const Color(0xFFFBEDED),
+        color: isDeposit ? BeelsColors.okSoft : BeelsColors.errSoft,
         borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
@@ -307,7 +316,34 @@ class _TypeBadge extends StatelessWidget {
         style: TextStyle(
           fontSize: 12,
           fontWeight: FontWeight.w600,
-          color: isDeposit ? const Color(0xFF1F7A4D) : const Color(0xFFB23A3A),
+          color: isDeposit ? BeelsColors.ok : BeelsColors.err,
+        ),
+      ),
+    );
+  }
+}
+
+class _ListSkeleton extends StatelessWidget {
+  const _ListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SkeletonScope(
+      child: SingleChildScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 96),
+        child: SurfaceCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              SkeletonRow(),
+              SkeletonRow(),
+              SkeletonRow(),
+              SkeletonRow(),
+              SkeletonRow(),
+              SkeletonRow(),
+            ],
+          ),
         ),
       ),
     );

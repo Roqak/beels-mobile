@@ -12,8 +12,7 @@ class TransactionsRepository {
   final ApiClient _client;
 
   /// GET /transactions — paginated history, newest first.
-  Future<Paginated<Transaction>> list(
-      {int page = 1, int perPage = 20}) async {
+  Future<Paginated<Transaction>> list({int page = 1, int perPage = 20}) async {
     final json = await _client.get(
       '/transactions',
       query: {'page': page, 'per_page': perPage},

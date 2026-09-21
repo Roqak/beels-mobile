@@ -18,7 +18,8 @@ class MandatesController extends AsyncNotifier<List<PaymentMandate>> {
   Future<void> revoke(PaymentMandate mandate) async {
     final id = mandate.id;
     if (id == null) {
-      throw const ApiException('This mandate cannot be revoked.', statusCode: 0);
+      throw const ApiException('This mandate cannot be revoked.',
+          statusCode: 0);
     }
     await ref.read(paymentsRepositoryProvider).revokeMandate(id);
     await ref.read(mandatesControllerProvider.notifier).refresh();
@@ -39,7 +40,6 @@ final mandatesControllerProvider =
 );
 
 /// Nigerian banks for the mandate setup bank picker.
-final banksProvider =
-    FutureProvider<List<Bank>>((ref) async {
+final banksProvider = FutureProvider<List<Bank>>((ref) async {
   return ref.watch(paymentsRepositoryProvider).getBanks();
 });

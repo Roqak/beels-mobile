@@ -28,20 +28,20 @@ class EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
                 color: BeelsColors.accentSoft,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(24),
               ),
-              child: Icon(icon, color: BeelsColors.accent, size: 28),
+              child: Icon(icon, color: BeelsColors.accent, size: 30),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             Text(
               title,
               textAlign: TextAlign.center,
               style: const TextStyle(
-                fontSize: 16,
+                fontSize: 17,
                 fontWeight: FontWeight.w700,
                 color: BeelsColors.ink0,
               ),
@@ -50,7 +50,8 @@ class EmptyState extends StatelessWidget {
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: BeelsColors.ink1),
+              style: const TextStyle(
+                  fontSize: 14, height: 1.45, color: BeelsColors.ink1),
             ),
             if (actionLabel != null) ...[
               const SizedBox(height: 20),

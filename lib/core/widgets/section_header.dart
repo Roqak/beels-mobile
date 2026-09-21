@@ -18,8 +18,9 @@ class SectionHeader extends StatelessWidget {
         Text(
           title,
           style: const TextStyle(
-            fontSize: 16,
+            fontSize: 17,
             fontWeight: FontWeight.w700,
+            letterSpacing: -0.2,
             color: BeelsColors.ink0,
           ),
         ),

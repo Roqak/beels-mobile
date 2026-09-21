@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/api/api_exception.dart';
-import '../../auth/controllers/auth_controller.dart';
 import '../data/payments_repository.dart';
 import '../models/bank.dart';
 
@@ -132,7 +131,8 @@ class MandateSetupController extends AutoDisposeNotifier<MandateSetupState> {
     required String phoneNumber,
     required String bvn,
   }) async {
-    if (!state.canSubmitPersonal(firstName, lastName, email, phoneNumber, bvn) ||
+    if (!state.canSubmitPersonal(
+            firstName, lastName, email, phoneNumber, bvn) ||
         state.submitting) {
       return;
     }
@@ -160,7 +160,7 @@ class MandateSetupController extends AutoDisposeNotifier<MandateSetupState> {
   }
 }
 
-final mandateSetupControllerProvider = NotifierProvider.autoDispose<
-    MandateSetupController, MandateSetupState>(
+final mandateSetupControllerProvider =
+    NotifierProvider.autoDispose<MandateSetupController, MandateSetupState>(
   MandateSetupController.new,
 );

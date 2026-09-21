@@ -14,8 +14,7 @@ String _asString(dynamic value, {String fallback = ''}) {
   return value.toString();
 }
 
-String? _nullableString(dynamic value) =>
-    value?.toString();
+String? _nullableString(dynamic value) => value?.toString();
 
 num? _nullableNum(dynamic value) {
   if (value is num) return value;
@@ -99,8 +98,7 @@ class Contribution {
       dayOfMonth: _nullableInt(map['day_of_month']),
       occurrences: _nullableInt(map['occurrences']),
       nextOccurrence: _nullableDate(map['next_occurrence']),
-      contributionMode:
-          _asString(map['contribution_mode'], fallback: 'closed'),
+      contributionMode: _asString(map['contribution_mode'], fallback: 'closed'),
       paymentLinkToken: _nullableString(map['payment_link_token']),
       amountPerContributor: _nullableNum(map['amount_per_contributor']),
       accountNumber: _nullableString(map['account_number']),
@@ -154,9 +152,16 @@ class ContributionContributor {
   final String? paymentId;
 
   /// Contributors whose deposit can still be paid: no terminal state.
-  bool get canPay => paymentId != null && !_terminalStatuses.contains(status.toLowerCase());
+  bool get canPay =>
+      paymentId != null && !_terminalStatuses.contains(status.toLowerCase());
 
-  static const _terminalStatuses = {'settled', 'paid', 'completed', 'cancelled', 'revoked'};
+  static const _terminalStatuses = {
+    'settled',
+    'paid',
+    'completed',
+    'cancelled',
+    'revoked'
+  };
 
   String get fullName => '$firstName $lastName'.trim();
 

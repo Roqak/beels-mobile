@@ -24,13 +24,13 @@ class PaymentMandate {
 
   factory PaymentMandate.fromJson(dynamic json) {
     if (json is! Map) return PaymentMandate();
-    DateTime? date(Object? v) =>
-        v is String ? DateTime.tryParse(v) : null;
+    DateTime? date(Object? v) => v is String ? DateTime.tryParse(v) : null;
     return PaymentMandate(
       id: json['id'] is num ? (json['id'] as num).toInt() : null,
       accountNumber: (json['account_number'] ?? '') as String,
       bankCode: (json['bank_code'] ?? '') as String,
-      bankName: json['bank_name'] is String ? json['bank_name'] as String : null,
+      bankName:
+          json['bank_name'] is String ? json['bank_name'] as String : null,
       status: (json['status'] ?? '') as String,
       transactionRef: json['transaction_ref'] is String
           ? json['transaction_ref'] as String

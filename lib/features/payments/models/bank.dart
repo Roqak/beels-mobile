@@ -19,7 +19,7 @@ class Bank {
   final String? logoUrl;
 
   factory Bank.fromJson(dynamic json) {
-    if (json is! Map) return Bank();
+    if (json is! Map) return const Bank();
     return Bank(
       id: json['id'] is num ? (json['id'] as num).toInt() : null,
       name: (json['bank_name'] ?? json['name'] ?? '') as String,

@@ -1,14 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/money.dart';
-import '../../../core/widgets/beels_app_bar.dart';
-import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/error_view.dart';
-import '../../../core/widgets/status_chip.dart';
+import '../../../core/theme.dart';
+import '../../../core/widgets/common.dart';
 import '../controllers/beels_controllers.dart';
 import '../models/contribution.dart';
 
@@ -49,10 +48,13 @@ class _BeelsScreenState extends ConsumerState<BeelsScreen> {
     final state = ref.watch(beelsListControllerProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFE),
+      backgroundColor: BeelsColors.surface,
       appBar: const BeelsAppBar('Beels'),
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/beels/new'),
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          context.push('/beels/new');
+        },
         icon: const Icon(Icons.add),
         label: const Text('New Beel'),
       ),
@@ -63,7 +65,7 @@ class _BeelsScreenState extends ConsumerState<BeelsScreen> {
   Widget _buildBody(BuildContext context, AsyncValue<BeelsListState> state) {
     if (!state.hasValue) {
       if (state.isLoading) {
-        return const Center(child: CircularProgressIndicator());
+        return const _BeelsSkeleton();
       }
       return KeyedSubtree(
         key: const Key('error-view'),
@@ -76,8 +78,7 @@ class _BeelsScreenState extends ConsumerState<BeelsScreen> {
 
     final list = state.requireValue;
     return RefreshIndicator(
-      onRefresh: () =>
-          ref.read(beelsListControllerProvider.notifier).refresh(),
+      onRefresh: () => ref.read(beelsListControllerProvider.notifier).refresh(),
       child: list.items.isEmpty
           ? ListView(
               children: const [
@@ -127,84 +128,80 @@ class BeelCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final nextOccurrence = beel.nextOccurrence == null
         ? null
         : DateFormat('d MMM, yyyy').format(beel.nextOccurrence!);
+    final onTap =
+        beel.id == null ? null : () => context.push('/beels/${beel.id}');
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: Material(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        child: InkWell(
-          borderRadius: BorderRadius.circular(16),
-          onTap: beel.id == null ? null : () => context.push('/beels/${beel.id}'),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE3E3EA)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            beel.name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: Theme.of(context)
-                                .textTheme
-                                .titleMedium
-                                ?.copyWith(
-                                  fontWeight: FontWeight.w600,
-                                  color: const Color(0xFF21222D),
-                                ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            _amountSummary(),
-                            style: Theme.of(context)
-                                .textTheme
-                                .bodyMedium
-                                ?.copyWith(color: const Color(0xFF5B5D6B)),
-                          ),
-                        ],
+      child: Pressable(
+        onTap: onTap,
+        child: SurfaceCard(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      beel.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                        color: BeelsColors.ink0,
                       ),
                     ),
-                    const SizedBox(width: 8),
-                    StatusChip(
-                      label: beel.status,
-                      kind: statusKind(beel.status),
+                  ),
+                  const SizedBox(width: 8),
+                  StatusChip(
+                    label: beel.status,
+                    kind: statusKind(beel.status),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              Text(
+                _amountSummary(),
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: BeelsColors.ink1,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+              const SizedBox(height: 12),
+              const Divider(),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  const Icon(Icons.event_repeat_rounded,
+                      size: 15, color: BeelsColors.ink2),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      recurrenceLabel(beel) +
+                          (nextOccurrence == null
+                              ? ''
+                              : '  ·  Next: $nextOccurrence'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: BeelsColors.ink2),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  recurrenceLabel(beel) +
-                      (nextOccurrence == null
-                          ? ''
-                          : '  ·  Next: $nextOccurrence'),
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: const Color(0xFF7B7D8C)),
-                ),
-                if (beel.isOpenLink) ...[
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Container(
+                  ),
+                  if (beel.isOpenLink) ...[
+                    const SizedBox(width: 8),
+                    Container(
                       padding: const EdgeInsets.symmetric(
                           horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFEEEDFB),
+                        color: BeelsColors.accentSoft,
                         borderRadius: BorderRadius.circular(999),
                       ),
                       child: const Text(
@@ -212,14 +209,14 @@ class BeelCard extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: Color(0xFF4F46E5),
+                          color: BeelsColors.accent,
                         ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
@@ -231,5 +228,43 @@ class BeelCard extends StatelessWidget {
         ? '₦0'
         : '${formatNaira(beel.unitAmount!)} × ${beel.occurrences ?? 1}';
     return unit;
+  }
+}
+
+class _BeelsSkeleton extends StatelessWidget {
+  const _BeelsSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return SkeletonScope(
+      child: ListView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 96),
+        children: [
+          for (var i = 0; i < 4; i++)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: SurfaceCard(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        SkeletonBox(width: 150, height: 16),
+                        Spacer(),
+                        SkeletonBox(width: 70, height: 24, radius: 12),
+                      ],
+                    ),
+                    SizedBox(height: 10),
+                    SkeletonBox(width: 90, height: 14),
+                    SizedBox(height: 24),
+                    SkeletonBox(width: 200, height: 12),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
   }
 }

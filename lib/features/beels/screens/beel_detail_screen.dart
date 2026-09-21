@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -7,11 +8,8 @@ import '../../payments/data/payments_repository.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/money.dart';
-import '../../../core/widgets/beels_app_bar.dart';
-import '../../../core/widgets/error_view.dart';
-import '../../../core/widgets/primary_button.dart';
-import '../../../core/widgets/section_header.dart';
-import '../../../core/widgets/status_chip.dart';
+import '../../../core/theme.dart';
+import '../../../core/widgets/common.dart';
 import '../controllers/beels_controllers.dart';
 import '../models/contribution.dart';
 
@@ -36,6 +34,7 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
     setState(() => _busyActions.add(key));
     try {
       await action();
+      HapticFeedback.mediumImpact();
     } on ApiException catch (error) {
       _showSnack(error.message, isError: true);
     } on Object catch (error) {
@@ -58,7 +57,7 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
           .initializePayment(paymentId);
       if (url.isEmpty) {
         throw const ApiException('Payment link unavailable. Try again.',
-          statusCode: 0);
+            statusCode: 0);
       }
       await Share.share(url, subject: 'Complete your Beels payment');
       await ref
@@ -69,11 +68,11 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
 
   void _showSnack(String message, {required bool isError}) {
     if (!mounted) return;
+    if (isError) HapticFeedback.heavyImpact();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor:
-            isError ? const Color(0xFFB23A3A) : const Color(0xFF1F7A4D),
+        backgroundColor: isError ? BeelsColors.err : BeelsColors.ok,
       ),
     );
   }
@@ -96,7 +95,7 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
           TextButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: TextButton.styleFrom(
-              foregroundColor: const Color(0xFFB23A3A),
+              foregroundColor: BeelsColors.err,
             ),
             child: Text(confirmLabel),
           ),
@@ -111,7 +110,7 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
     final state = ref.watch(beelDetailControllerProvider(widget.id));
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFE),
+      backgroundColor: BeelsColors.surface,
       appBar: const BeelsAppBar('Beel'),
       body: _buildBody(context, state),
     );
@@ -120,12 +119,11 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
   Widget _buildBody(BuildContext context, AsyncValue<Contribution> state) {
     if (!state.hasValue) {
       if (state.isLoading) {
-        return const Center(child: CircularProgressIndicator());
+        return const _DetailSkeleton();
       }
       return ErrorView(
         error: _toApiException(state.error!),
-        onRetry: () =>
-            ref.invalidate(beelDetailControllerProvider(widget.id)),
+        onRetry: () => ref.invalidate(beelDetailControllerProvider(widget.id)),
       );
     }
 
@@ -142,9 +140,11 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
             _HeaderCard(beel: beel),
             const SizedBox(height: 16),
             _buildActionsBar(beel),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             SectionHeader('Contributors',
-                action: Text('${beel.contributors.length}')),
+                action: _CountBadge(beel.contributors.length)),
+            if (beel.contributors.isEmpty)
+              const _SectionEmpty('No contributors yet.'),
             ...beel.contributors.map(
               (contributor) => _ContributorTile(
                 contributor: contributor,
@@ -152,9 +152,7 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
                 payBusy: contributor.paymentId == null
                     ? false
                     : _isBusy('pay_${contributor.paymentId}'),
-                onPay: contributor.canPay
-                    ? () => _pay(contributor)
-                    : null,
+                onPay: contributor.canPay ? () => _pay(contributor) : null,
                 onRemove: contributor.id == null
                     ? null
                     : () async {
@@ -168,17 +166,18 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
                         await _runAction(
                           'remove_${contributor.id}',
                           () => ref
-                              .read(
-                                  beelDetailControllerProvider(widget.id)
-                                      .notifier)
+                              .read(beelDetailControllerProvider(widget.id)
+                                  .notifier)
                               .removeContributor(contributor.id!),
                         );
                       },
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 24),
             SectionHeader('Beneficiaries',
-                action: Text('${beel.beneficiaries.length}')),
+                action: _CountBadge(beel.beneficiaries.length)),
+            if (beel.beneficiaries.isEmpty)
+              const _SectionEmpty('No beneficiaries.'),
             ...beel.beneficiaries.map(
               (beneficiary) => _BeneficiaryTile(
                 beneficiary: beneficiary,
@@ -196,9 +195,8 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
                         await _runAction(
                           'disburse_${beneficiary.id}',
                           () => ref
-                              .read(
-                                  beelDetailControllerProvider(widget.id)
-                                      .notifier)
+                              .read(beelDetailControllerProvider(widget.id)
+                                  .notifier)
                               .disburse(beneficiary.id!),
                         );
                       },
@@ -233,14 +231,14 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
                     await _runAction(
                       'cancel',
                       () => ref
-                          .read(beelDetailControllerProvider(widget.id)
-                              .notifier)
+                          .read(
+                              beelDetailControllerProvider(widget.id).notifier)
                           .cancelBeel(),
                     );
                   },
             style: OutlinedButton.styleFrom(
-              foregroundColor: const Color(0xFFB23A3A),
-              side: const BorderSide(color: Color(0xFFB23A3A)),
+              foregroundColor: BeelsColors.err,
+              side: const BorderSide(color: BeelsColors.err),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(999),
               ),
@@ -297,96 +295,145 @@ class _HeaderCard extends StatelessWidget {
         ? null
         : DateFormat('d MMM, yyyy').format(beel.cancelledAt!);
 
-    return Container(
+    final collected =
+        beel.contributors.fold<num>(0, (sum, c) => sum + (c.amountPaid ?? 0));
+    final expected =
+        beel.contributors.fold<num>(0, (sum, c) => sum + (c.unitAmount ?? 0));
+
+    return SizedBox(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  beel.name,
-                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF21222D),
-                      ),
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    beel.name,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w700,
+                          color: BeelsColors.ink0,
+                        ),
+                  ),
                 ),
-              ),
-              const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: beel.isOpenLink
-                      ? const Color(0xFFEEEDFB)
-                      : const Color(0xFFF4F4F8),
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: Text(
-                  beel.isOpenLink ? 'Open link' : 'Closed',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: 8),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  decoration: BoxDecoration(
                     color: beel.isOpenLink
-                        ? const Color(0xFF4F46E5)
-                        : const Color(0xFF5B5D6B),
+                        ? BeelsColors.accentSoft
+                        : BeelsColors.fieldFill,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    beel.isOpenLink ? 'Open link' : 'Closed',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: beel.isOpenLink
+                          ? BeelsColors.accent
+                          : BeelsColors.ink1,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                StatusChip(label: beel.status, kind: statusKind(beel.status)),
+                if (cancelledAt != null) ...[
+                  const SizedBox(width: 8),
+                  Text(
+                    'Cancelled $cancelledAt',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: BeelsColors.err),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              _amountsLine(),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+                letterSpacing: -0.2,
+                color: BeelsColors.ink0,
+                fontFeatures: const [FontFeature.tabularFigures()],
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              recurrenceLabel(beel) +
+                  (nextOccurrence == null ? '' : '  ·  Next: $nextOccurrence'),
+              style: Theme.of(context)
+                  .textTheme
+                  .bodyMedium
+                  ?.copyWith(color: BeelsColors.ink1),
+            ),
+            if (beel.isOpenLink && beel.amountPerContributor != null) ...[
+              const SizedBox(height: 4),
+              Text(
+                '${formatNaira(beel.amountPerContributor!)} per contributor',
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: BeelsColors.ink1),
+              ),
+            ],
+            if (expected > 0) ...[
+              const SizedBox(height: 16),
+              const Divider(),
+              const SizedBox(height: 14),
+              Row(
+                children: [
+                  const Text(
+                    'Collected',
+                    style: TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                      color: BeelsColors.ink1,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    '${formatNaira(collected)} of ${formatNaira(expected)}',
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: BeelsColors.ink0,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(999),
+                child: TweenAnimationBuilder<double>(
+                  tween: Tween(
+                      begin: 0,
+                      end: (collected / expected).clamp(0.0, 1.0).toDouble()),
+                  duration: const Duration(milliseconds: 500),
+                  curve: Curves.easeOutQuart,
+                  builder: (_, v, __) => LinearProgressIndicator(
+                    value: v,
+                    minHeight: 8,
+                    backgroundColor: BeelsColors.fieldFill,
+                    valueColor:
+                        const AlwaysStoppedAnimation(BeelsColors.accent),
                   ),
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              StatusChip(label: beel.status, kind: statusKind(beel.status)),
-              if (cancelledAt != null) ...[
-                const SizedBox(width: 8),
-                Text(
-                  'Cancelled $cancelledAt',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: const Color(0xFFB23A3A)),
-                ),
-              ],
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            _amountsLine(),
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0xFF21222D),
-                ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            recurrenceLabel(beel) +
-                (nextOccurrence == null ? '' : '  ·  Next: $nextOccurrence'),
-            style: Theme.of(context)
-                .textTheme
-                .bodyMedium
-                ?.copyWith(color: const Color(0xFF5B5D6B)),
-          ),
-          if (beel.isOpenLink && beel.amountPerContributor != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              '${formatNaira(beel.amountPerContributor!)} per contributor',
-              style: Theme.of(context)
-                  .textTheme
-                  .bodyMedium
-                  ?.copyWith(color: const Color(0xFF5B5D6B)),
-            ),
           ],
-        ],
+        ),
       ),
     );
   }
@@ -424,103 +471,131 @@ class _ContributorTile extends StatelessWidget {
     final paid = contributor.amountPaid ?? 0;
     final progress = unit <= 0 ? 0.0 : (paid / unit).clamp(0.0, 1.0);
 
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        contributor.fullName,
-                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF21222D),
-                            ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: BeelsColors.accentSoft,
+                shape: BoxShape.circle,
+              ),
+              child: Text(
+                _initials(contributor.fullName),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: BeelsColors.accent,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          contributor.fullName,
+                          style:
+                              Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                    color: BeelsColors.ink0,
+                                  ),
+                        ),
                       ),
-                    ),
-                    StatusChip(
-                      label: contributor.status,
-                      kind: statusKind(contributor.status),
+                      StatusChip(
+                        label: contributor.status,
+                        kind: statusKind(contributor.status),
+                      ),
+                    ],
+                  ),
+                  if (contributor.email.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      contributor.email,
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: BeelsColors.ink2),
                     ),
                   ],
-                ),
-                if (contributor.email.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    contributor.email,
-                    style: Theme.of(context)
-                        .textTheme
-                        .bodySmall
-                        ?.copyWith(color: const Color(0xFF7B7D8C)),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: LinearProgressIndicator(
+                      value: progress,
+                      minHeight: 6,
+                      backgroundColor: BeelsColors.fieldFill,
+                      valueColor:
+                          const AlwaysStoppedAnimation(BeelsColors.accent),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          '${formatNaira(paid)} paid of ${formatNaira(unit)}',
+                          style:
+                              Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: BeelsColors.ink1,
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
+                        ),
+                      ),
+                      if (onPay != null)
+                        TextButton(
+                          onPressed: payBusy ? null : onPay,
+                          child: payBusy
+                              ? const SizedBox(
+                                  width: 14,
+                                  height: 14,
+                                  child:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                )
+                              : const Text('Pay now'),
+                        ),
+                    ],
                   ),
                 ],
-                const SizedBox(height: 8),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(999),
-                  child: LinearProgressIndicator(
-                    value: progress,
-                    minHeight: 6,
-                    backgroundColor: const Color(0xFFF4F4F8),
-                    valueColor: const AlwaysStoppedAnimation(Color(0xFF4F46E5)),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${formatNaira(paid)} paid of ${formatNaira(unit)}',
-                        style: Theme.of(context)
-                            .textTheme
-                            .bodySmall
-                            ?.copyWith(color: const Color(0xFF5B5D6B)),
-                      ),
-                    ),
-                    if (onPay != null)
-                      TextButton(
-                        onPressed: payBusy ? null : onPay,
-                        child: payBusy
-                            ? const SizedBox(
-                                width: 14,
-                                height: 14,
-                                child: CircularProgressIndicator(
-                                    strokeWidth: 2),
-                              )
-                            : const Text('Pay now'),
-                      ),
-                  ],
-                ),
-              ],
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          IconButton(
-            tooltip: 'Remove contributor',
-            icon: busy
-                ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(strokeWidth: 2),
-                  )
-                : const Icon(Icons.person_remove_outlined, size: 20),
-            color: const Color(0xFFB23A3A),
-            onPressed: busy ? null : onRemove,
-          ),
-        ],
+            const SizedBox(width: 8),
+            IconButton(
+              tooltip: 'Remove contributor',
+              icon: busy
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.person_remove_outlined, size: 22),
+              color: BeelsColors.err,
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+              onPressed: busy ? null : onRemove,
+            ),
+          ],
+        ),
       ),
     );
+  }
+
+  static String _initials(String name) {
+    final parts =
+        name.trim().split(RegExp(r'\s+')).where((p) => p.isNotEmpty).toList();
+    if (parts.isEmpty) return '?';
+    final first = parts.first[0];
+    final last = parts.length > 1 ? parts.last[0] : '';
+    return (first + last).toUpperCase();
   }
 }
 
@@ -542,74 +617,142 @@ class _BeneficiaryTile extends StatelessWidget {
             '${beneficiary.bankCode == null ? '' : ' · ${beneficiary.bankCode}'}'
         : beneficiary.serviceNumber ?? '';
 
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  beneficiary.name,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF21222D),
-                      ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  detail.isEmpty
-                      ? beneficiary.typeLabel
-                      : '${beneficiary.typeLabel}${detail.isEmpty ? '' : '  ·  $detail'}',
-                  style: Theme.of(context)
-                      .textTheme
-                      .bodySmall
-                      ?.copyWith(color: const Color(0xFF7B7D8C)),
-                ),
-              ],
-            ),
-          ),
-          if (beneficiary.amount != null) ...[
-            Text(
-              formatNaira(beneficiary.amount!),
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                    color: const Color(0xFF21222D),
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    beneficiary.name,
+                    style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: BeelsColors.ink0,
+                        ),
                   ),
-            ),
-            const SizedBox(width: 12),
-          ],
-          if (beneficiary.status != 'settled' && onDisburse != null)
-            OutlinedButton(
-              onPressed: busy ? null : onDisburse,
-              style: OutlinedButton.styleFrom(
-                foregroundColor: const Color(0xFF4F46E5),
-                side: const BorderSide(color: Color(0xFF4F46E5)),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(999),
-                ),
+                  const SizedBox(height: 2),
+                  Text(
+                    detail.isEmpty
+                        ? beneficiary.typeLabel
+                        : '${beneficiary.typeLabel}${detail.isEmpty ? '' : '  ·  $detail'}',
+                    style: Theme.of(context)
+                        .textTheme
+                        .bodySmall
+                        ?.copyWith(color: BeelsColors.ink2),
+                  ),
+                ],
               ),
-              child: busy
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Disburse'),
-            )
-          else
-            StatusChip(
-              label: beneficiary.status,
-              kind: statusKind(beneficiary.status),
             ),
-        ],
+            if (beneficiary.amount != null) ...[
+              Text(
+                formatNaira(beneficiary.amount!),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: BeelsColors.ink0,
+                    ),
+              ),
+              const SizedBox(width: 12),
+            ],
+            if (beneficiary.status != 'settled' && onDisburse != null)
+              OutlinedButton(
+                onPressed: busy ? null : onDisburse,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: BeelsColors.accent,
+                  side: const BorderSide(color: BeelsColors.accent),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                ),
+                child: busy
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('Disburse'),
+              )
+            else
+              StatusChip(
+                label: beneficiary.status,
+                kind: statusKind(beneficiary.status),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CountBadge extends StatelessWidget {
+  const _CountBadge(this.count);
+
+  final int count;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      decoration: BoxDecoration(
+        color: BeelsColors.fieldFill,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        '$count',
+        style: const TextStyle(
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+          color: BeelsColors.ink1,
+        ),
+      ),
+    );
+  }
+}
+
+class _SectionEmpty extends StatelessWidget {
+  const _SectionEmpty(this.message);
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SurfaceCard(
+        color: BeelsColors.surfaceAlt,
+        child: Text(
+          message,
+          style: const TextStyle(fontSize: 14, color: BeelsColors.ink2),
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailSkeleton extends StatelessWidget {
+  const _DetailSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SkeletonScope(
+      child: SingleChildScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SkeletonBox(height: 190, radius: 16),
+            SizedBox(height: 24),
+            SkeletonBox(width: 120, height: 18),
+            SizedBox(height: 12),
+            SkeletonBox(height: 96, radius: 16),
+            SizedBox(height: 10),
+            SkeletonBox(height: 96, radius: 16),
+          ],
+        ),
       ),
     );
   }

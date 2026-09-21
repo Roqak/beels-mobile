@@ -102,7 +102,9 @@ class BeelsRepository {
       // is rejected.
       if (recurrenceType == 'weekly') 'day_of_week': dayOfWeek,
       if (recurrenceType == 'monthly') 'day_of_month': dayOfMonth,
-      'contributors': [for (final contributor in contributors) contributor.toJson()],
+      'contributors': [
+        for (final contributor in contributors) contributor.toJson()
+      ],
       'beneficiaries': [
         for (final beneficiary in beneficiaries) beneficiary.toJson(),
       ],

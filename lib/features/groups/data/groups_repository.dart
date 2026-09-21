@@ -14,9 +14,8 @@ class InviteLink {
   const InviteLink({required this.token, required this.url});
 
   factory InviteLink.fromJson(dynamic json) {
-    final map = json is Map
-        ? json.cast<String, dynamic>()
-        : const <String, dynamic>{};
+    final map =
+        json is Map ? json.cast<String, dynamic>() : const <String, dynamic>{};
     final token = (map['invite_link_token'] ?? map['invite_token'])?.toString();
     return InviteLink(
       token: token ?? '',
@@ -110,7 +109,8 @@ final groupsListProvider =
 /// A single group, refreshed after mutations.
 class GroupDetailController extends FamilyAsyncNotifier<Group, int> {
   @override
-  FutureOr<Group> build(int arg) => ref.watch(groupsRepositoryProvider).get(arg);
+  FutureOr<Group> build(int arg) =>
+      ref.watch(groupsRepositoryProvider).get(arg);
 
   Future<void> addMember({
     required String firstName,
@@ -140,8 +140,7 @@ class GroupDetailController extends FamilyAsyncNotifier<Group, int> {
     await ref.read(groupsRepositoryProvider).removeMember(arg, memberId);
     final current = state.valueOrNull;
     if (current != null) {
-      final remaining =
-          current.members.where((m) => m.id != memberId).toList();
+      final remaining = current.members.where((m) => m.id != memberId).toList();
       state = AsyncData(
         current.copyWith(members: remaining, membersCount: remaining.length),
       );
@@ -165,5 +164,6 @@ class GroupDetailController extends FamilyAsyncNotifier<Group, int> {
   }
 }
 
-final groupDetailProvider = AsyncNotifierProvider.family<GroupDetailController,
-    Group, int>(GroupDetailController.new);
+final groupDetailProvider =
+    AsyncNotifierProvider.family<GroupDetailController, Group, int>(
+        GroupDetailController.new);

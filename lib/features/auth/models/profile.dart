@@ -29,7 +29,8 @@ class Profile {
   /// Tolerant parse: unknown keys ignored, snake_case or camelCase accepted,
   /// nullable fields stay nullable. `email`/`firstName` fall back to ''.
   factory Profile.fromJson(dynamic json) {
-    final map = json is Map<dynamic, dynamic> ? json : const <dynamic, dynamic>{};
+    final map =
+        json is Map<dynamic, dynamic> ? json : const <dynamic, dynamic>{};
     String readRequired(dynamic value) => value?.toString() ?? '';
     String? readOptional(dynamic value) => value?.toString();
     return Profile(

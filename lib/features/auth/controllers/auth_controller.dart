@@ -73,8 +73,7 @@ class AuthController extends AsyncNotifier<Profile?> {
         phoneNumber: phoneNumber,
         password: password,
       );
-      final profile =
-          await _repository.login(email: email, password: password);
+      final profile = await _repository.login(email: email, password: password);
       state = AsyncValue.data(profile);
     } catch (error, stackTrace) {
       state = AsyncValue.error(error, stackTrace);

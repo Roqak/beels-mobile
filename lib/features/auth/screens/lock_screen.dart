@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/widgets/primary_button.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../controllers/session_lock_controller.dart';
+import 'package:beels_mobile/core/theme.dart';
 
 /// Gate screen shown when a session is locked behind biometrics.
 class LockScreen extends ConsumerStatefulWidget {
@@ -43,8 +44,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   }
 
   Future<void> _usePassword() async {
-    final email =
-        ref.read(authControllerProvider).valueOrNull?.email ?? '';
+    final email = ref.read(authControllerProvider).valueOrNull?.email ?? '';
     ref.read(sessionLockControllerProvider.notifier).dismiss();
     await ref.read(authControllerProvider.notifier).logout();
     if (!mounted) return;
@@ -55,7 +55,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFE),
+      backgroundColor: BeelsColors.surface,
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -63,21 +63,34 @@ class _LockScreenState extends ConsumerState<LockScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Icon(Icons.lock_outline,
-                  size: 48, color: Color(0xFF4F46E5)),
-              const SizedBox(height: 16),
+              Center(
+                child: Container(
+                  width: 88,
+                  height: 88,
+                  decoration: BoxDecoration(
+                    color: BeelsColors.accentSoft,
+                    borderRadius: BorderRadius.circular(28),
+                  ),
+                  child: const Icon(Icons.fingerprint_rounded,
+                      size: 44, color: BeelsColors.accent),
+                ),
+              ),
+              const SizedBox(height: 24),
               Text(
                 'Beels is locked',
                 textAlign: TextAlign.center,
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                  color: BeelsColors.ink0,
+                ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Use your fingerprint or face to sign back in.',
                 textAlign: TextAlign.center,
                 style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+                  color: BeelsColors.ink1,
                 ),
               ),
               if (_error != null) ...[
@@ -86,7 +99,7 @@ class _LockScreenState extends ConsumerState<LockScreen> {
                   _error!,
                   textAlign: TextAlign.center,
                   style: theme.textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFFB23A3A),
+                    color: BeelsColors.err,
                   ),
                 ),
               ],

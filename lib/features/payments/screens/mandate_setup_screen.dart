@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/api/api_exception.dart';
-import '../../../core/widgets/beels_app_bar.dart';
-import '../../../core/widgets/error_view.dart';
-import '../../../core/widgets/primary_button.dart';
-import '../../../core/widgets/section_header.dart';
+import '../../../core/theme.dart';
+import '../../../core/widgets/common.dart';
 import '../../auth/controllers/auth_controller.dart';
+import '../../auth/widgets/error_banner.dart';
 import '../../auth/widgets/fields.dart';
 import '../controllers/mandate_setup_controller.dart';
 import '../controllers/mandates_controller.dart';
@@ -19,8 +19,7 @@ class MandateSetupScreen extends ConsumerStatefulWidget {
   const MandateSetupScreen({super.key});
 
   @override
-  ConsumerState<MandateSetupScreen> createState() =>
-      _MandateSetupScreenState();
+  ConsumerState<MandateSetupScreen> createState() => _MandateSetupScreenState();
 }
 
 class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
@@ -58,26 +57,24 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
     final state = ref.watch(mandateSetupControllerProvider);
 
     return Scaffold(
+      backgroundColor: BeelsColors.surface,
       appBar: const BeelsAppBar('Set up direct debit'),
       body: Form(
         key: _formKey,
         autovalidateMode: AutovalidateMode.onUserInteraction,
         child: ListView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
           padding: const EdgeInsets.all(16),
           children: [
             _StepIndicator(step: state.step),
             const SizedBox(height: 16),
             if (state.error != null) ...[
-              Text(
-                state.error!,
-                style: TextStyle(
-                  color: Theme.of(context).colorScheme.error,
-                ),
-              ),
+              ErrorBanner(message: state.error!),
               const SizedBox(height: 12),
             ],
             if (state.step == MandateSetupStep.details) ...[
               const SectionHeader('Bank account'),
+              const SizedBox(height: 10),
               _BankPicker(
                 selected: state.selectedBank,
                 onChanged: (bank) => ref
@@ -89,13 +86,39 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
                 controller: _accountController,
                 label: 'Account number',
                 keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(10),
+                ],
                 validator: (value) => (value ?? '').trim().length >= 10
                     ? null
                     : 'Enter a 10-digit account number',
               ),
               const SizedBox(height: 12),
               if (state.accountName != null)
-                Text('Verified: ${state.accountName}'),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: BeelsColors.okSoft,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded,
+                          size: 20, color: BeelsColors.ok),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Verified: ${state.accountName}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: BeelsColors.ok,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
               const SizedBox(height: 12),
               PrimaryButton(
                 label: 'Verify account',
@@ -106,6 +129,7 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
               ),
             ] else ...[
               const SectionHeader('Your details'),
+              const SizedBox(height: 10),
               BeelsTextField(
                 controller: _firstNameController,
                 label: 'First name',
@@ -144,6 +168,10 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
                 controller: _bvnController,
                 label: 'Bank Verification Number (BVN)',
                 keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(11),
+                ],
                 obscureText: true,
                 validator: (value) =>
                     RegExp(r'^\d{11}$').hasMatch((value ?? '').trim())
@@ -151,9 +179,22 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
                         : 'BVN must be 11 digits',
               ),
               const SizedBox(height: 12),
-              Text(
-                '${state.selectedBank?.name ?? ''} •••• ${_last4(state.accountNumber)}'
-                '${state.accountName != null ? ' — ${state.accountName}' : ''}',
+              SurfaceCard(
+                color: BeelsColors.surfaceAlt,
+                child: Row(
+                  children: [
+                    const Icon(Icons.account_balance_outlined,
+                        size: 20, color: BeelsColors.accent),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        '${state.selectedBank?.name ?? ''} •••• ${_last4(state.accountNumber)}'
+                        '${state.accountName != null ? ' — ${state.accountName}' : ''}',
+                        style: const TextStyle(color: BeelsColors.ink0),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 12),
               PrimaryButton(
@@ -190,6 +231,7 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
           );
       if (!mounted) return;
       ref.invalidate(mandatesControllerProvider);
+      HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Direct debit mandate set up.')),
       );
@@ -212,33 +254,45 @@ class _StepIndicator extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final labels = ['Bank account', 'Your details'];
+    const labels = ['Bank account', 'Your details'];
     final currentIndex = step == MandateSetupStep.details ? 0 : 1;
-    return Row(
-      children: [
-        for (var i = 0; i < labels.length; i++) ...[
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-            decoration: BoxDecoration(
-              color: i <= currentIndex
-                  ? theme.colorScheme.primary
-                  : theme.colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              '${i + 1}. ${labels[i]}',
-              style: TextStyle(
-                color: i <= currentIndex
-                    ? theme.colorScheme.onPrimary
-                    : theme.colorScheme.onSurfaceVariant,
-                fontSize: 12,
-              ),
+    return Semantics(
+      label: 'Step ${currentIndex + 1} of ${labels.length}: '
+          '${labels[currentIndex]}',
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              for (var i = 0; i < labels.length; i++) ...[
+                Expanded(
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 250),
+                    curve: Curves.easeOutQuart,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: i <= currentIndex
+                          ? BeelsColors.accent
+                          : BeelsColors.border,
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+                if (i < labels.length - 1) const SizedBox(width: 6),
+              ],
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            '${currentIndex + 1}. ${labels[currentIndex]}',
+            style: const TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: BeelsColors.ink1,
             ),
           ),
-          if (i < labels.length - 1) const SizedBox(width: 8),
         ],
-      ],
+      ),
     );
   }
 }
@@ -253,9 +307,8 @@ class _BankPicker extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final banks = ref.watch(banksProvider);
     return banks.when(
-      loading: () => const Padding(
-        padding: EdgeInsets.symmetric(vertical: 16),
-        child: Center(child: CircularProgressIndicator()),
+      loading: () => const SkeletonScope(
+        child: SkeletonBox(height: 52, radius: 10),
       ),
       error: (error, _) => ErrorView(
         error: error as ApiException,
@@ -278,20 +331,74 @@ class _BankPicker extends ConsumerWidget {
   Future<void> _pick(BuildContext context, List<Bank> banks) async {
     final picked = await showModalBottomSheet<Bank>(
       context: context,
-      showDragHandle: true,
-      builder: (sheetContext) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
+      isScrollControlled: true,
+      builder: (sheetContext) => _BankSheet(banks: banks),
+    );
+    if (picked != null) onChanged(picked);
+  }
+}
+
+class _BankSheet extends StatefulWidget {
+  const _BankSheet({required this.banks});
+
+  final List<Bank> banks;
+
+  @override
+  State<_BankSheet> createState() => _BankSheetState();
+}
+
+class _BankSheetState extends State<_BankSheet> {
+  String _query = '';
+
+  @override
+  Widget build(BuildContext context) {
+    final q = _query.trim().toLowerCase();
+    final rows = q.isEmpty
+        ? widget.banks
+        : widget.banks.where((b) => b.name.toLowerCase().contains(q)).toList();
+    final height = MediaQuery.of(context).size.height * 0.75;
+    return Padding(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      child: SizedBox(
+        height: height,
+        child: Column(
           children: [
-            for (final bank in banks)
-              ListTile(
-                title: Text(bank.name),
-                onTap: () => Navigator.of(sheetContext).pop(bank),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+              child: TextField(
+                autofocus: false,
+                onChanged: (v) => setState(() => _query = v),
+                decoration: const InputDecoration(
+                  hintText: 'Search banks',
+                  prefixIcon: Icon(Icons.search_rounded),
+                ),
               ),
+            ),
+            Expanded(
+              child: rows.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No bank matches that search.',
+                        style: TextStyle(color: BeelsColors.ink2),
+                      ),
+                    )
+                  : ListView.builder(
+                      keyboardDismissBehavior:
+                          ScrollViewKeyboardDismissBehavior.onDrag,
+                      itemCount: rows.length,
+                      itemBuilder: (context, i) => ListTile(
+                        title: Text(rows[i].name),
+                        onTap: () {
+                          HapticFeedback.selectionClick();
+                          Navigator.of(context).pop(rows[i]);
+                        },
+                      ),
+                    ),
+            ),
           ],
         ),
       ),
     );
-    if (picked != null) onChanged(picked);
   }
 }

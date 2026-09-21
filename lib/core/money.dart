@@ -1,6 +1,7 @@
 import 'package:intl/intl.dart';
 
-final NumberFormat _naira = NumberFormat.currency(symbol: '₦', decimalDigits: 0);
+final NumberFormat _naira =
+    NumberFormat.currency(symbol: '₦', decimalDigits: 0);
 final NumberFormat _nairaFractional =
     NumberFormat.currency(symbol: '₦', decimalDigits: 2);
 

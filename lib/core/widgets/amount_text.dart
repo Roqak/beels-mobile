@@ -21,6 +21,7 @@ class AmountText extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final style = TextStyle(
+      fontFeatures: const [FontFeature.tabularFigures()],
       fontSize: strong ? 16 : 14,
       fontWeight: strong ? FontWeight.w700 : FontWeight.w600,
       color: strong

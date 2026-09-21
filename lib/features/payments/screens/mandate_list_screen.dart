@@ -3,12 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../core/api/api_exception.dart';
-import '../../../core/widgets/beels_app_bar.dart';
-import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/error_view.dart';
-import '../../../core/widgets/status_chip.dart' show StatusChip, statusKind;
+import 'package:flutter/services.dart';
+import 'package:beels_mobile/core/theme.dart';
 import '../controllers/mandates_controller.dart';
 import '../models/payment_mandate.dart';
+import 'package:beels_mobile/core/widgets/common.dart';
 
 /// Lists the organizer's direct-debit mandates with revocation.
 class MandateListScreen extends ConsumerWidget {
@@ -18,9 +17,26 @@ class MandateListScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final mandates = ref.watch(mandatesControllerProvider);
     return Scaffold(
+      backgroundColor: BeelsColors.surface,
       appBar: const BeelsAppBar('Direct debit'),
       body: mandates.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SkeletonScope(
+          child: SingleChildScrollView(
+            physics: NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.all(16),
+            child: SurfaceCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  SkeletonRow(),
+                  SkeletonRow(),
+                  SkeletonRow(),
+                  SkeletonRow()
+                ],
+              ),
+            ),
+          ),
+        ),
         error: (error, _) => ErrorView(
           error: error as ApiException,
           onRetry: () =>
@@ -91,6 +107,7 @@ class MandateListScreen extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           TextButton(
+            style: TextButton.styleFrom(foregroundColor: BeelsColors.err),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Revoke'),
           ),
@@ -100,6 +117,7 @@ class MandateListScreen extends ConsumerWidget {
     if (confirmed != true) return;
     try {
       await ref.read(mandatesControllerProvider.notifier).revoke(mandate);
+      HapticFeedback.mediumImpact();
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Mandate revoked.')),
@@ -129,15 +147,19 @@ class _MandateTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-      ),
+    return SurfaceCard(
       child: Row(
         children: [
-          const Icon(Icons.account_balance_outlined),
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: BeelsColors.accentSoft,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.account_balance_outlined,
+                color: BeelsColors.accent, size: 22),
+          ),
           const SizedBox(width: 12),
           Expanded(
             child: Column(
@@ -145,12 +167,18 @@ class _MandateTile extends StatelessWidget {
               children: [
                 Text(
                   mandate.bankName ?? 'Bank',
-                  style: theme.textTheme.titleSmall,
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: BeelsColors.ink0,
+                  ),
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '•••• ${_last4(mandate.accountNumber)}',
-                  style: theme.textTheme.bodySmall,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: BeelsColors.ink2,
+                    letterSpacing: 0.5,
+                  ),
                 ),
               ],
             ),
@@ -159,6 +187,8 @@ class _MandateTile extends StatelessWidget {
           IconButton(
             tooltip: 'Revoke mandate',
             onPressed: onRevoke,
+            color: BeelsColors.err,
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
             icon: const Icon(Icons.link_off),
           ),
         ],

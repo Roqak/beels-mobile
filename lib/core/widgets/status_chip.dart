@@ -27,7 +27,8 @@ StatusKind statusKind(String status) {
   }
 }
 
-/// Small rounded status pill with a colored dot.
+/// Small rounded status pill: colored icon + label, so status never relies
+/// on color alone.
 class StatusChip extends StatelessWidget {
   const StatusChip({super.key, required this.label, required this.kind});
 
@@ -60,10 +61,23 @@ class StatusChip extends StatelessWidget {
     }
   }
 
+  IconData get _icon {
+    switch (kind) {
+      case StatusKind.ok:
+        return Icons.check_rounded;
+      case StatusKind.warn:
+        return Icons.schedule_rounded;
+      case StatusKind.err:
+        return Icons.close_rounded;
+      case StatusKind.muted:
+        return Icons.remove_rounded;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: const EdgeInsets.fromLTRB(8, 4, 10, 4),
       decoration: BoxDecoration(
         color: _soft,
         borderRadius: BorderRadius.circular(999),
@@ -71,12 +85,8 @@ class StatusChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 6,
-            height: 6,
-            decoration: BoxDecoration(color: _strong, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: 6),
+          Icon(_icon, size: 14, color: _strong),
+          const SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(

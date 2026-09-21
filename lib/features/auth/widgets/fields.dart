@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 /// Text input styled by the app theme's InputDecorationTheme
 /// (filled #F4F4F8, 10 radius, no border until focus).
@@ -16,11 +17,15 @@ class BeelsTextField extends StatelessWidget {
     this.enabled = true,
     this.autofillHints,
     this.onFieldSubmitted,
+    this.inputFormatters,
+    this.textCapitalization = TextCapitalization.none,
   });
 
   final TextEditingController controller;
   final String label;
   final String? hint;
+  final List<TextInputFormatter>? inputFormatters;
+  final TextCapitalization textCapitalization;
   final String? Function(String?)? validator;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
@@ -46,6 +51,8 @@ class BeelsTextField extends StatelessWidget {
       enabled: enabled,
       autofillHints: autofillHints,
       onFieldSubmitted: onFieldSubmitted,
+      inputFormatters: inputFormatters,
+      textCapitalization: textCapitalization,
     );
   }
 }

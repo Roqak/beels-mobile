@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../../core/api/api_exception.dart';
 import '../../../core/money.dart';
-import '../../../core/widgets/beels_app_bar.dart';
-import '../../../core/widgets/primary_button.dart';
-import '../../../core/widgets/section_header.dart';
+import '../../../core/theme.dart';
+import '../../../core/widgets/common.dart';
 import '../controllers/beels_controllers.dart';
 import '../models/contribution.dart';
 
@@ -35,11 +35,9 @@ const _kBeneficiaryTypes = <String, String>{
   'electricity': 'Electricity',
 };
 
-final RegExp _emailRegExp =
-    RegExp(r'^\S+@\S+\.\S+$', caseSensitive: false);
+final RegExp _emailRegExp = RegExp(r'^\S+@\S+\.\S+$', caseSensitive: false);
 
-num? _parseAmount(String text) =>
-    num.tryParse(text.trim().replaceAll(',', ''));
+num? _parseAmount(String text) => num.tryParse(text.trim().replaceAll(',', ''));
 
 /// Create a new beel: closed mode (contributors) or open-link mode.
 class CreateBeelScreen extends ConsumerStatefulWidget {
@@ -101,7 +99,8 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
     setState(() => _recurrenceType = recurrence);
   }
 
-  void _addContributor() => setState(() => _contributors.add(_ContributorRow()));
+  void _addContributor() =>
+      setState(() => _contributors.add(_ContributorRow()));
 
   void _removeContributor(int index) {
     setState(() {
@@ -133,20 +132,28 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
     );
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFE),
+      backgroundColor: BeelsColors.surface,
       appBar: BeelsAppBar(_review ? 'Review' : 'New Beel'),
-      body: _review
-          ? _ReviewPane(
-              screen: this,
-              submitting: submitting,
-            )
-          : _buildForm(),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 200),
+        switchInCurve: Curves.easeOutQuart,
+        child: KeyedSubtree(
+          key: ValueKey(_review),
+          child: _review
+              ? _ReviewPane(
+                  screen: this,
+                  submitting: submitting,
+                )
+              : _buildForm(),
+        ),
+      ),
       bottomNavigationBar: _buildBottomBar(submitting),
     );
   }
 
   Widget _buildForm() {
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -160,14 +167,14 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
               controller: _nameController,
               textCapitalization: TextCapitalization.words,
               onChanged: (_) => _clearError('name'),
-              decoration: const InputDecoration(hintText: 'e.g. Family Savings'),
+              decoration:
+                  const InputDecoration(hintText: 'e.g. Family Savings'),
             ),
           ),
           const SizedBox(height: 12),
           _LabeledField(
-            label: _mode == 'closed'
-                ? 'Target amount'
-                : 'Target amount (total)',
+            label:
+                _mode == 'closed' ? 'Target amount' : 'Target amount (total)',
             error: _errors['amount'],
             child: MoneyField(
               controller: _amountController,
@@ -197,8 +204,7 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
                   controller: _expectedContributorsController,
                   keyboardType: TextInputType.number,
                   onChanged: (_) => _clearError('expected_contributors'),
-                  decoration:
-                      const InputDecoration(hintText: 'e.g. 4 people'),
+                  decoration: const InputDecoration(hintText: 'e.g. 4 people'),
                 ),
               ),
             ],
@@ -226,9 +232,11 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
                 value: _dayOfWeek,
                 items: [
                   for (final entry in _kWeekdays.entries)
-                    DropdownMenuItem(value: entry.key, child: Text(entry.value)),
+                    DropdownMenuItem(
+                        value: entry.key, child: Text(entry.value)),
                 ],
-                onChanged: (value) => setState(() => _dayOfWeek = value ?? 'monday'),
+                onChanged: (value) =>
+                    setState(() => _dayOfWeek = value ?? 'monday'),
                 decoration: const InputDecoration(),
               ),
             ),
@@ -283,7 +291,26 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
           ButtonSegment(value: entry.key, label: Text(entry.value)),
       ],
       selected: {_mode},
-      onSelectionChanged: (selection) => _setMode(selection.first),
+      showSelectedIcon: false,
+      style: ButtonStyle(
+        minimumSize: const WidgetStatePropertyAll(Size.fromHeight(44)),
+        backgroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? BeelsColors.accentSoft
+              : BeelsColors.panel,
+        ),
+        foregroundColor: WidgetStateProperty.resolveWith(
+          (states) => states.contains(WidgetState.selected)
+              ? BeelsColors.accent
+              : BeelsColors.ink1,
+        ),
+        side: const WidgetStatePropertyAll(
+            BorderSide(color: BeelsColors.borderStrong)),
+      ),
+      onSelectionChanged: (selection) {
+        HapticFeedback.selectionClick();
+        _setMode(selection.first);
+      },
     );
   }
 
@@ -325,9 +352,8 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
         ? <Widget>[
             Expanded(
               child: OutlinedButton(
-                onPressed: submitting
-                    ? null
-                    : () => setState(() => _review = false),
+                onPressed:
+                    submitting ? null : () => setState(() => _review = false),
                 style: OutlinedButton.styleFrom(
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(999),
@@ -356,10 +382,16 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
             ),
           ];
 
-    return Padding(
-      padding: EdgeInsets.fromLTRB(
-          16, 8, 16, 8 + MediaQuery.of(context).padding.bottom),
-      child: Row(children: children),
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: BeelsColors.panel,
+        border: Border(top: BorderSide(color: BeelsColors.border)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.fromLTRB(
+            16, 12, 16, 12 + MediaQuery.of(context).padding.bottom),
+        child: Row(children: children),
+      ),
     );
   }
 
@@ -389,11 +421,11 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
   }
 
   void _showSnack(String message, {required bool isError}) {
+    if (isError) HapticFeedback.heavyImpact();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor:
-            isError ? const Color(0xFFB23A3A) : const Color(0xFF1F7A4D),
+        backgroundColor: isError ? BeelsColors.err : BeelsColors.ok,
       ),
     );
   }
@@ -636,14 +668,19 @@ class MoneyField extends StatelessWidget {
   Widget build(BuildContext context) {
     return TextField(
       controller: controller,
-      keyboardType:
-          const TextInputType.numberWithOptions(decimal: true),
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
       onChanged: onChanged,
+      textInputAction: TextInputAction.next,
+      inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9.,]'))],
+      style: const TextStyle(
+        fontWeight: FontWeight.w600,
+        fontFeatures: [FontFeature.tabularFigures()],
+      ),
       decoration: InputDecoration(
         hintText: hint,
         prefixText: '₦ ',
         prefixStyle: const TextStyle(
-          color: Color(0xFF21222D),
+          color: BeelsColors.ink0,
           fontWeight: FontWeight.w600,
         ),
       ),
@@ -670,7 +707,7 @@ class _LabeledField extends StatelessWidget {
         Text(
           label,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                color: const Color(0xFF5B5D6B),
+                color: BeelsColors.ink1,
               ),
         ),
         const SizedBox(height: 6),
@@ -680,7 +717,7 @@ class _LabeledField extends StatelessWidget {
             padding: const EdgeInsets.only(top: 4, left: 12),
             child: Text(
               error!,
-              style: const TextStyle(color: Color(0xFFB23A3A), fontSize: 12),
+              style: const TextStyle(color: BeelsColors.err, fontSize: 12),
             ),
           ),
       ],
@@ -734,89 +771,90 @@ class _ContributorEditorRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Contributor ${index + 1}',
+                    style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          fontWeight: FontWeight.w600,
+                          color: BeelsColors.ink0,
+                        ),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Remove contributor',
+                  icon: const Icon(Icons.close, size: 20),
+                  color: BeelsColors.err,
+                  onPressed: removable ? onRemove : null,
+                ),
+              ],
+            ),
+            TextField(
+              controller: row.firstName,
+              textCapitalization: TextCapitalization.words,
+              textInputAction: TextInputAction.next,
+              onChanged: (_) => onClearError('contributor_${index}_first'),
+              decoration: InputDecoration(
+                hintText: 'First name',
+                errorText: _errorOf('_first'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: row.lastName,
+              textInputAction: TextInputAction.next,
+              onChanged: (_) => onClearError('contributor_${index}_last'),
+              decoration: InputDecoration(
+                hintText: 'Last name',
+                errorText: _errorOf('_last'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: row.email,
+              textInputAction: TextInputAction.next,
+              keyboardType: TextInputType.emailAddress,
+              onChanged: (_) => onClearError('contributor_${index}_email'),
+              decoration: InputDecoration(
+                hintText: 'Email',
+                errorText: _errorOf('_email'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: row.phone,
+              textInputAction: TextInputAction.next,
+              keyboardType: TextInputType.phone,
+              onChanged: (_) => onClearError('contributor_${index}_phone'),
+              decoration: InputDecoration(
+                hintText: 'Phone number',
+                errorText: _errorOf('_phone'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            MoneyField(
+              controller: row.amount,
+              hint: 'Amount',
+              onChanged: (_) => onClearError('contributor_${index}_amount'),
+            ),
+            if (_errorOf('_amount') != null)
+              Padding(
+                padding: const EdgeInsets.only(top: 4, left: 12),
                 child: Text(
-                  'Contributor ${index + 1}',
-                  style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF21222D),
-                      ),
+                  _errorOf('_amount')!,
+                  style: const TextStyle(color: BeelsColors.err, fontSize: 12),
                 ),
               ),
-              IconButton(
-                tooltip: 'Remove contributor',
-                icon: const Icon(Icons.close, size: 20),
-                color: const Color(0xFFB23A3A),
-                onPressed: removable ? onRemove : null,
-              ),
-            ],
-          ),
-          TextField(
-            controller: row.firstName,
-            onChanged: (_) => onClearError('contributor_${index}_first'),
-            decoration: InputDecoration(
-              hintText: 'First name',
-              errorText: _errorOf('_first'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: row.lastName,
-            onChanged: (_) => onClearError('contributor_${index}_last'),
-            decoration: InputDecoration(
-              hintText: 'Last name',
-              errorText: _errorOf('_last'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: row.email,
-            keyboardType: TextInputType.emailAddress,
-            onChanged: (_) => onClearError('contributor_${index}_email'),
-            decoration: InputDecoration(
-              hintText: 'Email',
-              errorText: _errorOf('_email'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: row.phone,
-            keyboardType: TextInputType.phone,
-            onChanged: (_) => onClearError('contributor_${index}_phone'),
-            decoration: InputDecoration(
-              hintText: 'Phone number',
-              errorText: _errorOf('_phone'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          MoneyField(
-            controller: row.amount,
-            hint: 'Amount',
-            onChanged: (_) => onClearError('contributor_${index}_amount'),
-          ),
-          if (_errorOf('_amount') != null)
-            Padding(
-              padding: const EdgeInsets.only(top: 4, left: 12),
-              child: Text(
-                _errorOf('_amount')!,
-                style: const TextStyle(
-                    color: Color(0xFFB23A3A), fontSize: 12),
-              ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -883,117 +921,118 @@ class _BeneficiaryEditorRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isBank = row.type == 'bank_transfer';
-    return Container(
-      margin: const EdgeInsets.only(top: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: DropdownButtonFormField<String>(
-                  value: row.type,
-                  items: [
-                    for (final entry in _kBeneficiaryTypes.entries)
-                      DropdownMenuItem(
-                          value: entry.key, child: Text(entry.value)),
-                  ],
-                  onChanged: (value) {
-                    if (value == null || value == row.type) return;
-                    row.type = value;
-                    onTypeChanged();
-                  },
-                  decoration: const InputDecoration(hintText: 'Type'),
+    return Padding(
+      padding: const EdgeInsets.only(top: 10),
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: DropdownButtonFormField<String>(
+                    value: row.type,
+                    items: [
+                      for (final entry in _kBeneficiaryTypes.entries)
+                        DropdownMenuItem(
+                            value: entry.key, child: Text(entry.value)),
+                    ],
+                    onChanged: (value) {
+                      if (value == null || value == row.type) return;
+                      row.type = value;
+                      onTypeChanged();
+                    },
+                    decoration: const InputDecoration(hintText: 'Type'),
+                  ),
+                ),
+                IconButton(
+                  tooltip: 'Remove beneficiary',
+                  icon: const Icon(Icons.close, size: 20),
+                  color: BeelsColors.err,
+                  onPressed: removable ? onRemove : null,
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: row.name,
+              textInputAction: TextInputAction.next,
+              onChanged: (_) => onClearError('beneficiary_${index}_name'),
+              decoration: InputDecoration(
+                hintText: 'Beneficiary name',
+                errorText: _errorOf('_name'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            if (isBank) ...[
+              TextField(
+                controller: row.accountNumber,
+                textInputAction: TextInputAction.next,
+                keyboardType: TextInputType.number,
+                onChanged: (_) => onClearError('beneficiary_${index}_account'),
+                decoration: InputDecoration(
+                  hintText: 'Account number',
+                  errorText: _errorOf('_account'),
                 ),
               ),
-              IconButton(
-                tooltip: 'Remove beneficiary',
-                icon: const Icon(Icons.close, size: 20),
-                color: const Color(0xFFB23A3A),
-                onPressed: removable ? onRemove : null,
+              const SizedBox(height: 8),
+              TextField(
+                controller: row.bankCode,
+                textInputAction: TextInputAction.next,
+                onChanged: (_) =>
+                    onClearError('beneficiary_${index}_bank_code'),
+                decoration: InputDecoration(
+                  hintText: 'Bank code (e.g. 058)',
+                  errorText: _errorOf('_bank_code'),
+                ),
+              ),
+            ] else ...[
+              TextField(
+                controller: row.serviceNumber,
+                textInputAction: TextInputAction.next,
+                onChanged: (_) =>
+                    onClearError('beneficiary_${index}_service_number'),
+                decoration: InputDecoration(
+                  hintText: row.type == 'electricity'
+                      ? 'Meter number'
+                      : 'Service number (e.g. 08012345678)',
+                  errorText: _errorOf('_service_number'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: row.serviceIdentifier,
+                textInputAction: TextInputAction.next,
+                onChanged: (_) =>
+                    onClearError('beneficiary_${index}_service_identifier'),
+                decoration: InputDecoration(
+                  hintText: row.type == 'electricity'
+                      ? 'Disco identifier (e.g. EKEDC)'
+                      : 'Service identifier (e.g. MTN)',
+                  errorText: _errorOf('_service_identifier'),
+                ),
               ),
             ],
-          ),
-          const SizedBox(height: 8),
-          TextField(
-            controller: row.name,
-            onChanged: (_) => onClearError('beneficiary_${index}_name'),
-            decoration: InputDecoration(
-              hintText: 'Beneficiary name',
-              errorText: _errorOf('_name'),
-            ),
-          ),
-          const SizedBox(height: 8),
-          if (isBank) ...[
-            TextField(
-              controller: row.accountNumber,
-              keyboardType: TextInputType.number,
-              onChanged: (_) =>
-                  onClearError('beneficiary_${index}_account'),
-              decoration: InputDecoration(
-                hintText: 'Account number',
-                errorText: _errorOf('_account'),
+            if (row.wantsAmount) ...[
+              const SizedBox(height: 8),
+              MoneyField(
+                controller: row.amount,
+                hint: 'Amount',
+                onChanged: (_) => onClearError('beneficiary_${index}_amount'),
               ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: row.bankCode,
-              onChanged: (_) =>
-                  onClearError('beneficiary_${index}_bank_code'),
-              decoration: InputDecoration(
-                hintText: 'Bank code (e.g. 058)',
-                errorText: _errorOf('_bank_code'),
-              ),
-            ),
-          ] else ...[
-            TextField(
-              controller: row.serviceNumber,
-              onChanged: (_) =>
-                  onClearError('beneficiary_${index}_service_number'),
-              decoration: InputDecoration(
-                hintText: row.type == 'electricity'
-                    ? 'Meter number'
-                    : 'Service number (e.g. 08012345678)',
-                errorText: _errorOf('_service_number'),
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: row.serviceIdentifier,
-              onChanged: (_) =>
-                  onClearError('beneficiary_${index}_service_identifier'),
-              decoration: InputDecoration(
-                hintText: row.type == 'electricity'
-                    ? 'Disco identifier (e.g. EKEDC)'
-                    : 'Service identifier (e.g. MTN)',
-                errorText: _errorOf('_service_identifier'),
-              ),
-            ),
-          ],
-          if (row.wantsAmount) ...[
-            const SizedBox(height: 8),
-            MoneyField(
-              controller: row.amount,
-              hint: 'Amount',
-              onChanged: (_) => onClearError('beneficiary_${index}_amount'),
-            ),
-            if (_errorOf('_amount') != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 4, left: 12),
-                child: Text(
-                  _errorOf('_amount')!,
-                  style:
-                      const TextStyle(color: Color(0xFFB23A3A), fontSize: 12),
+              if (_errorOf('_amount') != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 4, left: 12),
+                  child: Text(
+                    _errorOf('_amount')!,
+                    style:
+                        const TextStyle(color: BeelsColors.err, fontSize: 12),
+                  ),
                 ),
-              ),
+            ],
           ],
-        ],
+        ),
       ),
     );
   }
@@ -1043,7 +1082,7 @@ class _ReviewPane extends StatelessWidget {
                 for (var i = 0; i < screen._contributors.length; i++)
                   (
                     '${screen._contributors[i].firstName.text.trim()} '
-                        '${screen._contributors[i].lastName.text.trim()}'
+                            '${screen._contributors[i].lastName.text.trim()}'
                         .trim(),
                     formatNaira(
                         _parseAmount(screen._contributors[i].amount.text) ?? 0),
@@ -1076,12 +1115,12 @@ class _ReviewPane extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFBEDED),
+                color: BeelsColors.errSoft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 screen._errors['review']!,
-                style: const TextStyle(color: Color(0xFFB23A3A)),
+                style: const TextStyle(color: BeelsColors.err),
               ),
             )
           else if (screen._errors['review_warning'] != null)
@@ -1089,12 +1128,12 @@ class _ReviewPane extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFFBF3E4),
+                color: BeelsColors.warnSoft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: Text(
                 screen._errors['review_warning']!,
-                style: const TextStyle(color: Color(0xFFB0700F)),
+                style: const TextStyle(color: BeelsColors.warn),
               ),
             )
           else
@@ -1102,12 +1141,12 @@ class _ReviewPane extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: const Color(0xFFEAF6F0),
+                color: BeelsColors.okSoft,
                 borderRadius: BorderRadius.circular(10),
               ),
               child: const Text(
                 'Everything looks good. Submit to create the beel.',
-                style: TextStyle(color: Color(0xFF1F7A4D)),
+                style: TextStyle(color: BeelsColors.ok),
               ),
             ),
         ],
@@ -1116,8 +1155,8 @@ class _ReviewPane extends StatelessWidget {
   }
 
   String _recurrenceSummary(_CreateBeelScreenState screen) {
-    final base = _kRecurrences[screen._recurrenceType] ??
-        screen._recurrenceType;
+    final base =
+        _kRecurrences[screen._recurrenceType] ?? screen._recurrenceType;
     if (screen._recurrenceType == 'weekly') {
       return 'Weekly · ${_kWeekdays[screen._dayOfWeek] ?? screen._dayOfWeek}';
     }
@@ -1138,7 +1177,7 @@ class _ReviewPane extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
+        border: Border.all(color: BeelsColors.border),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1147,7 +1186,7 @@ class _ReviewPane extends StatelessWidget {
             title,
             style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF21222D),
+                  color: BeelsColors.ink0,
                 ),
           ),
           const SizedBox(height: 8),
@@ -1164,14 +1203,14 @@ class _ReviewPane extends StatelessWidget {
                       style: Theme.of(context)
                           .textTheme
                           .bodySmall
-                          ?.copyWith(color: const Color(0xFF7B7D8C)),
+                          ?.copyWith(color: BeelsColors.ink2),
                     ),
                   ),
                   Expanded(
                     child: Text(
                       value,
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color: const Color(0xFF21222D),
+                            color: BeelsColors.ink0,
                           ),
                     ),
                   ),
@@ -1183,4 +1222,3 @@ class _ReviewPane extends StatelessWidget {
     );
   }
 }
-

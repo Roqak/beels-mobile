@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,6 +10,7 @@ import '../data/auth_repository.dart';
 import '../validation.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/fields.dart';
+import 'package:beels_mobile/core/theme.dart';
 
 class ForgotPasswordScreen extends ConsumerStatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -45,9 +47,11 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       setState(() => _sent = true);
     } on ApiException catch (error) {
       if (!mounted) return;
+      HapticFeedback.heavyImpact();
       setState(() => _error = error.message);
     } catch (_) {
       if (!mounted) return;
+      HapticFeedback.heavyImpact();
       setState(() => _error = 'Something went wrong. Please try again.');
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -70,6 +74,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: _sent ? _buildSent(theme) : _buildForm(theme),
           ),
@@ -86,14 +91,17 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         children: [
           Text(
             'Reset your password',
-            style: theme.textTheme.headlineMedium
-                ?.copyWith(fontWeight: FontWeight.w700),
+            style: theme.textTheme.headlineMedium?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: -0.6,
+              color: BeelsColors.ink0,
+            ),
           ),
           const SizedBox(height: 8),
           Text(
             'Enter the email on your account and we will send you a reset link.',
-            style: theme.textTheme.bodyMedium
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style:
+                theme.textTheme.bodyMedium?.copyWith(color: BeelsColors.ink1),
           ),
           const SizedBox(height: 24),
           EmailField(
@@ -130,13 +138,13 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         Container(
           padding: const EdgeInsets.all(20),
           decoration: const BoxDecoration(
-            color: Color(0xFFEEEDFB),
+            color: BeelsColors.accentSoft,
             shape: BoxShape.circle,
           ),
           child: const Icon(
             Icons.mark_email_read_outlined,
             size: 40,
-            color: Color(0xFF4F46E5),
+            color: BeelsColors.accent,
           ),
         ),
         const SizedBox(height: 24),
@@ -149,8 +157,7 @@ class _ForgotPasswordScreenState extends ConsumerState<ForgotPasswordScreen> {
         Text(
           'We sent a password reset link to ${_email.text.trim()}. The link expires in 10 minutes.',
           textAlign: TextAlign.center,
-          style: theme.textTheme.bodyMedium
-              ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+          style: theme.textTheme.bodyMedium?.copyWith(color: BeelsColors.ink1),
         ),
         const SizedBox(height: 24),
         TextButton(

@@ -22,9 +22,8 @@ class DashboardAnalytics {
   });
 
   factory DashboardAnalytics.fromJson(dynamic json) {
-    final map = json is Map
-        ? json.cast<String, dynamic>()
-        : const <String, dynamic>{};
+    final map =
+        json is Map ? json.cast<String, dynamic>() : const <String, dynamic>{};
     return DashboardAnalytics(
       totalDeposited: _toNum(map['total_deposited']),
       totalWithdrawn: _toNum(map['total_withdrawn']),

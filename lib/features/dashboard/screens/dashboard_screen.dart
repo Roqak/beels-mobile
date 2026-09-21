@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import 'package:beels_mobile/core/api/api_exception.dart';
 import 'package:beels_mobile/core/money.dart';
+import 'package:beels_mobile/core/theme.dart';
 import 'package:beels_mobile/core/widgets/common.dart';
 import 'package:beels_mobile/features/auth/controllers/auth_controller.dart';
 import 'package:beels_mobile/features/auth/models/profile.dart';
@@ -19,9 +21,12 @@ class DashboardScreen extends ConsumerWidget {
     final dashboard = ref.watch(dashboardControllerProvider);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFE),
+      backgroundColor: BeelsColors.surface,
       floatingActionButton: FloatingActionButton.extended(
-        onPressed: () => context.push('/beels/new'),
+        onPressed: () {
+          HapticFeedback.lightImpact();
+          context.push('/beels/new');
+        },
         icon: const Icon(Icons.add),
         label: const Text('New Beel'),
       ),
@@ -35,26 +40,24 @@ class DashboardScreen extends ConsumerWidget {
             children: [
               _GreetingHeader(profile: profile),
               dashboard.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 96),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
+                loading: () => const _DashboardSkeleton(),
                 error: (error, _) => Padding(
                   padding: const EdgeInsets.symmetric(vertical: 48),
                   child: ErrorView(
                     error: error is ApiException
                         ? error
                         : ApiException(error.toString(), statusCode: 0),
-                    onRetry: () =>
-                        ref.invalidate(dashboardControllerProvider),
+                    onRetry: () => ref.invalidate(dashboardControllerProvider),
                   ),
                 ),
                 data: (data) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: 16),
-                    _StatGrid(analytics: data.analytics),
                     const SizedBox(height: 20),
+                    _HeroPanel(analytics: data.analytics),
+                    const SizedBox(height: 12),
+                    _CounterRow(analytics: data.analytics),
+                    const SizedBox(height: 28),
                     SectionHeader(
                       'Recent transactions',
                       action: TextButton(
@@ -66,7 +69,20 @@ class DashboardScreen extends ConsumerWidget {
                     if (data.recent.items.isEmpty)
                       const _NoTransactions()
                     else
-                      ...data.recent.items.map(_TransactionRow.new),
+                      SurfaceCard(
+                        padding: EdgeInsets.zero,
+                        child: Column(
+                          children: [
+                            for (var i = 0;
+                                i < data.recent.items.length;
+                                i++) ...[
+                              if (i > 0)
+                                const Divider(indent: 68, endIndent: 16),
+                              _TransactionRow(data.recent.items[i]),
+                            ],
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
@@ -83,6 +99,13 @@ class _GreetingHeader extends StatelessWidget {
 
   final Profile? profile;
 
+  static String _tagline() {
+    final h = DateTime.now().hour;
+    if (h < 12) return 'Good morning. Here is where you stand.';
+    if (h < 17) return 'Good afternoon. Here is where you stand.';
+    return 'Good evening. Here is where you stand.';
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -96,27 +119,37 @@ class _GreetingHeader extends StatelessWidget {
             children: [
               Text(
                 firstName.isEmpty ? 'Hello' : 'Hello, $firstName',
-                style: theme.textTheme.headlineSmall
-                    ?.copyWith(fontWeight: FontWeight.w800),
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.4,
+                  color: BeelsColors.ink0,
+                ),
               ),
               const SizedBox(height: 2),
               Text(
-                'Here is how your money is doing.',
+                _tagline(),
                 style: theme.textTheme.bodySmall
-                    ?.copyWith(color: const Color(0xFF7B7D8C)),
+                    ?.copyWith(color: BeelsColors.ink2),
               ),
             ],
           ),
         ),
-        GestureDetector(
+        Pressable(
           onTap: () => context.push('/profile'),
-          child: CircleAvatar(
-            radius: 20,
-            backgroundColor: const Color(0xFFEEEDFB),
+          haptic: true,
+          semanticLabel: 'Profile',
+          child: Container(
+            width: 44,
+            height: 44,
+            alignment: Alignment.center,
+            decoration: const BoxDecoration(
+              color: BeelsColors.accentSoft,
+              shape: BoxShape.circle,
+            ),
             child: Text(
               initials,
               style: theme.textTheme.labelLarge?.copyWith(
-                color: theme.colorScheme.primary,
+                color: BeelsColors.accent,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -127,121 +160,188 @@ class _GreetingHeader extends StatelessWidget {
   }
 }
 
-class _StatGrid extends StatelessWidget {
-  const _StatGrid({required this.analytics});
+const _tabular = [FontFeature.tabularFigures()];
+
+/// The one committed-color surface on the screen: total deposited, with
+/// withdrawn as a quiet secondary line.
+class _HeroPanel extends StatelessWidget {
+  const _HeroPanel({required this.analytics});
+
+  final DashboardAnalytics analytics;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+      decoration: BoxDecoration(
+        color: BeelsColors.accent,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.south_west_rounded,
+                  size: 16, color: Color(0xCCFFFFFF)),
+              const SizedBox(width: 6),
+              Text(
+                'Total Deposited',
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withOpacity(0.8),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              formatNaira(analytics.totalDeposited),
+              maxLines: 1,
+              style: const TextStyle(
+                fontSize: 38,
+                height: 1.1,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -1,
+                color: Colors.white,
+                fontFeatures: _tabular,
+              ),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.14),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.north_east_rounded,
+                    size: 16, color: Color(0xCCFFFFFF)),
+                const SizedBox(width: 8),
+                Text(
+                  'Total Withdrawn',
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: Colors.white.withOpacity(0.8),
+                  ),
+                ),
+                const Spacer(),
+                Text(
+                  formatNaira(analytics.totalWithdrawn),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    fontFeatures: _tabular,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CounterRow extends StatelessWidget {
+  const _CounterRow({required this.analytics});
 
   final DashboardAnalytics analytics;
 
   @override
   Widget build(BuildContext context) {
     final compact = NumberFormat.compact();
-    return Column(
+    return Row(
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                title: 'Total Deposited',
-                value: formatNaira(analytics.totalDeposited),
-                icon: Icons.south_west,
-                color: const Color(0xFF1F7A4D),
-                background: const Color(0xFFEAF6F0),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _StatCard(
-                title: 'Total Withdrawn',
-                value: formatNaira(analytics.totalWithdrawn),
-                icon: Icons.north_east,
-                color: const Color(0xFFB23A3A),
-                background: const Color(0xFFFBEDED),
-              ),
-            ),
-          ],
+        Expanded(
+          child: _Counter(
+            title: 'Beels',
+            value: compact.format(analytics.totalContributions),
+            icon: Icons.savings_rounded,
+            onTap: () => context.go('/beels'),
+          ),
         ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _StatCard(
-                title: 'Beels',
-                value: compact.format(analytics.totalContributions),
-                icon: Icons.savings,
-                color: const Color(0xFF4F46E5),
-                background: const Color(0xFFEEEDFB),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _StatCard(
-                title: 'Transactions',
-                value: compact.format(analytics.totalTransactions),
-                icon: Icons.receipt_long,
-                color: const Color(0xFF5B5D6B),
-                background: const Color(0xFFF7F7FA),
-              ),
-            ),
-          ],
+        const SizedBox(width: 12),
+        Expanded(
+          child: _Counter(
+            title: 'Transactions',
+            value: compact.format(analytics.totalTransactions),
+            icon: Icons.receipt_long_rounded,
+            onTap: () => context.go('/transactions'),
+          ),
         ),
       ],
     );
   }
 }
 
-class _StatCard extends StatelessWidget {
-  const _StatCard({
+class _Counter extends StatelessWidget {
+  const _Counter({
     required this.title,
     required this.value,
     required this.icon,
-    required this.color,
-    required this.background,
+    required this.onTap,
   });
 
   final String title;
   final String value;
   final IconData icon;
-  final Color color;
-  final Color background;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: background,
-              borderRadius: BorderRadius.circular(10),
+    return Pressable(
+      onTap: onTap,
+      haptic: true,
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: BeelsColors.accentSoft,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, size: 18, color: BeelsColors.accent),
             ),
-            child: Icon(icon, size: 18, color: color),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: theme.textTheme.titleLarge?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: const Color(0xFF21222D),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.3,
+                      color: BeelsColors.ink0,
+                      fontFeatures: _tabular,
+                    ),
+                  ),
+                  Text(
+                    title,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: BeelsColors.ink2,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            title,
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: const Color(0xFF7B7D8C)),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -256,33 +356,23 @@ class _TransactionRow extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final incoming = row.isIncoming;
-    final label = row.txnLabel ??
-        (incoming ? 'Deposit' : 'Withdrawal');
+    final label = row.txnLabel ?? (incoming ? 'Deposit' : 'Withdrawal');
     final date = row.txnDate;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(8),
+            width: 40,
+            height: 40,
             decoration: BoxDecoration(
-              color: incoming
-                  ? const Color(0xFFEAF6F0)
-                  : const Color(0xFFFBEDED),
+              color: incoming ? BeelsColors.okSoft : BeelsColors.errSoft,
               shape: BoxShape.circle,
             ),
             child: Icon(
-              incoming ? Icons.south_west : Icons.north_east,
-              size: 16,
-              color: incoming
-                  ? const Color(0xFF1F7A4D)
-                  : const Color(0xFFB23A3A),
+              incoming ? Icons.south_west_rounded : Icons.north_east_rounded,
+              size: 18,
+              color: incoming ? BeelsColors.ok : BeelsColors.err,
             ),
           ),
           const SizedBox(width: 12),
@@ -294,29 +384,69 @@ class _TransactionRow extends StatelessWidget {
                   label,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium
-                      ?.copyWith(fontWeight: FontWeight.w600),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    fontWeight: FontWeight.w600,
+                    color: BeelsColors.ink0,
+                  ),
                 ),
+                const SizedBox(height: 2),
                 Text(
                   date == null
                       ? row.txnType
                       : DateFormat('d MMM yyyy').format(date),
                   style: theme.textTheme.bodySmall
-                      ?.copyWith(color: const Color(0xFF9DA0AE)),
+                      ?.copyWith(color: BeelsColors.ink2),
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           Text(
             formatNairaSigned(row.txnAmount, incoming: incoming),
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w700,
-              color: incoming
-                  ? const Color(0xFF1F7A4D)
-                  : const Color(0xFFB23A3A),
+              color: incoming ? BeelsColors.ok : BeelsColors.err,
+              fontFeatures: _tabular,
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Layout-matched placeholder shown while the dashboard loads.
+class _DashboardSkeleton extends StatelessWidget {
+  const _DashboardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SkeletonScope(
+      child: Padding(
+        padding: EdgeInsets.only(top: 20),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SkeletonBox(height: 156, radius: 24),
+            SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(child: SkeletonBox(height: 66, radius: 16)),
+                SizedBox(width: 12),
+                Expanded(child: SkeletonBox(height: 66, radius: 16)),
+              ],
+            ),
+            SizedBox(height: 28),
+            SkeletonBox(width: 150, height: 18),
+            SizedBox(height: 12),
+            SurfaceCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [SkeletonRow(), SkeletonRow(), SkeletonRow()],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

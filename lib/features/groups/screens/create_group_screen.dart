@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,6 +7,7 @@ import 'package:beels_mobile/core/api/api_exception.dart';
 import 'package:beels_mobile/core/widgets/common.dart';
 import 'package:beels_mobile/features/groups/data/groups_repository.dart';
 import 'package:beels_mobile/features/groups/models/group.dart';
+import 'package:beels_mobile/core/theme.dart';
 
 class CreateGroupScreen extends ConsumerStatefulWidget {
   const CreateGroupScreen({super.key});
@@ -84,8 +86,10 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
             description: description.isEmpty ? null : description,
             members: members,
           );
+      HapticFeedback.mediumImpact();
       if (mounted) context.pop();
     } on ApiException catch (error) {
+      HapticFeedback.heavyImpact();
       messenger.showSnackBar(SnackBar(content: Text(error.message)));
     } catch (_) {
       messenger.showSnackBar(
@@ -102,9 +106,10 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFE),
+      backgroundColor: BeelsColors.surface,
       appBar: const BeelsAppBar('New group'),
       body: SingleChildScrollView(
+        keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         child: Form(
           key: _formKey,
@@ -113,6 +118,7 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
             children: [
               TextFormField(
                 controller: _nameController,
+                textInputAction: TextInputAction.next,
                 textCapitalization: TextCapitalization.words,
                 decoration: const InputDecoration(
                   hintText: 'Group name',
@@ -132,16 +138,16 @@ class _CreateGroupScreenState extends ConsumerState<CreateGroupScreen> {
                   counterText: '',
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 28),
               SectionHeader(
                 'Initial members',
                 action: Text(
                   'Optional',
                   style: theme.textTheme.bodySmall
-                      ?.copyWith(color: const Color(0xFF7B7D8C)),
+                      ?.copyWith(color: BeelsColors.ink2),
                 ),
               ),
-              const SizedBox(height: 4),
+              const SizedBox(height: 10),
               ..._listRows(theme),
               Align(
                 alignment: Alignment.centerLeft,
@@ -184,64 +190,64 @@ class _MemberRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
-      ),
-      child: Column(
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: TextFormField(
-                  controller: draft.firstName,
-                  textCapitalization: TextCapitalization.words,
-                  decoration:
-                      const InputDecoration(hintText: 'First name'),
-                  validator: (value) {
-                    if (draft.isEmpty) return null;
-                    return (value == null || value.trim().isEmpty)
-                        ? 'First name required'
-                        : null;
-                  },
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: SurfaceCard(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: draft.firstName,
+                    textInputAction: TextInputAction.next,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(hintText: 'First name'),
+                    validator: (value) {
+                      if (draft.isEmpty) return null;
+                      return (value == null || value.trim().isEmpty)
+                          ? 'First name required'
+                          : null;
+                    },
+                  ),
                 ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: TextFormField(
-                  controller: draft.lastName,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: const InputDecoration(hintText: 'Last name'),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextFormField(
+                    controller: draft.lastName,
+                    textInputAction: TextInputAction.next,
+                    textCapitalization: TextCapitalization.words,
+                    decoration: const InputDecoration(hintText: 'Last name'),
+                  ),
                 ),
-              ),
-              IconButton(
-                tooltip: 'Remove member',
-                icon: const Icon(Icons.remove_circle_outline,
-                    size: 20, color: Color(0xFFB23A3A)),
-                onPressed: onRemove,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          TextFormField(
-            controller: draft.email,
-            keyboardType: TextInputType.emailAddress,
-            decoration: const InputDecoration(hintText: 'Email (optional)'),
-            validator: (value) => _validateEmail(value),
-          ),
-          const SizedBox(height: 10),
-          TextFormField(
-            controller: draft.phoneNumber,
-            keyboardType: TextInputType.phone,
-            decoration:
-                const InputDecoration(hintText: 'Phone (optional)'),
-            validator: (value) => _validatePhone(value),
-          ),
-        ],
+                IconButton(
+                  tooltip: 'Remove member',
+                  icon: const Icon(Icons.remove_circle_outline,
+                      size: 20, color: BeelsColors.err),
+                  constraints:
+                      const BoxConstraints(minWidth: 48, minHeight: 48),
+                  onPressed: onRemove,
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: draft.email,
+              textInputAction: TextInputAction.next,
+              keyboardType: TextInputType.emailAddress,
+              decoration: const InputDecoration(hintText: 'Email (optional)'),
+              validator: (value) => _validateEmail(value),
+            ),
+            const SizedBox(height: 10),
+            TextFormField(
+              controller: draft.phoneNumber,
+              keyboardType: TextInputType.phone,
+              decoration: const InputDecoration(hintText: 'Phone (optional)'),
+              validator: (value) => _validatePhone(value),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -258,7 +264,5 @@ String? _validateEmail(String? value) {
 String? _validatePhone(String? value) {
   final phone = value?.trim() ?? '';
   if (phone.isEmpty) return null;
-  return phone.length >= 10
-      ? null
-      : 'Phone must be at least 10 characters';
+  return phone.length >= 10 ? null : 'Phone must be at least 10 characters';
 }

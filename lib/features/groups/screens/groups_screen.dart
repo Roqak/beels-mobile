@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+
+import 'package:beels_mobile/core/theme.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -14,7 +16,7 @@ class GroupsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final groupsAsync = ref.watch(groupsListProvider);
     return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFE),
+      backgroundColor: BeelsColors.surface,
       appBar: const BeelsAppBar('Groups'),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _openCreate(context, ref),
@@ -22,7 +24,7 @@ class GroupsScreen extends ConsumerWidget {
         label: const Text('New group'),
       ),
       body: groupsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const _ListSkeleton(),
         error: (error, _) => ErrorView(
           error: error is ApiException
               ? error
@@ -87,70 +89,88 @@ class _GroupCard extends StatelessWidget {
     final theme = Theme.of(context);
     final description = group.description;
     final count = group.membersCount;
-    return Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+    return Pressable(
+      onTap: onOpen,
+      child: SurfaceCard(
         onTap: onOpen,
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFE3E3EA)),
-          ),
-          child: Row(
-            children: [
-              CircleAvatar(
-                radius: 22,
-                backgroundColor: const Color(0xFFEEEDFB),
-                child: Text(
-                  group.name.isNotEmpty ? group.name[0].toUpperCase() : '?',
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w700,
-                  ),
+        child: Row(
+          children: [
+            CircleAvatar(
+              radius: 22,
+              backgroundColor: BeelsColors.accentSoft,
+              child: Text(
+                group.name.isNotEmpty ? group.name[0].toUpperCase() : '?',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: BeelsColors.accent,
+                  fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    group.name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700),
+                  ),
+                  if (description != null && description.isNotEmpty) ...[
+                    const SizedBox(height: 2),
                     Text(
-                      group.name,
-                      maxLines: 1,
+                      description,
+                      maxLines: 2,
                       overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium
-                          ?.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                    if (description != null && description.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        description,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodySmall
-                            ?.copyWith(color: const Color(0xFF5B5D6B)),
-                      ),
-                    ],
-                    const SizedBox(height: 6),
-                    Row(
-                      children: [
-                        const Icon(Icons.people_outline,
-                            size: 14, color: Color(0xFF9DA0AE)),
-                        const SizedBox(width: 4),
-                        Text(
-                          count == 1 ? '1 member' : '$count members',
-                          style: theme.textTheme.bodySmall
-                              ?.copyWith(color: const Color(0xFF7B7D8C)),
-                        ),
-                      ],
+                      style: theme.textTheme.bodySmall
+                          ?.copyWith(color: BeelsColors.ink1),
                     ),
                   ],
-                ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.people_outline,
+                          size: 14, color: BeelsColors.ink3),
+                      const SizedBox(width: 4),
+                      Text(
+                        count == 1 ? '1 member' : '$count members',
+                        style: theme.textTheme.bodySmall
+                            ?.copyWith(color: BeelsColors.ink2),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const Icon(Icons.chevron_right, color: Color(0xFF9DA0AE)),
+            ),
+            const Icon(Icons.chevron_right, color: BeelsColors.ink3),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ListSkeleton extends StatelessWidget {
+  const _ListSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return const SkeletonScope(
+      child: SingleChildScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.fromLTRB(16, 12, 16, 96),
+        child: SurfaceCard(
+          padding: EdgeInsets.zero,
+          child: Column(
+            children: [
+              SkeletonRow(),
+              SkeletonRow(),
+              SkeletonRow(),
+              SkeletonRow(),
+              SkeletonRow(),
+              SkeletonRow(),
             ],
           ),
         ),

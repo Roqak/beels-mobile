@@ -65,8 +65,7 @@ class Transaction {
     final deposit = _asMap(map['deposit']);
     final withdrawal = _asMap(map['withdrawal']);
     final depositContributor = _asMap(deposit['contributor']);
-    final depositContribution =
-        _asMap(depositContributor['contribution']);
+    final depositContribution = _asMap(depositContributor['contribution']);
     final withdrawalContribution = _asMap(withdrawal['contribution']);
 
     return Transaction(
@@ -89,5 +88,4 @@ class Transaction {
   }
 }
 
-String? _nullableStringOrNull(dynamic value) =>
-    value?.toString();
+String? _nullableStringOrNull(dynamic value) => value?.toString();

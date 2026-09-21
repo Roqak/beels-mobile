@@ -19,19 +19,19 @@ class ErrorView extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64,
-              height: 64,
-              decoration: const BoxDecoration(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
                 color: BeelsColors.errSoft,
-                shape: BoxShape.circle,
+                borderRadius: BorderRadius.circular(24),
               ),
               child: const Icon(
-                Icons.error_outline,
+                Icons.cloud_off_rounded,
                 color: BeelsColors.err,
                 size: 28,
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 20),
             const Text(
               'Something went wrong',
               textAlign: TextAlign.center,
@@ -45,7 +45,8 @@ class ErrorView extends StatelessWidget {
             Text(
               error.message,
               textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14, color: BeelsColors.ink1),
+              style: const TextStyle(
+                  fontSize: 14, height: 1.45, color: BeelsColors.ink1),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 20),

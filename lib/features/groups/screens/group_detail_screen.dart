@@ -9,6 +9,7 @@ import 'package:beels_mobile/core/api/api_exception.dart';
 import 'package:beels_mobile/core/widgets/common.dart';
 import 'package:beels_mobile/features/groups/data/groups_repository.dart';
 import 'package:beels_mobile/features/groups/models/group.dart';
+import 'package:beels_mobile/core/theme.dart';
 
 class GroupDetailScreen extends ConsumerStatefulWidget {
   const GroupDetailScreen({super.key, required this.id});
@@ -40,10 +41,26 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
   Widget build(BuildContext context) {
     final groupAsync = ref.watch(groupDetailProvider(widget.id));
     return Scaffold(
-      backgroundColor: const Color(0xFFFCFCFE),
+      backgroundColor: BeelsColors.surface,
       appBar: const BeelsAppBar('Group'),
       body: groupAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SkeletonScope(
+          child: SingleChildScrollView(
+            physics: NeverScrollableScrollPhysics(),
+            padding: EdgeInsets.all(16),
+            child: SurfaceCard(
+              padding: EdgeInsets.zero,
+              child: Column(
+                children: [
+                  SkeletonRow(),
+                  SkeletonRow(),
+                  SkeletonRow(),
+                  SkeletonRow()
+                ],
+              ),
+            ),
+          ),
+        ),
         error: (error, _) => ErrorView(
           error: error is ApiException
               ? error
@@ -51,8 +68,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
           onRetry: () => ref.invalidate(groupDetailProvider(widget.id)),
         ),
         data: (group) => RefreshIndicator(
-          onRefresh: () async =>
-              ref.invalidate(groupDetailProvider(widget.id)),
+          onRefresh: () async => ref.invalidate(groupDetailProvider(widget.id)),
           child: _GroupDetailBody(
             group: group,
             footer: _AddMemberCard(
@@ -94,6 +110,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
         _emailController.clear();
         _phoneController.clear();
       }
+      HapticFeedback.mediumImpact();
       messenger.showSnackBar(
         const SnackBar(content: Text('Member added')),
       );
@@ -165,9 +182,7 @@ class _GroupDetailScreenState extends ConsumerState<GroupDetailScreen> {
     );
     if (!confirmed) return;
     try {
-      await ref
-          .read(groupDetailProvider(widget.id).notifier)
-          .deleteGroup();
+      await ref.read(groupDetailProvider(widget.id).notifier).deleteGroup();
       if (mounted) context.pop();
     } on ApiException catch (error) {
       messenger.showSnackBar(SnackBar(content: Text(error.message)));
@@ -207,18 +222,17 @@ class _GroupDetailBody extends StatelessWidget {
           group: group,
           onRegenerate: onRegenerateInvite,
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 24),
         SectionHeader(
           'Members',
           action: Text(
             group.membersCount == 1
                 ? '1 member'
                 : '${group.membersCount} members',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: const Color(0xFF7B7D8C)),
+            style: theme.textTheme.bodySmall?.copyWith(color: BeelsColors.ink2),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 10),
         if (group.members.isEmpty)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 24),
@@ -229,10 +243,20 @@ class _GroupDetailBody extends StatelessWidget {
             ),
           )
         else
-          ...group.members.map(
-            (member) => _MemberTile(
-              member: member,
-              onRemove: member.id == null ? null : () => onRemoveMember(member),
+          SurfaceCard(
+            padding: EdgeInsets.zero,
+            child: Column(
+              children: [
+                for (var i = 0; i < group.members.length; i++) ...[
+                  if (i > 0) const Divider(indent: 64),
+                  _MemberTile(
+                    member: group.members[i],
+                    onRemove: group.members[i].id == null
+                        ? null
+                        : () => onRemoveMember(group.members[i]),
+                  ),
+                ],
+              ],
             ),
           ),
         const SizedBox(height: 16),
@@ -252,42 +276,57 @@ class _InfoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final description = group.description;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
-      ),
+    return SurfaceCard(
+      padding: const EdgeInsets.all(20),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
+              Container(
+                width: 48,
+                height: 48,
+                alignment: Alignment.center,
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  color: BeelsColors.accentSoft,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Text(
+                  group.name.isNotEmpty ? group.name[0].toUpperCase() : '?',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    color: BeelsColors.accent,
+                  ),
+                ),
+              ),
               Expanded(
                 child: Text(
                   group.name,
-                  style: theme.textTheme.titleLarge
-                      ?.copyWith(fontWeight: FontWeight.w800),
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
+                    color: BeelsColors.ink0,
+                  ),
                 ),
               ),
               IconButton(
                 tooltip: 'Delete group',
-                icon: const Icon(Icons.delete_outline,
-                    color: Color(0xFFB23A3A)),
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                icon: const Icon(Icons.delete_outline, color: BeelsColors.err),
                 onPressed: onDelete,
               ),
             ],
           ),
           if (description != null && description.isNotEmpty) ...[
-            const SizedBox(height: 4),
+            const SizedBox(height: 12),
             Text(
               description,
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: const Color(0xFF5B5D6B)),
+              style:
+                  theme.textTheme.bodyMedium?.copyWith(color: BeelsColors.ink1),
             ),
           ],
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           Wrap(
             spacing: 16,
             runSpacing: 6,
@@ -301,7 +340,8 @@ class _InfoCard extends StatelessWidget {
               if (group.createdAt != null)
                 _Meta(
                   icon: Icons.event_outlined,
-                  label: 'Created ${DateFormat('d MMM yyyy').format(group.createdAt!)}',
+                  label:
+                      'Created ${DateFormat('d MMM yyyy').format(group.createdAt!)}',
                 ),
             ],
           ),
@@ -323,12 +363,11 @@ class _Meta extends StatelessWidget {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 16, color: const Color(0xFF7B7D8C)),
+        Icon(icon, size: 16, color: BeelsColors.ink2),
         const SizedBox(width: 4),
         Text(
           label,
-          style: theme.textTheme.bodySmall
-              ?.copyWith(color: const Color(0xFF7B7D8C)),
+          style: theme.textTheme.bodySmall?.copyWith(color: BeelsColors.ink2),
         ),
       ],
     );
@@ -348,7 +387,7 @@ class _InviteCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFFEEEDFB),
+        color: BeelsColors.accentSoft,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -356,7 +395,7 @@ class _InviteCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.link, size: 18, color: Color(0xFF4F46E5)),
+              const Icon(Icons.link, size: 18, color: BeelsColors.accent),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
@@ -368,17 +407,26 @@ class _InviteCard extends StatelessWidget {
               IconButton(
                 tooltip: 'Regenerate link',
                 icon: const Icon(Icons.refresh, size: 20),
+                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                 onPressed: onRegenerate,
               ),
             ],
           ),
           if (link != null && link.isNotEmpty) ...[
-            SelectableText(
-              link,
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: const Color(0xFF4338CA)),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: BeelsColors.panel,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: SelectableText(
+                link,
+                style: theme.textTheme.bodySmall
+                    ?.copyWith(color: BeelsColors.accentHover),
+              ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             Row(
               children: [
                 OutlinedButton.icon(
@@ -400,8 +448,8 @@ class _InviteCard extends StatelessWidget {
           ] else
             Text(
               'No invite link yet. Generate one to let people join this group.',
-              style: theme.textTheme.bodySmall
-                  ?.copyWith(color: const Color(0xFF5B5D6B)),
+              style:
+                  theme.textTheme.bodySmall?.copyWith(color: BeelsColors.ink1),
             ),
         ],
       ),
@@ -409,6 +457,7 @@ class _InviteCard extends StatelessWidget {
   }
 
   void _copy(BuildContext context, String link) {
+    HapticFeedback.mediumImpact();
     Clipboard.setData(ClipboardData(text: link));
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Invite link copied')),
@@ -435,23 +484,17 @@ class _MemberTile extends StatelessWidget {
         : nameParts.map((part) => part[0]).take(2).join().toUpperCase();
     final subtitle =
         member.email.isNotEmpty ? member.email : (member.phoneNumber ?? '');
-    return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
-      ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       child: Row(
         children: [
           CircleAvatar(
-            radius: 18,
-            backgroundColor: const Color(0xFFF7F7FA),
+            radius: 20,
+            backgroundColor: BeelsColors.accentSoft,
             child: Text(
               initials,
               style: theme.textTheme.labelMedium?.copyWith(
-                color: const Color(0xFF5B5D6B),
+                color: BeelsColors.accent,
                 fontWeight: FontWeight.w700,
               ),
             ),
@@ -474,7 +517,7 @@ class _MemberTile extends StatelessWidget {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall
-                        ?.copyWith(color: const Color(0xFF7B7D8C)),
+                        ?.copyWith(color: BeelsColors.ink2),
                   ),
               ],
             ),
@@ -483,7 +526,8 @@ class _MemberTile extends StatelessWidget {
             IconButton(
               tooltip: 'Remove member',
               icon: const Icon(Icons.remove_circle_outline,
-                  size: 20, color: Color(0xFFB23A3A)),
+                  size: 20, color: BeelsColors.err),
+              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
               onPressed: onRemove,
             ),
         ],
@@ -513,13 +557,8 @@ class _AddMemberCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SurfaceCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE3E3EA)),
-      ),
       child: Form(
         key: formKey,
         child: Column(
@@ -539,6 +578,8 @@ class _AddMemberCard extends StatelessWidget {
                 Expanded(
                   child: TextFormField(
                     controller: firstNameController,
+                    textInputAction: TextInputAction.next,
+                    textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(hintText: 'First name'),
                     validator: (value) =>
                         (value == null || value.trim().isEmpty)
@@ -550,6 +591,8 @@ class _AddMemberCard extends StatelessWidget {
                 Expanded(
                   child: TextFormField(
                     controller: lastNameController,
+                    textInputAction: TextInputAction.next,
+                    textCapitalization: TextCapitalization.words,
                     decoration: const InputDecoration(hintText: 'Last name'),
                   ),
                 ),
@@ -558,6 +601,7 @@ class _AddMemberCard extends StatelessWidget {
             const SizedBox(height: 10),
             TextFormField(
               controller: emailController,
+              textInputAction: TextInputAction.next,
               keyboardType: TextInputType.emailAddress,
               decoration: const InputDecoration(hintText: 'Email (optional)'),
               validator: _validateEmail,
@@ -566,8 +610,7 @@ class _AddMemberCard extends StatelessWidget {
             TextFormField(
               controller: phoneController,
               keyboardType: TextInputType.phone,
-              decoration:
-                  const InputDecoration(hintText: 'Phone (optional)'),
+              decoration: const InputDecoration(hintText: 'Phone (optional)'),
               validator: _validatePhone,
             ),
             const SizedBox(height: 12),
@@ -583,8 +626,7 @@ class _AddMemberCard extends StatelessWidget {
   }
 }
 
-final RegExp _emailRegex =
-    RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
+final RegExp _emailRegex = RegExp(r'^[\w.+-]+@[\w-]+\.[\w.-]+$');
 
 String? _validateEmail(String? value) {
   final email = value?.trim() ?? '';
@@ -615,6 +657,7 @@ Future<bool> _confirm(
           child: const Text('Cancel'),
         ),
         FilledButton(
+          style: FilledButton.styleFrom(backgroundColor: BeelsColors.err),
           onPressed: () => Navigator.pop(context, true),
           child: Text(confirmLabel),
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,6 +10,7 @@ import '../controllers/auth_controller.dart';
 import '../validation.dart';
 import '../widgets/error_banner.dart';
 import '../widgets/fields.dart';
+import 'package:beels_mobile/core/theme.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -57,9 +59,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       context.go('/');
     } on ApiException catch (error) {
       if (!mounted) return;
+      HapticFeedback.heavyImpact();
       setState(() => _error = error.message);
     } catch (_) {
       if (!mounted) return;
+      HapticFeedback.heavyImpact();
       setState(() => _error = 'Something went wrong. Please try again.');
     } finally {
       if (mounted) setState(() => _submitting = false);
@@ -82,6 +86,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
+            keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
             child: Form(
               key: _formKey,
@@ -90,14 +95,17 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
                 children: [
                   Text(
                     'Join Beels',
-                    style: theme.textTheme.headlineMedium
-                        ?.copyWith(fontWeight: FontWeight.w700),
+                    style: theme.textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: -0.6,
+                      color: BeelsColors.ink0,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
                     'Start saving with friends, one contribution at a time.',
                     style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
+                      color: BeelsColors.ink1,
                     ),
                   ),
                   const SizedBox(height: 24),

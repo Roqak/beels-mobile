@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -8,12 +9,8 @@ import '../../auth/models/profile.dart';
 import '../../auth/validation.dart';
 import '../../auth/widgets/fields.dart';
 import '../../../core/api/api_exception.dart';
-import '../../../core/widgets/beels_app_bar.dart';
-import '../../../core/widgets/empty_state.dart';
-import '../../../core/widgets/error_view.dart';
-import '../../../core/widgets/primary_button.dart';
-import '../../../core/widgets/section_header.dart';
-import '../../../core/widgets/status_chip.dart';
+import '../../../core/theme.dart';
+import '../../../core/widgets/common.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -22,9 +19,28 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final auth = ref.watch(authControllerProvider);
     return Scaffold(
+      backgroundColor: BeelsColors.surface,
       appBar: const BeelsAppBar('Profile'),
       body: auth.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const SkeletonScope(
+          child: Padding(
+            padding: EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    SkeletonBox(height: 64, circle: true),
+                    SizedBox(width: 16),
+                    SkeletonBox(width: 160, height: 18),
+                  ],
+                ),
+                SizedBox(height: 32),
+                SkeletonBox(height: 220, radius: 16),
+              ],
+            ),
+          ),
+        ),
         error: (error, _) {
           final apiError = error is ApiException
               ? error
@@ -89,8 +105,9 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
     super.dispose();
   }
 
-  void _showSnack(String message) {
+  void _showSnack(String message, {bool error = false}) {
     if (!mounted) return;
+    error ? HapticFeedback.heavyImpact() : HapticFeedback.mediumImpact();
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
@@ -107,9 +124,9 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
           );
       _showSnack('Profile updated');
     } on ApiException catch (error) {
-      _showSnack(error.message);
+      _showSnack(error.message, error: true);
     } catch (_) {
-      _showSnack('Something went wrong. Please try again.');
+      _showSnack('Something went wrong. Please try again.', error: true);
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -128,9 +145,9 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
       _confirmPassword.clear();
       _showSnack('Password changed');
     } on ApiException catch (error) {
-      _showSnack(error.message);
+      _showSnack(error.message, error: true);
     } catch (_) {
-      _showSnack('Something went wrong. Please try again.');
+      _showSnack('Something went wrong. Please try again.', error: true);
     } finally {
       if (mounted) setState(() => _changing = false);
     }
@@ -151,7 +168,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
           ),
           TextButton(
             style: TextButton.styleFrom(
-              foregroundColor: Theme.of(dialogContext).colorScheme.error,
+              foregroundColor: BeelsColors.err,
             ),
             onPressed: () => Navigator.of(dialogContext).pop(true),
             child: const Text('Log out'),
@@ -170,17 +187,27 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
     final theme = Theme.of(context);
     final status = widget.profile.status;
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(24),
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+      padding: const EdgeInsets.fromLTRB(20, 16, 20, 40),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
             children: [
-              CircleAvatar(
-                radius: 32,
+              Container(
+                width: 68,
+                height: 68,
+                alignment: Alignment.center,
+                decoration: const BoxDecoration(
+                  color: BeelsColors.accentSoft,
+                  shape: BoxShape.circle,
+                ),
                 child: Text(
                   widget.profile.initials,
-                  style: theme.textTheme.titleLarge,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    color: BeelsColors.accent,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -190,14 +217,17 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
                   children: [
                     Text(
                       widget.profile.fullName,
-                      style: theme.textTheme.titleLarge
-                          ?.copyWith(fontWeight: FontWeight.w700),
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.3,
+                        color: BeelsColors.ink0,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       widget.profile.email,
                       style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
+                        color: BeelsColors.ink1,
                       ),
                     ),
                   ],
@@ -212,8 +242,9 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
               child: StatusChip(label: status, kind: statusKind(status)),
             ),
           ],
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
           const SectionHeader('Edit profile'),
+          const SizedBox(height: 10),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -254,8 +285,9 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
           const SectionHeader('Change password'),
+          const SizedBox(height: 10),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
@@ -297,24 +329,29 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
               ),
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
           const SectionHeader('Security'),
+          const SizedBox(height: 10),
           const _BiometricTile(),
-          const SizedBox(height: 24),
+          const SizedBox(height: 28),
           const SectionHeader('Direct debit'),
-          ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: const Icon(Icons.account_balance_outlined),
-            title: const Text('Mandates'),
-            subtitle: const Text('Manage automatic collections.'),
-            trailing: const Icon(Icons.chevron_right),
+          const SizedBox(height: 10),
+          SurfaceCard(
+            padding: EdgeInsets.zero,
             onTap: () => context.push('/mandates'),
+            child: const ListTile(
+              leading: Icon(Icons.account_balance_outlined,
+                  color: BeelsColors.accent),
+              title: Text('Mandates'),
+              subtitle: Text('Manage automatic collections.'),
+              trailing: Icon(Icons.chevron_right, color: BeelsColors.ink3),
+            ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 32),
           OutlinedButton.icon(
             style: OutlinedButton.styleFrom(
-              foregroundColor: theme.colorScheme.error,
-              side: BorderSide(color: theme.colorScheme.error),
+              foregroundColor: BeelsColors.err,
+              side: const BorderSide(color: BeelsColors.err),
               padding: const EdgeInsets.symmetric(vertical: 14),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(999),
@@ -329,6 +366,7 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
     );
   }
 }
+
 class _BiometricTile extends ConsumerStatefulWidget {
   const _BiometricTile();
 
@@ -380,8 +418,7 @@ class _BiometricTileState extends ConsumerState<_BiometricTile> {
             lock.supported
                 ? 'Unlock Beels with your fingerprint or face.'
                 : 'Not available on this device.',
-            style: theme.textTheme.bodySmall
-                ?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+            style: theme.textTheme.bodySmall?.copyWith(color: BeelsColors.ink2),
           ),
           value: lock.enabled,
           onChanged: lock.canEnable && !_saving ? _toggle : null,

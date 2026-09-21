@@ -30,8 +30,9 @@ class Group {
     final map = _asMap(json);
     final token = _asString(map['invite_link_token'] ?? map['invite_token']);
     final rawLink = _asString(map['invite_link']);
-    final link =
-        (rawLink == null || rawLink.isEmpty) ? _buildInviteLink(token) : rawLink;
+    final link = (rawLink == null || rawLink.isEmpty)
+        ? _buildInviteLink(token)
+        : rawLink;
     final members = _asList(map['members'])
         .whereType<Map<dynamic, dynamic>>()
         .map((m) => GroupMember.fromJson(m))
@@ -170,8 +171,7 @@ class GroupMember {
           other.phoneNumber == phoneNumber;
 
   @override
-  int get hashCode =>
-      Object.hash(id, firstName, lastName, email, phoneNumber);
+  int get hashCode => Object.hash(id, firstName, lastName, email, phoneNumber);
 }
 
 Map<String, dynamic> _asMap(dynamic json) {

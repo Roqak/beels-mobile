@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-
 /// Primary call-to-action button: full-width 52px pill, spinner while loading.
 class PrimaryButton extends StatelessWidget {
   const PrimaryButton({

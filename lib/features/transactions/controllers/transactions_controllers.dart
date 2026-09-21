@@ -22,8 +22,7 @@ class TransactionsListState {
 }
 
 /// Paginated list of the user's transactions with infinite scroll support.
-class TransactionsListController
-    extends AsyncNotifier<TransactionsListState> {
+class TransactionsListController extends AsyncNotifier<TransactionsListState> {
   static const perPage = 20;
 
   bool _loadingMore = false;
@@ -46,8 +45,7 @@ class TransactionsListController
 
   /// Reloads the first page, keeping current data visible while refreshing.
   Future<void> refresh() async {
-    state = const AsyncLoading<TransactionsListState>()
-        .copyWithPrevious(state);
+    state = const AsyncLoading<TransactionsListState>().copyWithPrevious(state);
     state = await AsyncValue.guard(() async {
       return _fromPaginated(
         await ref
@@ -83,6 +81,6 @@ class TransactionsListController
   }
 }
 
-final transactionsListControllerProvider = AsyncNotifierProvider<
-    TransactionsListController, TransactionsListState>(
-    TransactionsListController.new);
+final transactionsListControllerProvider =
+    AsyncNotifierProvider<TransactionsListController, TransactionsListState>(
+        TransactionsListController.new);
