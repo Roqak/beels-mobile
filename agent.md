@@ -8,7 +8,7 @@ Beels (ajo/esusu group savings fintech) member app. Flutter, Android-first, iOS-
 Backend: NestJS at `https://dev-production-80a4.up.railway.app` (source: `../beels`).
 Web frontend reference: `../beels-frontend`. PRD: `../PRD.md`.
 
-Shipped scope (v0.1.0 + main): auth (password login, register, forgot password, session), biometric quick-unlock (local_auth; lock screen at boot when enabled, profile toggle), dashboard, beels (list/detail/create/cancel/retry/disburse, per-contributor pay-now via Flutterwave checkout shared to the system share sheet), direct debit mandates (list/setup wizard/revoke under Profile), transactions, groups with invite links, profile. Out of scope for now: bills payment, chatbot, financial wrapped, in-app checkout browser (needs `url_launcher`, unapproved), quick-debit activation (backend projection lacks `quick_debit_identifier`).
+Shipped scope (v0.1.0 + main): auth (password login, register, forgot password, session), biometric quick-unlock (local_auth; lock screen at boot when enabled, profile toggle), dashboard, beels (list/detail/create/cancel/retry/disburse, per-contributor pay-now via Flutterwave checkout shared to the system share sheet, automated collection via OnePipe quick-debit activation with confirmation-account sheet and status chips), direct debit mandates (list/setup wizard/revoke under Profile), transactions, groups with invite links, profile. Out of scope for now: bills payment, chatbot, financial wrapped, in-app checkout browser (needs `url_launcher`, unapproved), quick-debit activation from my-participation (member view; projection lacks `quick_debit_identifier`).
 
 ## Environment (this machine — non-negotiable)
 

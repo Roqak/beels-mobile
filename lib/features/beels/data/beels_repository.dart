@@ -161,6 +161,25 @@ class BeelsRepository {
     await _client.delete('/contributions/remove-contributor/$contributorId');
   }
 
+  /// POST /contributions/contributors/quick-debit/:id — initiates automated
+  /// collection for a contributor and returns the confirmation account the
+  /// contributor deposits into.
+  Future<QuickDebitActivation> initiateQuickDebit({
+    required String identifier,
+    required String bankCode,
+    required String accountNumber,
+  }) async {
+    final json = await _client.post(
+      '/contributions/contributors/quick-debit/$identifier',
+      body: {
+        'identifier': identifier,
+        'bank_code': bankCode,
+        'account_number': accountNumber,
+      },
+    );
+    return envelope(json, QuickDebitActivation.fromJson);
+  }
+
   /// GET /contributions/my-participation — beels the user paid into.
   Future<List<Participation>> myParticipation() async {
     final json = await _client.get('/contributions/my-participation');

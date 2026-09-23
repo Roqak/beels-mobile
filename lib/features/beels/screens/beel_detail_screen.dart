@@ -13,6 +13,7 @@ import '../../../core/theme.dart';
 import '../../../core/widgets/common.dart';
 import '../../auth/controllers/session_lock_controller.dart';
 import '../controllers/beels_controllers.dart';
+import '../data/beels_repository.dart';
 import '../models/contribution.dart';
 
 /// Detail screen for a single beel: header, contributors, beneficiaries,
@@ -62,6 +63,35 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
             statusCode: 0);
       }
       await Share.share(url, subject: 'Complete your Beels payment');
+      await ref
+          .read(beelDetailControllerProvider(widget.id).notifier)
+          .refresh();
+    });
+  }
+
+  /// Activates automated collection for a contributor: requests the
+  /// confirmation account and shows it so the contributor can send the
+  /// activation deposit.
+  Future<void> _activateAutoDebit(ContributionContributor contributor) async {
+    final identifier = contributor.quickDebitId;
+    if (identifier == null) return;
+    await _runAction('qd_$identifier', () async {
+      final activation =
+          await ref.read(beelsRepositoryProvider).initiateQuickDebit(
+                identifier: identifier,
+                bankCode: contributor.bankCode ?? '',
+                accountNumber: contributor.accountNumber ?? '',
+              );
+      if (!mounted) return;
+      await showModalBottomSheet<void>(
+        context: context,
+        isScrollControlled: true,
+        useSafeArea: true,
+        builder: (_) => _AutoDebitSheet(
+          activation: activation,
+          firstName: contributor.firstName,
+        ),
+      );
       await ref
           .read(beelDetailControllerProvider(widget.id).notifier)
           .refresh();
@@ -155,6 +185,12 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
                     ? false
                     : _isBusy('pay_${contributor.paymentId}'),
                 onPay: contributor.canPay ? () => _pay(contributor) : null,
+                onAutoDebit: contributor.canAutoDebit
+                    ? () => _activateAutoDebit(contributor)
+                    : null,
+                autoDebitBusy: contributor.quickDebitId == null
+                    ? false
+                    : _isBusy('qd_${contributor.quickDebitId}'),
                 onRemove: contributor.id == null
                     ? null
                     : () async {
@@ -496,6 +532,8 @@ class _ContributorTile extends StatelessWidget {
     required this.payBusy,
     required this.onPay,
     required this.onRemove,
+    required this.onAutoDebit,
+    required this.autoDebitBusy,
   });
 
   final ContributionContributor contributor;
@@ -503,6 +541,8 @@ class _ContributorTile extends StatelessWidget {
   final bool payBusy;
   final VoidCallback? onPay;
   final VoidCallback? onRemove;
+  final VoidCallback? onAutoDebit;
+  final bool autoDebitBusy;
 
   @override
   Widget build(BuildContext context) {
@@ -604,6 +644,42 @@ class _ContributorTile extends StatelessWidget {
                         ),
                     ],
                   ),
+                  if (contributor.autoDebitActive ||
+                      contributor.autoDebitPending ||
+                      onAutoDebit != null) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        if (contributor.autoDebitActive)
+                          const StatusChip(
+                            label: 'Auto-debit on',
+                            kind: StatusKind.ok,
+                          )
+                        else if (contributor.autoDebitPending)
+                          const StatusChip(
+                            label: 'Auto-debit pending',
+                            kind: StatusKind.warn,
+                          ),
+                        const Spacer(),
+                        if (onAutoDebit != null)
+                          TextButton(
+                            onPressed: autoDebitBusy ? null : onAutoDebit,
+                            child: autoDebitBusy
+                                ? const SizedBox(
+                                    width: 14,
+                                    height: 14,
+                                    child: CircularProgressIndicator(
+                                        strokeWidth: 2),
+                                  )
+                                : Text(
+                                    contributor.autoDebitPending
+                                        ? 'Show account'
+                                        : 'Set up auto-debit',
+                                  ),
+                          ),
+                      ],
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -791,6 +867,138 @@ class _DetailSkeleton extends StatelessWidget {
             SkeletonBox(height: 96, radius: 16),
           ],
         ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet showing the activation account for automated collection.
+/// The contributor sends the one-time confirmation deposit here; recurring
+/// billing activates once it lands.
+class _AutoDebitSheet extends StatelessWidget {
+  const _AutoDebitSheet({required this.activation, required this.firstName});
+
+  final QuickDebitActivation activation;
+  final String firstName;
+
+  @override
+  Widget build(BuildContext context) {
+    final expiry = activation.expiryDate;
+    return SafeArea(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 24, 20, 20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Automated collection',
+              style: Theme.of(context).textTheme.titleMedium,
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Ask $firstName to send 100 naira to this account to confirm '
+              'automated collection. Recurring billing activates once the '
+              'deposit lands.',
+              style: Theme.of(context)
+                  .textTheme
+                  .bodySmall
+                  ?.copyWith(color: BeelsColors.ink2),
+            ),
+            const SizedBox(height: 16),
+            SurfaceCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _SheetField(
+                    label: 'Account number',
+                    value: activation.accountNumber,
+                    onCopy: activation.accountNumber.isEmpty
+                        ? null
+                        : () => _copy(context, activation.accountNumber),
+                  ),
+                  _SheetField(
+                    label: 'Bank',
+                    value: activation.bankName,
+                  ),
+                  _SheetField(
+                    label: 'Account name',
+                    value: activation.accountName,
+                  ),
+                  if (expiry.isNotEmpty)
+                    _SheetField(
+                      label: 'Account expires',
+                      value: expiry,
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            PrimaryButton(
+              label: 'Done',
+              onPressed: () => Navigator.of(context).pop(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _copy(BuildContext context, String value) {
+    Clipboard.setData(ClipboardData(text: value));
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Account number copied.')),
+    );
+  }
+}
+
+class _SheetField extends StatelessWidget {
+  const _SheetField({
+    required this.label,
+    required this.value,
+    this.onCopy,
+  });
+
+  final String label;
+  final String value;
+  final VoidCallback? onCopy;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodySmall
+                      ?.copyWith(color: BeelsColors.ink3),
+                ),
+                Text(
+                  value,
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(fontWeight: FontWeight.w600),
+                ),
+              ],
+            ),
+          ),
+          if (onCopy != null)
+            IconButton(
+              tooltip: 'Copy $label',
+              icon: const Icon(Icons.copy_outlined, size: 20),
+              constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+              onPressed: onCopy,
+            ),
+        ],
       ),
     );
   }

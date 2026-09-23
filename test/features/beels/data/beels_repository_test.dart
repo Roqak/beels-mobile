@@ -1,5 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:beels_mobile/core/api/api_client.dart';
+import 'package:beels_mobile/core/api/api_exception.dart';
 import 'package:beels_mobile/features/beels/data/beels_repository.dart';
 import 'package:beels_mobile/features/beels/models/contribution.dart';
 
@@ -189,4 +191,98 @@ void main() {
       expect(page.lastPage, 0);
     });
   });
+  group('initiateQuickDebit', () {
+    test('posts the activation payload and parses the account envelope',
+        () async {
+      final client = _FakeApiClient()
+        ..handlers['/contributions/contributors/quick-debit/nCFf1kFMUyCWgZ7iIAEz'] =
+            () => {
+                  'data': {
+                    'account_name': 'PWA Live Test',
+                    'account_number': '9016323384',
+                    'bank_name': 'Polaris Bank Limited',
+                    'expiry_date': '2026-09-23 20:26:55',
+                  },
+                  'message': 'Activation account number fetched',
+                  'statusCode': 200,
+                };
+      final repository = BeelsRepository(client);
+
+      final activation = await repository.initiateQuickDebit(
+        identifier: 'nCFf1kFMUyCWgZ7iIAEz',
+        bankCode: '076',
+        accountNumber: '9016323384',
+      );
+
+      expect(client.calls, hasLength(1));
+      expect(client.calls.single.path,
+          '/contributions/contributors/quick-debit/nCFf1kFMUyCWgZ7iIAEz');
+      expect(client.calls.single.body, {
+        'identifier': 'nCFf1kFMUyCWgZ7iIAEz',
+        'bank_code': '076',
+        'account_number': '9016323384',
+      });
+      expect(activation.accountNumber, '9016323384');
+      expect(activation.accountName, 'PWA Live Test');
+      expect(activation.bankName, 'Polaris Bank Limited');
+      expect(activation.expiryDate, '2026-09-23 20:26:55');
+    });
+
+    test('surfaces API errors when activation fails', () async {
+      final client = _FakeApiClient();
+      final repository = BeelsRepository(client);
+
+      await expectLater(
+        repository.initiateQuickDebit(
+          identifier: 'missing',
+          bankCode: '076',
+          accountNumber: '9016323384',
+        ),
+        throwsA(isA<ApiException>()),
+      );
+    });
+  });
+}
+
+class _FakeApiClient implements ApiClient {
+  final Map<String, Object Function()> handlers = {};
+  final List<({String path, Object? body})> calls = [];
+
+  Object _respond(String path) {
+    final handler = handlers[path];
+    if (handler == null) {
+      throw ApiException('Unexpected call to $path', statusCode: 0);
+    }
+    return handler();
+  }
+
+  @override
+  Future<dynamic> get(String path, {Map<String, dynamic>? query}) async {
+    calls.add((path: path, body: query));
+    return _respond(path);
+  }
+
+  @override
+  Future<dynamic> post(String path, {Object? body}) async {
+    calls.add((path: path, body: body));
+    return _respond(path);
+  }
+
+  @override
+  Future<dynamic> patch(String path, {Object? body}) async {
+    calls.add((path: path, body: body));
+    return _respond(path);
+  }
+
+  @override
+  Future<dynamic> put(String path, {Object? body}) async {
+    calls.add((path: path, body: body));
+    return _respond(path);
+  }
+
+  @override
+  Future<dynamic> delete(String path, {Object? body}) async {
+    calls.add((path: path, body: body));
+    return _respond(path);
+  }
 }

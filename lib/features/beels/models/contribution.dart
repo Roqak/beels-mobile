@@ -135,6 +135,10 @@ class ContributionContributor {
     this.status = '',
     this.bankName,
     this.paymentId,
+    this.accountNumber,
+    this.bankCode,
+    this.quickDebitId,
+    this.quickDebitStatus = '',
   });
 
   final int? id;
@@ -151,9 +155,41 @@ class ContributionContributor {
   /// on beel detail rows; absent on participation projections.
   final String? paymentId;
 
+  /// Contributor's account number as saved during mandate setup. Present on
+  /// beel detail rows; used to activate automated collection.
+  final String? accountNumber;
+
+  /// CBN bank code for [accountNumber].
+  final String? bankCode;
+
+  /// OnePipe quick-debit identifier for this contributor. Present on beel
+  /// detail rows when automated collection is available.
+  final String? quickDebitId;
+
+  /// Automated collection state: pending (not activated), in_progress
+  /// (activation account issued, awaiting the confirmation deposit) or
+  /// active (recurring billing enabled).
+  final String quickDebitStatus;
+
   /// Contributors whose deposit can still be paid: no terminal state.
   bool get canPay =>
       paymentId != null && !_terminalStatuses.contains(status.toLowerCase());
+
+  /// Automated collection is active.
+  bool get autoDebitActive => quickDebitStatus == 'active';
+
+  /// Activation account has been issued but the confirmation deposit has
+  /// not landed yet.
+  bool get autoDebitPending => quickDebitStatus == 'in_progress';
+
+  /// Automated collection can be activated: identifier and bank details
+  /// are known and the contributor is not terminal or already active.
+  bool get canAutoDebit =>
+      quickDebitId != null &&
+      (accountNumber?.isNotEmpty ?? false) &&
+      (bankCode?.isNotEmpty ?? false) &&
+      quickDebitStatus != 'active' &&
+      !_terminalStatuses.contains(status.toLowerCase());
 
   static const _terminalStatuses = {
     'settled',
@@ -178,6 +214,36 @@ class ContributionContributor {
       status: _asString(map['status']),
       bankName: _nullableString(map['bank_name']),
       paymentId: _nullableString(map['payment_id']),
+      accountNumber: _nullableString(map['account_number']),
+      bankCode: _nullableString(map['bank_code']),
+      quickDebitId: _nullableString(map['quick_debit_identifier']),
+      quickDebitStatus: _asString(map['quick_debit_status']).toLowerCase(),
+    );
+  }
+}
+
+/// Activation account issued when automated collection is initiated: the
+/// contributor sends the confirmation deposit here.
+class QuickDebitActivation {
+  QuickDebitActivation({
+    this.accountName = '',
+    this.accountNumber = '',
+    this.bankName = '',
+    this.expiryDate = '',
+  });
+
+  final String accountName;
+  final String accountNumber;
+  final String bankName;
+  final String expiryDate;
+
+  factory QuickDebitActivation.fromJson(dynamic json) {
+    final map = _asMap(json);
+    return QuickDebitActivation(
+      accountName: _asString(map['account_name']),
+      accountNumber: _asString(map['account_number']),
+      bankName: _asString(map['bank_name']),
+      expiryDate: _asString(map['expiry_date']),
     );
   }
 }

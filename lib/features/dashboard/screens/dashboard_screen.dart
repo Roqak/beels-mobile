@@ -184,23 +184,23 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _GreetingHeader extends StatelessWidget {
+class _GreetingHeader extends ConsumerWidget {
   const _GreetingHeader({required this.profile});
 
   final Profile? profile;
 
-  static String _tagline() {
-    final h = DateTime.now().hour;
-    if (h < 12) return 'Good morning. Here is where you stand.';
-    if (h < 17) return 'Good afternoon. Here is where you stand.';
+  static String _tagline(int hour) {
+    if (hour < 12) return 'Good morning. Here is where you stand.';
+    if (hour < 17) return 'Good afternoon. Here is where you stand.';
     return 'Good evening. Here is where you stand.';
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final firstName = profile?.firstName ?? '';
     final initials = profile?.initials ?? '?';
+    final tagline = _tagline(ref.watch(flowClockProvider)().hour);
     return Row(
       children: [
         Expanded(
@@ -217,7 +217,7 @@ class _GreetingHeader extends StatelessWidget {
               ),
               const SizedBox(height: 2),
               Text(
-                _tagline(),
+                tagline,
                 style: theme.textTheme.bodySmall
                     ?.copyWith(color: BeelsColors.ink2),
               ),

@@ -45,3 +45,6 @@ app.*.map.json
 # Release signing (local only, like USSD)
 *.keystore
 keystore.properties
+
+# Golden test failure artifacts (generated on mismatch)
+test/_visual/failures/

@@ -315,4 +315,82 @@ void main() {
       expect(contributor.canPay, isFalse);
     });
   });
+  group('ContributionContributor auto-debit', () {
+    ContributionContributor fromJson(Map<String, Object?> json) =>
+        Contribution.fromJson({
+          'contributors': [json],
+        }).contributors.single;
+
+    test('parses bank and quick-debit fields with a lowercased status', () {
+      final contributor = fromJson({
+        'id': 3,
+        'status': 'Active',
+        'account_number': '9016323384',
+        'bank_code': '076',
+        'quick_debit_identifier': 'nCFf1kFMUyCWgZ7iIAEz',
+        'quick_debit_status': 'PENDING',
+      });
+      expect(contributor.accountNumber, '9016323384');
+      expect(contributor.bankCode, '076');
+      expect(contributor.quickDebitId, 'nCFf1kFMUyCWgZ7iIAEz');
+      expect(contributor.quickDebitStatus, 'pending');
+      expect(contributor.autoDebitActive, isFalse);
+      expect(contributor.autoDebitPending, isFalse);
+      expect(contributor.canAutoDebit, isTrue);
+    });
+
+    test('in-progress is pending confirmation, not activatable', () {
+      final contributor = fromJson({
+        'quick_debit_identifier': 'nCFf1kFMUyCWgZ7iIAEz',
+        'account_number': '9016323384',
+        'bank_code': '076',
+        'quick_debit_status': 'in_progress',
+      });
+      expect(contributor.autoDebitPending, isTrue);
+      expect(contributor.canAutoDebit, isTrue);
+    });
+
+    test('cannot activate when already active or details are missing', () {
+      final active = fromJson({
+        'quick_debit_identifier': 'x',
+        'account_number': '9016323384',
+        'bank_code': '076',
+        'quick_debit_status': 'active',
+      });
+      expect(active.autoDebitActive, isTrue);
+      expect(active.canAutoDebit, isFalse);
+
+      final noBank = fromJson({
+        'quick_debit_identifier': 'x',
+        'quick_debit_status': 'pending',
+      });
+      expect(noBank.canAutoDebit, isFalse);
+    });
+
+    test('cannot activate in a terminal status', () {
+      final settled = fromJson({
+        'status': 'settled',
+        'quick_debit_identifier': 'x',
+        'account_number': '9016323384',
+        'bank_code': '076',
+        'quick_debit_status': 'pending',
+      });
+      expect(settled.canAutoDebit, isFalse);
+    });
+
+    test('QuickDebitActivation parses the envelope data', () {
+      final activation = QuickDebitActivation.fromJson({
+        'account_name': 'PWA Live Test',
+        'account_number': '9016323384',
+        'bank_name': 'Polaris Bank Limited',
+        'expiry_date': '2026-09-23 20:26:55',
+      });
+      expect(activation.accountName, 'PWA Live Test');
+      expect(activation.bankName, 'Polaris Bank Limited');
+      expect(activation.expiryDate, '2026-09-23 20:26:55');
+
+      expect(QuickDebitActivation.fromJson(null).accountNumber, '');
+    });
+  });
 }
+
