@@ -641,6 +641,7 @@ void main() {
       overrides: [
         beelDetailControllerProvider
             .overrideWith(() => _FakeBeelDetailController()),
+        groupHealthProvider.overrideWith((ref, id) async => null),
       ],
     );
     await expectLater(
@@ -881,6 +882,7 @@ void main() {
         overrides: [
           beelDetailControllerProvider
               .overrideWith(() => _FakeBeelDetailController()),
+          groupHealthProvider.overrideWith((ref, id) async => null),
         ],
       );
       await expectLater(

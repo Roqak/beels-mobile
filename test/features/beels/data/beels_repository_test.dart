@@ -242,6 +242,91 @@ void main() {
       );
     });
   });
+
+  group('groupHealth', () {
+    test('parses the enveloped health body', () async {
+      final client = _FakeApiClient()
+        ..handlers['/group-health/29'] = () => {
+              'statusCode': 200,
+              'message': 'Health report',
+              'data': {
+                'contribution': {'id': 29, 'name': 'Pay Probe Beel'},
+                'report': {
+                  'score': 72,
+                  'risk_level': 'watch',
+                  'shortfall_pct': 25,
+                  'late_contributors_count': 2,
+                  'suggested_interventions': [
+                    {
+                      'key': 'nudge_late_contributors',
+                      'label': 'Nudge late contributors',
+                      'detail': '2 contributors behind.',
+                      'auto_executable': true,
+                    },
+                  ],
+                },
+              },
+            };
+      final repository = BeelsRepository(client);
+
+      final health = await repository.groupHealth(29);
+
+      expect(client.calls.single.path, '/group-health/29');
+      expect(health!.score, 72);
+      expect(health.riskLevel, 'watch');
+      expect(health.interventions.single.autoExecutable, isTrue);
+    });
+
+    test('parses a bare non-enveloped body', () async {
+      final client = _FakeApiClient()
+        ..handlers['/group-health/29'] = () => {
+              'contribution': {'id': 29},
+              'report': {'score': 55, 'risk_level': 'at_risk'},
+            };
+      final repository = BeelsRepository(client);
+
+      final health = await repository.groupHealth(29);
+
+      expect(health!.score, 55);
+      expect(health.riskLevel, 'at_risk');
+    });
+
+    test('returns null when no report exists in the body', () async {
+      final client = _FakeApiClient()
+        ..handlers['/group-health/29'] = () => {
+              'contribution': {'id': 29},
+            };
+      final repository = BeelsRepository(client);
+
+      expect(await repository.groupHealth(29), isNull);
+    });
+  });
+
+  group('intervene', () {
+    test('posts the intervention key and parses the nudge counters',
+        () async {
+      final client = _FakeApiClient()
+        ..handlers['/group-health/29/intervene'] = () => {
+              'executed': true,
+              'intervention': 'nudge_late_contributors',
+              'nudged': 2,
+              'total_late': 3,
+            };
+      final repository = BeelsRepository(client);
+
+      final result = await repository.intervene(
+        29,
+        interventionKey: 'nudge_late_contributors',
+      );
+
+      expect(client.calls.single.path, '/group-health/29/intervene');
+      expect(client.calls.single.body,
+          {'intervention_key': 'nudge_late_contributors'});
+      expect(result.executed, isTrue);
+      expect(result.nudged, 2);
+      expect(result.totalLate, 3);
+    });
+  });
 }
 
 class _FakeApiClient implements ApiClient {

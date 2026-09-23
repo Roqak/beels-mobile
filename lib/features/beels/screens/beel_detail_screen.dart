@@ -15,6 +15,7 @@ import '../../auth/controllers/session_lock_controller.dart';
 import '../controllers/beels_controllers.dart';
 import '../data/beels_repository.dart';
 import '../models/contribution.dart';
+import '../models/group_health.dart';
 
 /// Detail screen for a single beel: header, contributors, beneficiaries,
 /// and organizer actions (cancel / retry / share payment link).
@@ -211,7 +212,7 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
                       },
               ),
             ),
-            const SizedBox(height: 24),
+            _GroupHealthSection(beelId: widget.id),
             SectionHeader('Beneficiaries',
                 action: _CountBadge(beel.beneficiaries.length)),
             if (beel.beneficiaries.isEmpty)
@@ -711,6 +712,236 @@ class _ContributorTile extends StatelessWidget {
     final last = parts.length > 1 ? parts.last[0] : '';
     return (first + last).toUpperCase();
   }
+}
+
+class _GroupHealthSection extends ConsumerStatefulWidget {
+  const _GroupHealthSection({required this.beelId});
+
+  final int beelId;
+
+  @override
+  ConsumerState<_GroupHealthSection> createState() =>
+      _GroupHealthSectionState();
+}
+
+class _GroupHealthSectionState extends ConsumerState<_GroupHealthSection> {
+  bool _busy = false;
+
+  Future<void> _intervene(SuggestedIntervention intervention) async {
+    if (_busy) return;
+    setState(() => _busy = true);
+    try {
+      final result = await ref
+          .read(beelsRepositoryProvider)
+          .intervene(widget.beelId, interventionKey: intervention.key);
+      if (!mounted) return;
+      final nudged = result.nudged;
+      final totalLate = result.totalLate;
+      if (result.executed && nudged != null && totalLate != null) {
+        _showSnack('Nudge sent to $nudged of $totalLate late contributors.');
+      } else if (result.message.isNotEmpty) {
+        _showSnack(result.message);
+      } else {
+        _showSnack('${intervention.label} done.');
+      }
+      ref.invalidate(groupHealthProvider(widget.beelId));
+      await ref
+          .read(beelDetailControllerProvider(widget.beelId).notifier)
+          .refresh();
+    } on ApiException catch (error) {
+      if (mounted) _showSnack(error.message, isError: true);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  void _showSnack(String message, {bool isError = false}) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: isError ? BeelsColors.err : BeelsColors.ok,
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final health = ref.watch(groupHealthProvider(widget.beelId));
+
+    return health.when(
+      loading: () => const SizedBox.shrink(),
+      // Unknown (404 on older backends) or failed loads degrade to nothing:
+      // the beel itself is still fully usable.
+      error: (_, __) => const SizedBox.shrink(),
+      data: (report) {
+        if (report == null) return const SizedBox.shrink();
+        final score = report.score;
+        final risk = report.riskLevel;
+        final shortfall = report.shortfallPct;
+        final lateCount = report.lateContributorsCount ?? 0;
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 24),
+            const SectionHeader('Group health'),
+            const SizedBox(height: 10),
+            SurfaceCard(
+              padding: const EdgeInsets.all(14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text(
+                        score == null ? '--' : score.round().toString(),
+                        style: Theme.of(context)
+                            .textTheme
+                            .headlineMedium
+                            ?.copyWith(fontWeight: FontWeight.w800),
+                      ),
+                      const SizedBox(width: 10),
+                      StatusChip(
+                        label: _riskLabel(risk),
+                        kind: _riskKind(risk),
+                      ),
+                      const Spacer(),
+                      Text(
+                        _forecastLine(report),
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodySmall
+                            ?.copyWith(color: BeelsColors.ink2),
+                      ),
+                    ],
+                  ),
+                  if (lateCount > 0 || (shortfall ?? 0) > 0) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      [
+                        if (lateCount > 0)
+                          '$lateCount late contributor${lateCount == 1 ? '' : 's'}',
+                        if ((shortfall ?? 0) > 0)
+                          '${_plainNum(shortfall!)}% collection shortfall',
+                      ].join('  ·  '),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: BeelsColors.ink2),
+                    ),
+                  ],
+                  for (final intervention in report.interventions) ...[
+                    const SizedBox(height: 10),
+                    if (intervention.autoExecutable)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  intervention.label,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .bodyMedium
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                                if (intervention.detail.isNotEmpty)
+                                  Text(
+                                    intervention.detail,
+                                    style: Theme.of(context)
+                                        .textTheme
+                                        .bodySmall
+                                        ?.copyWith(color: BeelsColors.ink2),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _busy
+                              ? const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(
+                                      strokeWidth: 2),
+                                )
+                              : TextButton(
+                                  onPressed: () => _intervene(intervention),
+                                  child: const Text('Run'),
+                                ),
+                        ],
+                      )
+                    else
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            intervention.label,
+                            style: Theme.of(context)
+                                .textTheme
+                                .bodyMedium
+                                ?.copyWith(fontWeight: FontWeight.w600),
+                          ),
+                          if (intervention.detail.isNotEmpty)
+                            Text(
+                              intervention.detail,
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .bodySmall
+                                  ?.copyWith(color: BeelsColors.ink2),
+                            ),
+                        ],
+                      ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
+        );
+      },
+    );
+  }
+
+  static String _riskLabel(String risk) {
+    switch (risk) {
+      case 'healthy':
+        return 'Healthy';
+      case 'watch':
+        return 'Watch';
+      case 'at_risk':
+        return 'At risk';
+      case 'critical':
+        return 'Critical';
+      default:
+        return 'Health';
+    }
+  }
+
+  static StatusKind _riskKind(String risk) {
+    switch (risk) {
+      case 'healthy':
+        return StatusKind.ok;
+      case 'watch':
+        return StatusKind.warn;
+      case 'at_risk':
+      case 'critical':
+        return StatusKind.err;
+      default:
+        return StatusKind.muted;
+    }
+  }
+
+  static String _forecastLine(GroupHealth report) {
+    final forecast = report.forecastHitTarget;
+    if (forecast == null) return '';
+    return forecast ? 'On pace for target' : 'Off pace for target';
+  }
+
+  static String _plainNum(num n) =>
+      n == n.roundToDouble() ? n.round().toString() : n.toStringAsFixed(1);
 }
 
 class _BeneficiaryTile extends StatelessWidget {

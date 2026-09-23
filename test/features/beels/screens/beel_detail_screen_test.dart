@@ -11,6 +11,7 @@ import 'package:beels_mobile/features/beels/models/contribution.dart';
 import 'package:beels_mobile/features/beels/screens/beel_detail_screen.dart';
 import 'package:beels_mobile/core/api/paginated.dart';
 import 'package:beels_mobile/features/beels/data/beels_repository.dart';
+import 'package:beels_mobile/features/beels/models/group_health.dart';
 import 'package:beels_mobile/features/payments/data/payments_repository.dart';
 
 import 'package:beels_mobile/features/payments/models/bank.dart';
@@ -76,6 +77,28 @@ Contribution _beel() => Contribution.fromJson({
       'beneficiaries': [],
     });
 
+GroupHealth _healthFixture() => GroupHealth.fromJson({
+      'score': 72,
+      'risk_level': 'watch',
+      'forecast_hit_target': true,
+      'shortfall_pct': 25,
+      'late_contributors_count': 2,
+      'suggested_interventions': [
+        {
+          'key': 'nudge_late_contributors',
+          'label': 'Nudge late contributors',
+          'detail': 'Send a reminder to the 2 contributor(s) behind.',
+          'auto_executable': true,
+        },
+        {
+          'key': 'extend_cycle',
+          'label': 'Extend the cycle by 1 month',
+          'detail': 'The beel is 25% short.',
+          'auto_executable': false,
+        },
+      ],
+    });
+
 class _FakePaymentsRepository implements PaymentsRepository {
   final List<String> initializedIds = <String>[];
   String initializeResult = 'https://checkout.flutterwave.com/pay/abc';
@@ -119,6 +142,8 @@ class _FakePaymentsRepository implements PaymentsRepository {
 }
 
 class _FakeBeelsRepository implements BeelsRepository {
+  GroupHealth? health;
+  final List<String> intervenedKeys = <String>[];
   final List<({String identifier, String bankCode, String accountNumber})>
       activations = <({String identifier, String bankCode, String accountNumber})>[];
   Object? activationError;
@@ -193,6 +218,18 @@ class _FakeBeelsRepository implements BeelsRepository {
 
   @override
   Future<List<Participation>> myParticipation() async => <Participation>[];
+
+  @override
+  Future<GroupHealth?> groupHealth(int id) async => health;
+
+  @override
+  Future<InterveneResult> intervene(
+    int id, {
+    required String interventionKey,
+  }) async {
+    intervenedKeys.add(interventionKey);
+    return const InterveneResult(executed: true, nudged: 2, totalLate: 3);
+  }
 }
 
 Future<void> _pump(
@@ -200,6 +237,7 @@ Future<void> _pump(
   required _FakePaymentsRepository repository,
   _FakeBeelsRepository? beels,
 }) async {
+  final beelsRepo = beels ?? _FakeBeelsRepository();
   await tester.pumpWidget(
     ProviderScope(
       overrides: [
@@ -207,8 +245,10 @@ Future<void> _pump(
           () => _FakeBeelDetailController(),
         ),
         paymentsRepositoryProvider.overrideWithValue(repository),
-        beelsRepositoryProvider
-            .overrideWithValue(beels ?? _FakeBeelsRepository()),
+        beelsRepositoryProvider.overrideWithValue(beelsRepo),
+        groupHealthProvider.overrideWith(
+          (ref, id) async => beelsRepo.health,
+        ),
       ],
       child: const MaterialApp(home: BeelDetailScreen(id: 27)),
     ),
@@ -328,5 +368,51 @@ void main() {
     expect(find.text('Set up auto-debit'), findsOneWidget);
     expect(find.text('Show account'), findsNothing);
   });
+  testWidgets('group health card shows score, risk and suggested nudge',
+      (tester) async {
+    final beels = _FakeBeelsRepository()..health = _healthFixture();
+    await _pump(
+      tester,
+      repository: _FakePaymentsRepository(),
+      beels: beels,
+    );
+
+    expect(find.text('Group health'), findsOneWidget);
+    expect(find.text('72'), findsOneWidget);
+    expect(find.text('Watch'), findsOneWidget);
+    expect(find.text('Nudge late contributors'), findsOneWidget);
+    expect(find.text('Run'), findsOneWidget);
+  });
+
+  testWidgets('nudge calls the intervention and surfaces the counters',
+      (tester) async {
+    final beels = _FakeBeelsRepository()..health = _healthFixture();
+    await _pump(
+      tester,
+      repository: _FakePaymentsRepository(),
+      beels: beels,
+    );
+
+    await tester.ensureVisible(find.text('Run'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Run'));
+    await tester.pumpAndSettle();
+
+    expect(beels.intervenedKeys, ['nudge_late_contributors']);
+    expect(find.text('Nudge sent to 2 of 3 late contributors.'),
+        findsOneWidget);
+  });
+
+  testWidgets('no health report hides the whole section', (tester) async {
+    await _pump(
+      tester,
+      repository: _FakePaymentsRepository(),
+      beels: _FakeBeelsRepository(),
+    );
+
+    expect(find.text('Group health'), findsNothing);
+    expect(find.text('Run'), findsNothing);
+  });
 }
+
 

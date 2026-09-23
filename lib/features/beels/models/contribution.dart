@@ -312,6 +312,9 @@ class Participation {
     this.name = '',
     this.unitAmount,
     this.amountPaid,
+    this.outstanding,
+    this.pendingCount,
+    this.lastPaymentAt,
     this.status = '',
     this.nextOccurrence,
   });
@@ -320,6 +323,13 @@ class Participation {
   final String name;
   final num? unitAmount;
   final num? amountPaid;
+
+  /// What is still owed for cycles already elapsed.
+  final num? outstanding;
+
+  /// Cycles not yet paid.
+  final int? pendingCount;
+  final DateTime? lastPaymentAt;
   final String status;
   final DateTime? nextOccurrence;
 
@@ -333,6 +343,9 @@ class Participation {
       unitAmount: _nullableNum(map['expected_amount']) ??
           _nullableNum(map['unit_amount']),
       amountPaid: _nullableNum(map['amount_paid']),
+      outstanding: _nullableNum(map['outstanding']),
+      pendingCount: _nullableInt(map['pending_count']),
+      lastPaymentAt: _nullableDate(map['last_payment_at']),
       status: _asString(map['status']),
       nextOccurrence: _nullableDate(
         map['next_occurrence'] ?? contribution['next_occurrence'],

@@ -2,9 +2,11 @@ import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../core/api/api_exception.dart';
 import '../../../core/api/paginated.dart';
 import '../data/beels_repository.dart';
 import '../models/contribution.dart';
+import '../models/group_health.dart';
 
 /// Cumulative state for the paginated beels list.
 class BeelsListState {
@@ -205,3 +207,22 @@ class CreateBeelController extends AsyncNotifier<Contribution?> {
 final createBeelControllerProvider =
     AsyncNotifierProvider<CreateBeelController, Contribution?>(
         CreateBeelController.new);
+
+/// Beels the signed-in user pays into (member view).
+final myParticipationProvider =
+    FutureProvider.autoDispose<List<Participation>>((ref) async {
+  return ref.watch(beelsRepositoryProvider).myParticipation();
+});
+
+/// Latest group-health report for a beel. Older backends without the
+/// group-health module answer 404; that degrades to "no health card" rather
+/// than an error surface.
+final groupHealthProvider =
+    FutureProvider.autoDispose.family<GroupHealth?, int>((ref, id) async {
+  try {
+    return await ref.watch(beelsRepositoryProvider).groupHealth(id);
+  } on ApiException catch (error) {
+    if (error.statusCode == 404) return null;
+    rethrow;
+  }
+});

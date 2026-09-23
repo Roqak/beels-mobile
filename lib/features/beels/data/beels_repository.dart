@@ -5,6 +5,7 @@ import '../../../core/api/envelope.dart';
 import '../../../core/api/paginated.dart';
 import '../../../core/providers.dart';
 import '../models/contribution.dart';
+import '../models/group_health.dart';
 
 /// Backend access for beels (contributions).
 class BeelsRepository {
@@ -184,6 +185,35 @@ class BeelsRepository {
   Future<List<Participation>> myParticipation() async {
     final json = await _client.get('/contributions/my-participation');
     return envelopeList(json, Participation.fromJson);
+  }
+
+  /// GET /group-health/:id — latest health report for a beel. Tolerates both
+  /// the enveloped `{data: {contribution, report}}` and a bare
+  /// `{contribution, report}` body.
+  Future<GroupHealth?> groupHealth(int id) async {
+    final json = await _client.get('/group-health/$id');
+    final body = json is Map && json['data'] is Map
+        ? json['data'] as Map
+        : (json is Map ? json : null);
+    final report = body?['report'];
+    if (report is! Map) return null;
+    return GroupHealth.fromJson(report);
+  }
+
+  /// POST /group-health/:id/intervene — executes a suggested intervention
+  /// (nudge / broadcast run immediately).
+  Future<InterveneResult> intervene(
+    int id, {
+    required String interventionKey,
+  }) async {
+    final json = await _client.post(
+      '/group-health/$id/intervene',
+      body: {'intervention_key': interventionKey},
+    );
+    final data = json is Map
+        ? (json['data'] is Map ? json['data'] as Map : json)
+        : const {};
+    return InterveneResult.fromJson(data);
   }
 }
 

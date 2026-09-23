@@ -17,6 +17,7 @@ import '../features/groups/screens/group_detail_screen.dart';
 import '../features/groups/screens/groups_screen.dart';
 import '../features/payments/screens/mandate_list_screen.dart';
 import '../features/payments/screens/mandate_setup_screen.dart';
+import '../features/beels/screens/my_participation_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/transactions/screens/transactions_screen.dart';
@@ -121,6 +122,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
+      ),
+      GoRoute(
+        path: '/participation',
+        builder: (context, state) => const MyParticipationScreen(),
       ),
       GoRoute(
         path: '/mandates',

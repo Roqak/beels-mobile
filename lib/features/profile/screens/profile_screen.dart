@@ -249,6 +249,18 @@ class _ProfileContentState extends ConsumerState<_ProfileContent> {
           const SizedBox(height: 10),
           const _BiometricTile(),
           const SizedBox(height: 28),
+          const SectionHeader('Participation'),
+          const SizedBox(height: 10),
+          SurfaceCard(
+            padding: EdgeInsets.zero,
+            child: _SettingsRow(
+              icon: Icons.savings_outlined,
+              title: 'Beels I pay into',
+              subtitle: 'Your dues, outstanding amounts and next payments.',
+              onTap: () => context.push('/participation'),
+            ),
+          ),
+          const SizedBox(height: 28),
           const SectionHeader('Direct debit'),
           const SizedBox(height: 10),
           SurfaceCard(
