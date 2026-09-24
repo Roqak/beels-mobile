@@ -411,20 +411,6 @@ void main() {
     });
   });
   group('kobo-exact validation', () {
-    BeelDraft customContributors(List<String> amounts) => BeelDraft(
-          mode: BeelMode.closed,
-          name: 'Probe',
-          amount: '200',
-          recurrenceType: 'weekly',
-          contributorSplit: ContributorSplit.custom,
-          contributors: [
-            for (var i = 0; i < 3; i++)
-              DraftContributor(id: i, firstName: 'P$i', amount: amounts[i]),
-          ],
-          beneficiaries: [DraftBeneficiary(id: 0, type: 'airtime', name: 'X')],
-          nextId: 4,
-        );
-
     test('accepts custom amounts that sum to the target only in exact kobo',
         () {
       final errors = validatePeople(const BeelDraft(

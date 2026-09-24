@@ -1,7 +1,7 @@
 name: beels_mobile
 description: Beels — digital ajo/esusu group savings.
 publish_to: 'none'
-version: 0.15.0+16
+version: 0.15.1+17
 
 environment:
   sdk: '>=3.4.0 <4.0.0'
