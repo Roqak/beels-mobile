@@ -14,6 +14,7 @@ class PreferencesStore {
   static const _hideBalancesKey = 'beels_hide_balances';
   static const _declinesKey = 'beels_biometric_offer_declines';
   static const _autoLockKey = 'beels_auto_lock_seconds';
+  static const _beelDraftKey = 'beels_beel_draft';
 
   Future<bool> hideBalances() async {
     try {
@@ -57,6 +58,26 @@ class PreferencesStore {
   Future<void> setAutoLockSeconds(int value) async {
     try {
       await _storage.write(key: _autoLockKey, value: '$value');
+    } catch (_) {}
+  }
+
+  /// Serialized in-progress beel draft ('' when none).
+  Future<String?> beelDraft() async {
+    try {
+      final v = await _storage.read(key: _beelDraftKey);
+      return (v == null || v.isEmpty) ? null : v;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  Future<void> setBeelDraft(String? json) async {
+    try {
+      if (json == null || json.isEmpty) {
+        await _storage.delete(key: _beelDraftKey);
+      } else {
+        await _storage.write(key: _beelDraftKey, value: json);
+      }
     } catch (_) {}
   }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../core/api/api_exception.dart';
 import 'package:flutter/services.dart';
 import 'package:beels_mobile/core/theme.dart';
 import '../../auth/controllers/session_lock_controller.dart';
@@ -39,7 +38,7 @@ class MandateListScreen extends ConsumerWidget {
           ),
         ),
         error: (error, _) => ErrorView(
-          error: error as ApiException,
+          error: error,
           onRetry: () =>
               ref.read(mandatesControllerProvider.notifier).refresh(),
         ),

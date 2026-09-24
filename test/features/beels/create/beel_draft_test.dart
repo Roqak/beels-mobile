@@ -410,4 +410,144 @@ void main() {
           containsAll(['contributor_0_amount', 'contributor_1_amount']));
     });
   });
+  group('kobo-exact validation', () {
+    BeelDraft customContributors(List<String> amounts) => BeelDraft(
+          mode: BeelMode.closed,
+          name: 'Probe',
+          amount: '200',
+          recurrenceType: 'weekly',
+          contributorSplit: ContributorSplit.custom,
+          contributors: [
+            for (var i = 0; i < 3; i++)
+              DraftContributor(id: i, firstName: 'P$i', amount: amounts[i]),
+          ],
+          beneficiaries: [DraftBeneficiary(id: 0, type: 'airtime', name: 'X')],
+          nextId: 4,
+        );
+
+    test('accepts custom amounts that sum to the target only in exact kobo',
+        () {
+      final errors = validatePeople(const BeelDraft(
+        mode: BeelMode.closed,
+        name: 'Probe',
+        amount: '200',
+        recurrenceType: 'weekly',
+        contributorSplit: ContributorSplit.custom,
+        contributors: [
+          DraftContributor(id: 1, firstName: 'A', amount: '100.10'),
+          DraftContributor(id: 2, firstName: 'B', amount: '50.05'),
+          DraftContributor(id: 3, firstName: 'B', amount: '49.85'),
+        ],
+        beneficiaries: [DraftBeneficiary(id: 0, type: 'airtime', name: 'Air')],
+        nextId: 4,
+      ));
+      expect(errors['people'], isNull);
+    });
+
+    test('still rejects amounts that genuinely do not add up', () {
+      final errors = validatePeople(const BeelDraft(
+        mode: BeelMode.closed,
+        name: 'Probe',
+        amount: '200',
+        recurrenceType: 'weekly',
+        contributorSplit: ContributorSplit.custom,
+        contributors: [
+          DraftContributor(
+              id: 1,
+              firstName: 'A',
+              lastName: 'B',
+              email: 'a@x.ng',
+              phone: '08012345678',
+              amount: '100'),
+          DraftContributor(
+              id: 2,
+              firstName: 'B',
+              lastName: 'C',
+              email: 'b@x.ng',
+              phone: '08012345679',
+              amount: '50.01'),
+          DraftContributor(
+              id: 3,
+              firstName: 'C',
+              lastName: 'D',
+              email: 'c@x.ng',
+              phone: '08012345670',
+              amount: '50'),
+        ],
+        beneficiaries: [DraftBeneficiary(id: 0, type: 'airtime', name: 'X')],
+        nextId: 4,
+      ));
+      expect(errors['people'], isNotNull);
+    });
+
+    test('payout sums compare in exact kobo', () {
+      final errors = validatePayout(const BeelDraft(
+        mode: BeelMode.closed,
+        name: 'Probe',
+        amount: '200',
+        recurrenceType: 'weekly',
+        contributors: [DraftContributor(id: 1, firstName: 'A')],
+        beneficiaries: [
+          DraftBeneficiary(id: 0, name: 'A', accountNumber: '1', bankCode: '058'),
+          DraftBeneficiary(id: 1, name: 'B', accountNumber: '2', bankCode: '044', amount: '50.05'),
+        ],
+        nextId: 2,
+      ));
+      expect(errors['payout'], isNull);
+    });
+  });
+
+  group('draft persistence roundtrip', () {
+    test('toJson/fromJson preserves every field', () {
+      const draft = BeelDraft(
+        mode: BeelMode.open,
+        name: 'Christmas Ajo',
+        amount: '5000',
+        recurrenceType: 'monthly',
+        dayOfWeek: 'friday',
+        dayOfMonth: 5,
+        contributors: [
+          DraftContributor(id: 7, firstName: 'Ada', lastName: 'Okafor',
+              email: 'ada@x.ng', phone: '0801', amount: '2500'),
+        ],
+        beneficiaries: [
+          DraftBeneficiary(id: 9, type: 'airtime', name: 'Ada',
+              serviceNumber: '0802', amount: '5000'),
+        ],
+        contributorSplit: ContributorSplit.custom,
+        openSplit: OpenSplit.fixed,
+        perContributor: '1000',
+        expectedContributors: '12',
+        nextId: 10,
+      );
+
+      final restored = draftFromJson(draftToJson(draft));
+      expect(restored.mode, BeelMode.open);
+      expect(restored.name, 'Christmas Ajo');
+      expect(restored.amount, '5000');
+      expect(restored.recurrenceType, 'monthly');
+      expect(restored.dayOfMonth, 5);
+      expect(restored.contributorSplit, ContributorSplit.custom);
+      expect(restored.openSplit, OpenSplit.fixed);
+      expect(restored.perContributor, '1000');
+      expect(restored.expectedContributors, '12');
+      expect(restored.nextId, 10);
+      expect(restored.contributors.single.amount, '2500');
+      expect(restored.contributors.single.phone, '0801');
+      expect(restored.beneficiaries.single.type, 'airtime');
+      expect(restored.beneficiaries.single.serviceNumber, '0802');
+    });
+
+    test('tolerates a malformed saved payload with defaults', () {
+      final restored = draftFromJson('garbage');
+      expect(restored.name, '');
+      expect(restored.contributors, isEmpty);
+      expect(restored.beneficiaries, isEmpty);
+    });
+
+    test('isDirty stays false for a pristine restored draft', () {
+      expect(draftFromJson(draftToJson(const BeelDraft())).isDirty, isFalse);
+    });
+  });
+
 }

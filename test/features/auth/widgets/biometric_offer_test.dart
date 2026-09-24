@@ -28,6 +28,12 @@ class _Prefs implements PreferencesStore {
   Future<int> biometricOfferDeclines() async => declines;
 
   @override
+  Future<String?> beelDraft() async => null;
+
+  @override
+  Future<void> setBeelDraft(String? json) async {}
+
+  @override
   Future<void> setBiometricOfferDeclines(int value) async => declines = value;
 
   int? autoLock;

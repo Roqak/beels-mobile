@@ -101,6 +101,15 @@ final groupsRepositoryProvider = Provider<GroupsRepository>((ref) {
 class GroupsController extends AsyncNotifier<List<Group>> {
   @override
   FutureOr<List<Group>> build() => ref.watch(groupsRepositoryProvider).list();
+
+  /// Pull-to-refresh that keeps the current list on screen instead of
+  /// flashing back to a skeleton.
+  Future<void> refresh() async {
+    state = const AsyncLoading<List<Group>>().copyWithPrevious(state);
+    state = await AsyncValue.guard(
+      () => ref.read(groupsRepositoryProvider).list(),
+    );
+  }
 }
 
 final groupsListProvider =

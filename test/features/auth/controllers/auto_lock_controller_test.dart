@@ -15,6 +15,12 @@ class _Prefs implements PreferencesStore {
   Future<int?> autoLockSeconds() async => saved;
 
   @override
+  Future<String?> beelDraft() async => null;
+
+  @override
+  Future<void> setBeelDraft(String? json) async {}
+
+  @override
   Future<void> setAutoLockSeconds(int value) async {
     saved = value;
     writes++;

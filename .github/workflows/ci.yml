@@ -30,13 +30,14 @@ jobs:
       - name: Tests
         run: flutter test
 
-      - name: Assemble release APK
-        # No keystore.properties on CI: falls back to debug signing.
-        run: flutter build apk --release
+      - name: Assemble debug APK (smoke build)
+        # Release builds fail fast without the (local-only) release
+        # keystore; CI smoke-builds the debug variant instead.
+        run: flutter build apk --debug
 
       - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: beels-release-apk
-          path: build/app/outputs/flutter-apk/app-release.apk
+          name: beels-apk
+          path: build/app/outputs/flutter-apk/app-debug.apk
           if-no-files-found: error

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -157,6 +159,7 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
   Future<void> _maybeLeave() async {
     final dirty = ref.read(beelDraftProvider).isDirty;
     if (!dirty || await _confirmDiscard()) {
+      if (dirty) unawaited(ref.read(beelDraftProvider.notifier).discard());
       if (mounted) context.pop();
     }
   }
@@ -197,6 +200,8 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
           beneficiaries: d.toBeneficiaryInputs(),
         );
       }
+      // Clear the persisted draft: the beel now exists server-side.
+      unawaited(ref.read(beelDraftProvider.notifier).discard());
       if (!mounted) return;
       setState(() {
         _created = created;
@@ -268,7 +273,10 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
       onPopInvoked: (didPop) async {
         if (didPop) return;
         final discard = await _confirmDiscard();
-        if (discard && context.mounted) context.pop();
+        if (discard) {
+          unawaited(ref.read(beelDraftProvider.notifier).discard());
+          if (context.mounted) context.pop();
+        }
       },
       child: Scaffold(
         backgroundColor: BeelsColors.surface,

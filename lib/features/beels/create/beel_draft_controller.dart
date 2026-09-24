@@ -1,19 +1,61 @@
+import 'dart:async';
+import 'dart:convert';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../core/contacts/contact_picker.dart';
+import '../../../core/storage/preferences_store.dart';
 import 'beel_draft.dart';
 
-/// Holds the beel being created. Auto-disposed, so leaving the flow discards
-/// the draft; steps read it with `ref.watch` and change it through here.
+/// Holds the beel being created. The draft is persisted after every change,
+/// so a phone call, app kill or background reclaim does not destroy typed
+/// data; it is cleared on successful creation or explicit discard.
 class BeelDraftController extends AutoDisposeNotifier<BeelDraft> {
-  @override
-  BeelDraft build() => const BeelDraft(
-        // Everyone needs at least one payout, so start with one.
-        beneficiaries: [DraftBeneficiary(id: 0)],
-        nextId: 1,
-      );
+  static const _empty = BeelDraft(
+    // Everyone needs at least one payout, so start with one.
+    beneficiaries: [DraftBeneficiary(id: 0)],
+    nextId: 1,
+  );
 
-  void _set(BeelDraft next) => state = next;
+  final PreferencesStore _store = PreferencesStore();
+
+  @override
+  BeelDraft build() {
+    scheduleMicrotask(_restore);
+    return _empty;
+  }
+
+  /// Restores a saved draft only while the fresh state is still untouched.
+  Future<void> _restore() async {
+    final raw = await _store.beelDraft();
+    if (raw == null) return;
+    final saved = draftFromJson(jsonDecode(raw));
+    if (!saved.isDirty) return;
+    if (!ref.exists(beelDraftProvider)) return;
+    if (state.isDirty) return; // user already typed; keep theirs
+    state = saved;
+  }
+
+  Future<void> _save(BeelDraft d) async {
+    if (!d.isDirty) {
+      await _store.setBeelDraft(null);
+    } else {
+      await _store.setBeelDraft(jsonEncode(draftToJson(d)));
+    }
+  }
+
+  /// Clears the saved draft and resets the wizard state.
+  Future<void> discard() async {
+    await _store.setBeelDraft(null);
+    if (ref.exists(beelDraftProvider)) {
+      state = _empty;
+    }
+  }
+
+  void _set(BeelDraft next) {
+    state = next;
+    unawaited(_save(next));
+  }
 
   // -- basics -------------------------------------------------------------
 

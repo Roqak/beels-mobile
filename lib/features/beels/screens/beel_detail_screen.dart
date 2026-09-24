@@ -633,6 +633,9 @@ class _ContributorTile extends StatelessWidget {
                       ),
                       if (onPay != null)
                         TextButton(
+                          style: TextButton.styleFrom(
+                            minimumSize: const Size(44, 44),
+                          ),
                           onPressed: payBusy ? null : onPay,
                           child: payBusy
                               ? const SizedBox(

@@ -98,7 +98,9 @@ class DashboardController extends AsyncNotifier<DashboardData> {
   }
 
   Future<void> refresh() async {
-    state = const AsyncLoading<DashboardData>();
+    // Keep the previous data on screen: a refresh flashes the whole page
+    // back to a skeleton otherwise.
+    state = const AsyncLoading<DashboardData>().copyWithPrevious(state);
     state = await AsyncValue.guard(() async {
       final repo = ref.read(dashboardRepositoryProvider);
       final analyticsFuture = repo.analytics();

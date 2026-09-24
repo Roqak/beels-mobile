@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../core/api/api_exception.dart';
 import '../../../core/theme.dart';
 import '../../../core/widgets/common.dart';
 import '../controllers/mandates_controller.dart';
@@ -32,7 +31,7 @@ class BankPickerField extends ConsumerWidget {
         child: SkeletonBox(height: 52, radius: 10),
       ),
       error: (error, _) => ErrorView(
-        error: error as ApiException,
+        error: error,
         onRetry: () => ref.invalidate(banksProvider),
       ),
       data: (rows) => InkWell(

@@ -36,7 +36,7 @@ class GroupsScreen extends ConsumerWidget {
           onRetry: () => ref.invalidate(groupsListProvider),
         ),
         data: (groups) => RefreshIndicator(
-          onRefresh: () async => ref.invalidate(groupsListProvider),
+          onRefresh: () => ref.read(groupsListProvider.notifier).refresh(),
           child: groups.isEmpty
               ? ListView(
                   physics: const AlwaysScrollableScrollPhysics(),

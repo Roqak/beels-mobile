@@ -83,9 +83,9 @@ class BeelsPalette {
     borderStrong: Color(0xFFD5D5DF),
     ink0: Color(0xFF21222D),
     ink1: Color(0xFF5B5D6B),
-    ink2: Color(0xFF7B7D8C),
-    ink3: Color(0xFF9DA0AE),
-    hint: Color(0xFF8A8C99),
+    ink2: Color(0xFF6B6D7C),
+    ink3: Color(0xFF6E7082),
+    hint: Color(0xFF6B6D7C),
     ok: Color(0xFF1F7A4D),
     okSoft: Color(0xFFEAF6F0),
     warn: Color(0xFFB0700F),
@@ -98,7 +98,7 @@ class BeelsPalette {
   // dye hero surfaces lifted so they still separate from the page.
   static const dark = BeelsPalette(
     brightness: Brightness.dark,
-    accent: Color(0xFF6F67F5),
+    accent: Color(0xFF7B74F7),
     accentHover: Color(0xFF8F89FF),
     accentSoft: Color(0xFF26244F),
     dye: Color(0xFF211F5C),

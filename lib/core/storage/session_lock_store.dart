@@ -12,8 +12,13 @@ class SessionLockStore {
 
   static const _enabledKey = 'beels_biometric_enabled';
 
-  Future<bool> enabled() async =>
-      await _storage.read(key: _enabledKey) == 'true';
+  Future<bool> enabled() async {
+    try {
+      return await _storage.read(key: _enabledKey) == 'true';
+    } on Object {
+      return false;
+    }
+  }
 
   Future<void> setEnabled(bool value) =>
       _storage.write(key: _enabledKey, value: value ? 'true' : 'false');

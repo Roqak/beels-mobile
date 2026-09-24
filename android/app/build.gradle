@@ -67,10 +67,15 @@ android {
 
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            signingConfig = keystoreProps.getProperty("storeFile") != null
-                ? signingConfigs.release
-                : signingConfigs.debug
+            // A debug-signed 'release' APK cannot be upgraded by a real
+            // store release and vice versa: fail instead of silently
+            // mis-signing. CI builds a debug APK for smoke purposes.
+            if (keystoreProps.getProperty("storeFile") == null) {
+                throw new GradleException(
+                    'Release keystore missing: android/keystore.properties '
+                    + 'must define storeFile (gitignored, local-only).')
+            }
+            signingConfig = signingConfigs.release
         }
     }
 }

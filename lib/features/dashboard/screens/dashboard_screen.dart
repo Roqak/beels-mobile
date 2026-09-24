@@ -304,7 +304,7 @@ class _HeroPanel extends StatelessWidget {
                       onTap: onToggleHidden,
                       semanticLabel: hidden ? 'Show balances' : 'Hide balances',
                       child: Padding(
-                        padding: const EdgeInsets.all(8),
+                        padding: const EdgeInsets.all(12),
                         child: Icon(
                           hidden
                               ? Icons.visibility_off_outlined

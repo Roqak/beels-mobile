@@ -203,11 +203,11 @@ class BeelDraft {
   }
 
   num get contributorTotal {
-    var sum = 0.0;
+    var kobo = 0;
     for (var i = 0; i < contributors.length; i++) {
-      sum += effectiveContributorAmount(i) ?? 0;
+      kobo += _kobo(effectiveContributorAmount(i) ?? 0);
     }
-    return sum;
+    return kobo / 100;
   }
 
   /// Target minus what contributors are assigned (negative = over-assigned).
@@ -226,13 +226,13 @@ class BeelDraft {
   /// Sum of beneficiary amounts, or null when some row has none (services
   /// carry no amount, so the total cannot be checked).
   num? get payoutTotal {
-    var sum = 0.0;
+    var kobo = 0;
     for (final b in beneficiaries) {
       final a = effectiveBeneficiaryAmount(b);
       if (a == null) return null;
-      sum += a;
+      kobo += _kobo(a);
     }
-    return sum;
+    return kobo / 100;
   }
 
   /// What one person pays on an open-link beel, when it can be worked out.
@@ -342,7 +342,7 @@ Map<String, String> validatePeople(BeelDraft d) {
   }
   if (errors.isEmpty &&
       !d.sharesEvenly &&
-      d.contributorTotal != (d.target ?? 0)) {
+      _kobo(d.contributorTotal) != _kobo(d.target ?? 0)) {
     errors['people'] =
         'Amounts add up to ${_naira(d.contributorTotal)}, but the target is ${_naira(d.target ?? 0)}';
   }
@@ -422,13 +422,17 @@ Map<String, String> validatePayout(BeelDraft d) {
   }
   if (errors.isEmpty) {
     final total = d.payoutTotal;
-    if (total != null && total != (d.target ?? 0)) {
+    if (total != null && _kobo(total) != _kobo(d.target ?? 0)) {
       errors['payout'] =
           'Payouts add up to ${_naira(total)}, but the target is ${_naira(d.target ?? 0)}';
     }
   }
   return errors;
 }
+
+/// Exact kobo conversion so money sums and comparisons never suffer double
+/// rounding drift (e.g. 100.10 + 50.05 + 49.85 vs 200).
+int _kobo(num n) => (n * 100).round();
 
 String _naira(num n) {
   final whole = n == n.roundToDouble();
@@ -510,4 +514,99 @@ DateTime? nextRun(BeelDraft d, DateTime now) {
     default:
       return null;
   }
+}
+
+// -- persistence ---------------------------------------------------------
+
+/// Serializes the draft so an in-progress beel survives process death
+/// (phone call, app kill). Text-as-typed is preserved on purpose.
+Map<String, dynamic> draftToJson(BeelDraft d) => {
+      'mode': d.mode == BeelMode.open ? 'open' : 'closed',
+      'name': d.name,
+      'amount': d.amount,
+      'recurrence_type': d.recurrenceType,
+      'day_of_week': d.dayOfWeek,
+      'day_of_month': d.dayOfMonth,
+      'contributor_split': d.contributorSplit == ContributorSplit.even
+          ? 'even'
+          : 'custom',
+      'open_split': d.openSplit == OpenSplit.even ? 'even' : 'fixed',
+      'per_contributor': d.perContributor,
+      'expected_contributors': d.expectedContributors,
+      'next_id': d.nextId,
+      'contributors': [
+        for (final c in d.contributors)
+          {
+            'id': c.id,
+            'first_name': c.firstName,
+            'last_name': c.lastName,
+            'email': c.email,
+            'phone': c.phone,
+            'amount': c.amount,
+          },
+      ],
+      'beneficiaries': [
+        for (final b in d.beneficiaries)
+          {
+            'id': b.id,
+            'type': b.type,
+            'name': b.name,
+            'account_number': b.accountNumber,
+            'bank_code': b.bankCode,
+            'bank_name': b.bankName,
+            'service_number': b.serviceNumber,
+            'service_identifier': b.serviceIdentifier,
+            'amount': b.amount,
+          },
+      ],
+    };
+
+BeelDraft draftFromJson(dynamic json) {
+  if (json is! Map) return const BeelDraft();
+  ContributorSplit splitFor(String? v) =>
+      v == 'custom' ? ContributorSplit.custom : ContributorSplit.even;
+  OpenSplit openFor(String? v) =>
+      v == 'fixed' ? OpenSplit.fixed : OpenSplit.even;
+  final contributors = (json['contributors'] as List? ?? const [])
+      .whereType<Map>()
+      .map((c) => DraftContributor(
+            id: (c['id'] as num?)?.toInt() ?? 0,
+            firstName: '${c['first_name'] ?? ''}',
+            lastName: '${c['last_name'] ?? ''}',
+            email: '${c['email'] ?? ''}',
+            phone: '${c['phone'] ?? ''}',
+            amount: '${c['amount'] ?? ''}',
+          ))
+      .toList();
+  final beneficiaries = (json['beneficiaries'] as List? ?? const [])
+      .whereType<Map>()
+      .map((b) => DraftBeneficiary(
+            id: (b['id'] as num?)?.toInt() ?? 0,
+            type: '${b['type'] ?? 'bank_transfer'}',
+            name: '${b['name'] ?? ''}',
+            accountNumber: '${b['account_number'] ?? ''}',
+            bankCode: '${b['bank_code'] ?? ''}',
+            bankName: '${b['bank_name'] ?? ''}',
+            serviceNumber: '${b['service_number'] ?? ''}',
+            serviceIdentifier: '${b['service_identifier'] ?? ''}',
+            amount: '${b['amount'] ?? ''}',
+          ))
+      .toList();
+  return BeelDraft(
+    mode: json['mode'] == 'open' ? BeelMode.open : BeelMode.closed,
+    name: '${json['name'] ?? ''}',
+    amount: '${json['amount'] ?? ''}',
+    recurrenceType: '${json['recurrence_type'] ?? 'one_time'}',
+    dayOfWeek: '${json['day_of_week'] ?? 'monday'}',
+    dayOfMonth: (json['day_of_month'] as num?)?.toInt() ?? 1,
+    contributors: contributors,
+    beneficiaries: beneficiaries.isEmpty
+        ? const [DraftBeneficiary(id: 0)]
+        : beneficiaries,
+    contributorSplit: splitFor('${json['contributor_split'] ?? 'even'}'),
+    openSplit: openFor('${json['open_split'] ?? 'even'}'),
+    perContributor: '${json['per_contributor'] ?? ''}',
+    expectedContributors: '${json['expected_contributors'] ?? ''}',
+    nextId: (json['next_id'] as num?)?.toInt() ?? 1,
+  );
 }

@@ -43,6 +43,7 @@ class FilterChipBar<T> extends StatelessWidget {
             for (final option in options) ...[
               Pressable(
                 semanticLabel: option.label,
+                selected: option.value == value,
                 onTap: () {
                   if (option.value == value) return;
                   HapticFeedback.selectionClick();
@@ -52,7 +53,7 @@ class FilterChipBar<T> extends StatelessWidget {
                   duration: const Duration(milliseconds: 180),
                   curve: Curves.easeOutQuart,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                      const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
                   decoration: BoxDecoration(
                     color: option.value == value
                         ? BeelsColors.dye

@@ -36,6 +36,10 @@ class ApiClient {
     final token = await _tokenStore.read();
     if (token != null && token.isNotEmpty) {
       options.headers['Authorization'] = 'Bearer $token';
+      // Only requests that actually carried a credential should trigger the
+      // global sign-out side effect; a 401 on /auth/login (wrong password)
+      // must not clear the session or fire onUnauthorized.
+      options.extra['beels_authenticated'] = true;
     }
     handler.next(options);
   }
@@ -67,8 +71,10 @@ class ApiClient {
   Future<ApiException> _asApiException(DioException e) async {
     final response = e.response;
     if (response?.statusCode == 401) {
-      await _tokenStore.clear();
-      _onUnauthorized();
+      if (response?.requestOptions.extra['beels_authenticated'] == true) {
+        await _tokenStore.clear();
+        _onUnauthorized();
+      }
       return ApiException.fromResponse(response?.data, 401);
     }
     switch (e.type) {

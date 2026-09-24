@@ -11,6 +11,7 @@ class Pressable extends StatefulWidget {
     required this.onTap,
     this.haptic = false,
     this.semanticLabel,
+    this.selected,
     this.borderRadius = 16,
   });
 
@@ -18,6 +19,10 @@ class Pressable extends StatefulWidget {
   final VoidCallback? onTap;
   final bool haptic;
   final String? semanticLabel;
+
+  /// Whether the control is in its active/selected state; exposed to
+  /// semantics so colour-only selection is still conveyed to screen readers.
+  final bool? selected;
   final double borderRadius;
 
   @override
@@ -38,6 +43,7 @@ class _PressableState extends State<Pressable> {
     return Semantics(
       button: true,
       label: widget.semanticLabel,
+      selected: widget.selected,
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTapDown: (_) => _set(true),
