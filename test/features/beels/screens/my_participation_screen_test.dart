@@ -7,6 +7,7 @@ import 'package:beels_mobile/core/api/paginated.dart';
 import 'package:beels_mobile/features/beels/data/beels_repository.dart';
 import 'package:beels_mobile/features/beels/models/contribution.dart';
 import 'package:beels_mobile/features/beels/models/group_health.dart';
+import 'package:beels_mobile/features/beels/models/invite.dart';
 import 'package:beels_mobile/features/beels/screens/my_participation_screen.dart';
 
 class _FakeBeelsRepository implements BeelsRepository {
@@ -88,6 +89,21 @@ class _FakeBeelsRepository implements BeelsRepository {
 
   @override
   Future<void> removeContributor(int contributorId) async {}
+
+  @override
+  Future<BeelInvite> createInvite({
+    required int contributionId,
+    required int maxUses,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<InvitePreview> previewInvite(String token) =>
+      throw UnimplementedError();
+
+  @override
+  Future<InviteAcceptResult> acceptInvite(String token) =>
+      throw UnimplementedError();
 }
 
 Participation _row({

@@ -13,10 +13,14 @@ import '../widgets/error_banner.dart';
 import '../widgets/fields.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
-  const LoginScreen({super.key, this.prefilledEmail});
+  const LoginScreen({super.key, this.prefilledEmail, this.returnTo});
 
   /// Email remembered from a biometric session, offered as a default.
   final String? prefilledEmail;
+
+  /// In-app location to resume after signing in (the join flow's
+  /// return-to-join), e.g. `/join/<token>`. Null means the normal dashboard.
+  final String? returnTo;
 
   @override
   ConsumerState<LoginScreen> createState() => _LoginScreenState();
@@ -48,7 +52,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             password: _password.text,
           );
       if (!mounted) return;
-      context.go('/');
+      context.go(widget.returnTo ?? '/');
     } on ApiException catch (error) {
       if (!mounted) return;
       HapticFeedback.heavyImpact();

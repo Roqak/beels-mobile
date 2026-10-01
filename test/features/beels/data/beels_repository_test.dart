@@ -191,6 +191,100 @@ void main() {
       expect(page.lastPage, 0);
     });
   });
+  group('invites', () {
+    test('createInvite posts max_uses and parses the envelope', () async {
+      final client = _FakeApiClient()
+        ..handlers['/contributions/9/invites'] = () => {
+              'statusCode': 201,
+              'message': 'created',
+              'data': {
+                'token': 'abc123',
+                'join_url':
+                    'https://beels-frontend-production.up.railway.app/join/abc123',
+                'share_amount': 250000,
+                'max_uses': 5,
+                'expires_at': '2026-10-03T10:00:00.000Z',
+                'slots_left': 5,
+              },
+            };
+      final repo = BeelsRepository(client);
+
+      final invite = await repo.createInvite(contributionId: 9, maxUses: 5);
+
+      expect(client.calls.single.path, '/contributions/9/invites');
+      expect(client.calls.single.body, {'max_uses': 5});
+      expect(invite.token, 'abc123');
+      // Kobo from the API -> naira in the model layer.
+      expect(invite.shareAmount, 2500);
+      expect(invite.maxUses, 5);
+      expect(invite.slotsLeft, 5);
+      expect(invite.expiresAt, DateTime.utc(2026, 10, 3, 10));
+      expect(
+        invite.joinUrl,
+        'https://beels-frontend-production.up.railway.app/join/abc123',
+      );
+      expect(invite.exhausted, isFalse);
+    });
+
+    test('previewInvite parses the nested beel and organizer', () async {
+      final client = _FakeApiClient()
+        ..handlers['/invites/tok42'] = () => {
+              'statusCode': 200,
+              'message': 'OK',
+              'data': {
+                'beel': {
+                  'name': 'Family Savings',
+                  'recurrence_type': 'monthly',
+                  'next_occurrence': '2026-09-28T04:15:07.000Z',
+                  'amount_per_contributor': 150000,
+                },
+                'organizer': {'first_name': 'Chuka', 'last_name': 'Obi'},
+                'share_amount': 150000,
+                'slots_left': 7,
+              },
+            };
+      final repo = BeelsRepository(client);
+
+      final preview = await repo.previewInvite('tok42');
+
+      expect(client.calls.single.path, '/invites/tok42');
+      expect(preview.beelName, 'Family Savings');
+      expect(preview.recurrenceType, 'monthly');
+      expect(preview.amountPerContributor, 1500);
+      expect(preview.shareAmount, 1500);
+      expect(preview.slotsLeft, 7);
+      expect(preview.organizerLabel, 'Chuka O.');
+    });
+
+    test('acceptInvite parses the contributor row', () async {
+      final client = _FakeApiClient()
+        ..handlers['/invites/tok42/accept'] = () => {
+              'statusCode': 200,
+              'message': 'joined',
+              'data': {
+                'contributor': {
+                  'id': 77,
+                  'unit_amount': 150000,
+                  'first_name': 'Amaka',
+                },
+                'beel_name': 'Family Savings',
+                'slots_left': 6,
+              },
+            };
+      final repo = BeelsRepository(client);
+
+      final result = await repo.acceptInvite('tok42');
+
+      expect(client.calls.single.path, '/invites/tok42/accept');
+      expect(client.calls.single.body, isNull);
+      expect(result.contributorId, 77);
+      expect(result.unitAmount, 1500);
+      expect(result.firstName, 'Amaka');
+      expect(result.beelName, 'Family Savings');
+      expect(result.slotsLeft, 6);
+    });
+  });
+
   group('initiateQuickDebit', () {
     test('posts the activation payload and parses the account envelope',
         () async {

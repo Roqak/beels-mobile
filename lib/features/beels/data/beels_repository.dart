@@ -7,6 +7,7 @@ import '../../../core/money.dart';
 import '../../../core/providers.dart';
 import '../models/contribution.dart';
 import '../models/group_health.dart';
+import '../models/invite.dart';
 
 /// Backend access for beels (contributions).
 class BeelsRepository {
@@ -200,6 +201,31 @@ class BeelsRepository {
     final report = body?['report'];
     if (report is! Map) return null;
     return GroupHealth.fromJson(report);
+  }
+
+  /// POST /contributions/:id/invites — mint an NFC/QR join invite. The
+  /// backend computes the default share amount; 1–20 uses per invite.
+  Future<BeelInvite> createInvite({
+    required int contributionId,
+    required int maxUses,
+  }) async {
+    final json = await _client.post(
+      '/contributions/$contributionId/invites',
+      body: {'max_uses': maxUses},
+    );
+    return envelope(json, BeelInvite.fromJson);
+  }
+
+  /// GET /invites/:token — public preview for the friend's phone.
+  Future<InvitePreview> previewInvite(String token) async {
+    final json = await _client.get('/invites/$token');
+    return envelope(json, InvitePreview.fromJson);
+  }
+
+  /// POST /invites/:token/accept — join the invited beel.
+  Future<InviteAcceptResult> acceptInvite(String token) async {
+    final json = await _client.post('/invites/$token/accept');
+    return envelope(json, InviteAcceptResult.fromJson);
   }
 
   /// POST /group-health/:id/intervene — executes a suggested intervention
