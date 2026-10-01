@@ -6,12 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
 import 'package:beels_mobile/core/api/api_exception.dart';
-import 'package:beels_mobile/features/beels/controllers/beels_controllers.dart';
-import 'package:beels_mobile/features/beels/models/contribution.dart';
-import 'package:beels_mobile/features/beels/screens/beel_detail_screen.dart';
 import 'package:beels_mobile/core/api/paginated.dart';
+import 'package:beels_mobile/features/beels/controllers/beels_controllers.dart';
 import 'package:beels_mobile/features/beels/data/beels_repository.dart';
+import 'package:beels_mobile/features/beels/models/contribution.dart';
 import 'package:beels_mobile/features/beels/models/group_health.dart';
+import 'package:beels_mobile/features/beels/models/invite.dart';
+import 'package:beels_mobile/features/beels/screens/beel_detail_screen.dart';
 import 'package:beels_mobile/features/payments/data/payments_repository.dart';
 
 import 'package:beels_mobile/features/payments/models/bank.dart';
@@ -230,6 +231,21 @@ class _FakeBeelsRepository implements BeelsRepository {
     intervenedKeys.add(interventionKey);
     return const InterveneResult(executed: true, nudged: 2, totalLate: 3);
   }
+
+  @override
+  Future<BeelInvite> createInvite({
+    required int contributionId,
+    required int maxUses,
+  }) =>
+      throw UnimplementedError();
+
+  @override
+  Future<InvitePreview> previewInvite(String token) =>
+      throw UnimplementedError();
+
+  @override
+  Future<InviteAcceptResult> acceptInvite(String token) =>
+      throw UnimplementedError();
 }
 
 Future<void> _pump(

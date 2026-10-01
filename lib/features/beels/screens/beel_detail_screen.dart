@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
+import 'package:go_router/go_router.dart';
 import 'package:share_plus/share_plus.dart';
 
 import '../../payments/data/payments_repository.dart';
@@ -173,6 +174,7 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
             _HeaderCard(beel: beel),
             const SizedBox(height: 16),
             _buildActionsBar(beel),
+            _buildInviteNearby(beel),
             const SizedBox(height: 24),
             SectionHeader('Contributors',
                 action: _CountBadge(beel.contributors.length)),
@@ -321,6 +323,28 @@ class _BeelDetailScreenState extends ConsumerState<BeelDetailScreen> {
     ];
 
     return Row(children: actions);
+  }
+
+  /// Entry point for the NFC tap-to-join flow. The whole beel-detail screen
+  /// is organizer-facing (it is only reached from the organizer's lists), so
+  /// the button renders here rather than on member screens.
+  Widget _buildInviteNearby(Contribution beel) {
+    final canInvite = beel.id != null;
+    if (!canInvite) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: OutlinedButton.icon(
+        onPressed: () => context.push('/beels/${beel.id}/invite'),
+        style: OutlinedButton.styleFrom(
+          minimumSize: const Size.fromHeight(48),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        icon: const Icon(Icons.contactless_rounded, size: 18),
+        label: const Text('Invite nearby'),
+      ),
+    );
   }
 }
 

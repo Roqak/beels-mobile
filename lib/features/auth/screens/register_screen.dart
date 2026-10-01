@@ -14,7 +14,11 @@ import '../widgets/fields.dart';
 import 'package:beels_mobile/core/theme.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
-  const RegisterScreen({super.key});
+  const RegisterScreen({super.key, this.returnTo});
+
+  /// In-app location to resume after creating an account (the join flow's
+  /// return-to-join), e.g. `/join/<token>`. Null means the normal dashboard.
+  final String? returnTo;
 
   @override
   ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
@@ -57,7 +61,7 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
             password: _password.text,
           );
       if (!mounted) return;
-      context.go('/');
+      context.go(widget.returnTo ?? '/');
     } on ApiException catch (error) {
       if (!mounted) return;
       HapticFeedback.heavyImpact();
@@ -72,10 +76,11 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen> {
   }
 
   void _openLogin() {
+    final next = widget.returnTo == null ? '' : '?next=${widget.returnTo}';
     if (context.canPop()) {
       context.pop();
     } else {
-      context.push('/login');
+      context.push('/login$next');
     }
   }
 

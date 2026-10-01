@@ -51,6 +51,23 @@ class MainActivity : FlutterFragmentActivity() {
                     result.error("unavailable", "No contacts app is available.", null)
                 }
             }
+
+        // NFC invite emitter: Dart arms/disarms the HCE tag payload live.
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "beels/nfc")
+            .setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "setInviteUrl" -> {
+                        val url = call.arguments as? String
+                        BeelInviteApduService.setInviteUrl(url)
+                        result.success(null)
+                    }
+                    "clearInviteToken" -> {
+                        BeelInviteApduService.clearInviteToken()
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
     }
 
     private fun readContact(uri: Uri): Map<String, String?>? {

@@ -1,6 +1,10 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.USE_BIOMETRIC"/>
+    <!-- Host-card-emulation invites: emulating an NDEF tag needs NFC; the
+         app stays installable on devices without the hardware. -->
+    <uses-permission android:name="android.permission.NFC"/>
+    <uses-feature android:name="android.hardware.nfc" android:required="false"/>
     <application
         android:label="Beels"
         android:name="${applicationName}"
@@ -28,7 +32,32 @@
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
+            <!-- Join links minted by the invite flow. autoVerify stays off
+                 until the assetlinks note is deployed server-side; the
+                 chooser then opens the app instead of hard-failing. -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW"/>
+                <category android:name="android.intent.category.DEFAULT"/>
+                <category android:name="android.intent.category.BROWSABLE"/>
+                <data
+                    android:scheme="https"
+                    android:host="beels-frontend-production.up.railway.app"
+                    android:pathPrefix="/join"/>
+            </intent-filter>
         </activity>
+        <!-- NFC invite emitter: answers ISO-DEP as a Type 4 Tag so friend
+             phones discover the join URL without the app installed. -->
+        <service
+            android:name=".BeelInviteApduService"
+            android:exported="true"
+            android:permission="android.permission.BIND_NFC_SERVICE">
+            <intent-filter>
+                <action android:name="android.nfc.cardemulation.action.HOST_APDU_SERVICE"/>
+            </intent-filter>
+            <meta-data
+                android:name="android.nfc.cardemulation.host_apdu_service"
+                android:resource="@xml/apduservice"/>
+        </service>
         <!-- Don't delete the meta-data below.
              This is used by the Flutter tool to generate GeneratedPluginRegistrant.java -->
         <meta-data

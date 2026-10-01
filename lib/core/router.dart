@@ -11,6 +11,8 @@ import '../features/auth/screens/register_screen.dart';
 import '../features/beels/screens/beel_detail_screen.dart';
 import '../features/beels/screens/beels_screen.dart';
 import '../features/beels/screens/create_beel_screen.dart';
+import '../features/beels/screens/invite_nearby_screen.dart';
+import '../features/beels/screens/join_invite_screen.dart';
 import '../features/dashboard/screens/dashboard_screen.dart';
 import '../features/groups/screens/create_group_screen.dart';
 import '../features/groups/screens/group_detail_screen.dart';
@@ -21,12 +23,14 @@ import '../features/beels/screens/my_participation_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/shell/app_shell.dart';
 import '../features/transactions/screens/transactions_screen.dart';
+import 'deep_links.dart';
 import 'providers.dart';
 import 'theme.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
+  final joinToken = coldStartJoinToken(ref);
   final router = GoRouter(
-    initialLocation: '/',
+    initialLocation: joinToken == null ? '/' : '/join/$joinToken',
     refreshListenable: ref.watch(authListenableProvider),
     redirect: (context, state) => _redirect(ref, state),
     routes: [
@@ -38,6 +42,7 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/login',
         builder: (context, state) => LoginScreen(
           prefilledEmail: state.extra is String ? state.extra as String : null,
+          returnTo: joinReturnLocation(state.uri.queryParameters['next']),
         ),
       ),
       GoRoute(
@@ -47,7 +52,9 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(
         path: '/register',
-        builder: (context, state) => const RegisterScreen(),
+        builder: (context, state) => RegisterScreen(
+          returnTo: joinReturnLocation(state.uri.queryParameters['next']),
+        ),
       ),
       GoRoute(
         path: '/forgot-password',
@@ -82,6 +89,16 @@ final routerProvider = Provider<GoRouter>((ref) {
                           int.tryParse(state.pathParameters['id'] ?? '') ?? 0;
                       return BeelDetailScreen(id: id);
                     },
+                    routes: [
+                      GoRoute(
+                        path: 'invite',
+                        builder: (context, state) => InviteNearbyScreen(
+                          id: int.tryParse(
+                                  state.pathParameters['id'] ?? '') ??
+                              0,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -123,6 +140,13 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/profile',
         builder: (context, state) => const ProfileScreen(),
       ),
+      // Public join route: a friend with or without the app lands here from
+      // an NFC tap or web link. Authentication is resolved inside the screen.
+      GoRoute(
+        path: '/join/:token',
+        builder: (context, state) =>
+            JoinInviteScreen(token: state.pathParameters['token'] ?? ''),
+      ),
       GoRoute(
         path: '/participation',
         builder: (context, state) => const MyParticipationScreen(),
@@ -139,6 +163,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
     ],
   );
+
+  // Warm-start join links: NFC tap or browser link while the app runs.
+  final linkSub = listenForJoinLinks(
+    ref,
+    (token) => router.go('/join/$token'),
+  );
+  ref.onDispose(linkSub.cancel);
   ref.onDispose(router.dispose);
   return router;
 });
@@ -193,7 +224,12 @@ String? _redirect(Ref ref, GoRouterState state) {
   if (authed && _publicLocations.contains(location)) {
     return '/';
   }
-  if (!authed && !_publicLocations.contains(location)) {
+  // /join/:token is the public invite landing screen; unauthenticated users
+  // get the preview plus a sign-in prompt inside the screen instead of a
+  // bare redirect, so the invite context is never lost.
+  if (!authed &&
+      !_publicLocations.contains(location) &&
+      !location.startsWith('/join/')) {
     return '/login';
   }
   return null;
