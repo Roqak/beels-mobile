@@ -1,3 +1,5 @@
+import '../../../core/money.dart';
+
 // Tolerant JSON helpers. Nullable fields stay nullable, unknown keys are
 // ignored and numeric fields accept int / double / String numbers.
 
@@ -10,12 +12,6 @@ Map<String, dynamic> _asMap(dynamic value) {
 String _asString(dynamic value, {String fallback = ''}) {
   if (value == null) return fallback;
   return value.toString();
-}
-
-num? _nullableNum(dynamic value) {
-  if (value is num) return value;
-  if (value is String) return num.tryParse(value);
-  return null;
 }
 
 int? _nullableInt(dynamic value) {
@@ -71,19 +67,19 @@ class Transaction {
     return Transaction(
       id: _nullableInt(map['id']),
       type: _asString(map['type']),
-      amount: _nullableNum(map['amount']) ??
-          _nullableNum(deposit['amount']) ??
-          _nullableNum(withdrawal['amount']),
+      amount: koboToNaira(map['amount']) ??
+          koboToNaira(deposit['amount']) ??
+          koboToNaira(withdrawal['amount']),
       status: _asString(map['status']),
       createdAt: _nullableDate(map['created_at']),
       reference: _nullableStringOrNull(deposit['transaction_reference']) ??
           _nullableStringOrNull(withdrawal['transaction_reference']),
       beelName: _nullableStringOrNull(depositContribution['name']) ??
           _nullableStringOrNull(withdrawalContribution['name']),
-      unitAmount: _nullableNum(depositContributor['unit_amount']) ??
-          _nullableNum(withdrawalContribution['unit_amount']),
-      totalAmount: _nullableNum(depositContribution['total_amount']) ??
-          _nullableNum(withdrawalContribution['total_amount']),
+      unitAmount: koboToNaira(depositContributor['unit_amount']) ??
+          koboToNaira(withdrawalContribution['unit_amount']),
+      totalAmount: koboToNaira(depositContribution['total_amount']) ??
+          koboToNaira(withdrawalContribution['total_amount']),
     );
   }
 }

@@ -1,3 +1,5 @@
+import '../../../core/money.dart';
+
 /// Latest group-health report for a beel, produced nightly by the backend
 /// (GET /group-health/:id). Tolerant of missing fields so older reports
 /// still render.
@@ -43,8 +45,8 @@ class GroupHealth {
       forecastHitTarget: map['forecast_hit_target'] is bool
           ? map['forecast_hit_target'] as bool
           : null,
-      expectedTotalByNow: _nullableNum(map['expected_total_by_now']),
-      actualTotalByNow: _nullableNum(map['actual_total_by_now']),
+      expectedTotalByNow: koboToNaira(map['expected_total_by_now']),
+      actualTotalByNow: koboToNaira(map['actual_total_by_now']),
       shortfallPct: _nullableNum(map['shortfall_pct']),
       lateContributorsCount: _nullableInt(map['late_contributors_count']),
       avgLatenessDays: _nullableNum(map['avg_lateness_days']),

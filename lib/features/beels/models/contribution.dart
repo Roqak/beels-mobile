@@ -1,4 +1,5 @@
 import '../../../core/config.dart';
+import '../../../core/money.dart';
 
 // Tolerant JSON helpers. Nullable fields stay nullable, unknown keys are
 // ignored and numeric fields accept int / double / String numbers.
@@ -15,12 +16,6 @@ String _asString(dynamic value, {String fallback = ''}) {
 }
 
 String? _nullableString(dynamic value) => value?.toString();
-
-num? _nullableNum(dynamic value) {
-  if (value is num) return value;
-  if (value is String) return num.tryParse(value);
-  return null;
-}
 
 int? _nullableInt(dynamic value) {
   if (value is int) return value;
@@ -90,8 +85,8 @@ class Contribution {
     return Contribution(
       id: _nullableInt(map['id']),
       name: _asString(map['name']),
-      unitAmount: _nullableNum(map['unit_amount']),
-      totalAmount: _nullableNum(map['total_amount']),
+      unitAmount: koboToNaira(map['unit_amount']),
+      totalAmount: koboToNaira(map['total_amount']),
       status: _asString(map['status']),
       recurrenceType: _asString(map['recurrence_type']),
       dayOfWeek: _nullableString(map['day_of_week']),
@@ -100,7 +95,7 @@ class Contribution {
       nextOccurrence: _nullableDate(map['next_occurrence']),
       contributionMode: _asString(map['contribution_mode'], fallback: 'closed'),
       paymentLinkToken: _nullableString(map['payment_link_token']),
-      amountPerContributor: _nullableNum(map['amount_per_contributor']),
+      amountPerContributor: koboToNaira(map['amount_per_contributor']),
       accountNumber: _nullableString(map['account_number']),
       cancelledAt: _nullableDate(map['cancelled_at']),
       contributors: _parseList(
@@ -209,8 +204,8 @@ class ContributionContributor {
       lastName: _asString(map['last_name']),
       email: _asString(map['email']),
       phoneNumber: _asString(map['phone_number']),
-      unitAmount: _nullableNum(map['unit_amount']),
-      amountPaid: _nullableNum(map['amount_paid']),
+      unitAmount: koboToNaira(map['unit_amount']),
+      amountPaid: koboToNaira(map['amount_paid']),
       status: _asString(map['status']),
       bankName: _nullableString(map['bank_name']),
       paymentId: _nullableString(map['payment_id']),
@@ -296,7 +291,7 @@ class BeelBeneficiary {
       name: _asString(map['name']),
       type: _asString(map['type']),
       status: _asString(map['status']),
-      amount: _nullableNum(map['amount']),
+      amount: koboToNaira(map['amount']),
       accountNumber: _nullableString(map['account_number']),
       bankCode: _nullableString(map['bank_code']),
       serviceNumber: _nullableString(map['service_number']),
@@ -340,10 +335,10 @@ class Participation {
       id: _nullableInt(map['contributor_id']) ??
           _nullableInt(contribution['id']),
       name: _asString(contribution['name']),
-      unitAmount: _nullableNum(map['expected_amount']) ??
-          _nullableNum(map['unit_amount']),
-      amountPaid: _nullableNum(map['amount_paid']),
-      outstanding: _nullableNum(map['outstanding']),
+      unitAmount: koboToNaira(map['expected_amount']) ??
+          koboToNaira(map['unit_amount']),
+      amountPaid: koboToNaira(map['amount_paid']),
+      outstanding: koboToNaira(map['outstanding']),
       pendingCount: _nullableInt(map['pending_count']),
       lastPaymentAt: _nullableDate(map['last_payment_at']),
       status: _asString(map['status']),
@@ -375,7 +370,7 @@ class ContributorInput {
         'last_name': lastName,
         'email': email,
         'phone_number': phoneNumber,
-        'amount': amount,
+        'amount': nairaToKobo(amount),
       };
 }
 
@@ -407,7 +402,7 @@ class BeneficiaryInput {
       'bank_code': bankCode,
       'service_number': serviceNumber,
       'service_identifier': serviceIdentifier,
-      'amount': amount,
+      'amount': amount == null ? null : nairaToKobo(amount!),
     };
     map.removeWhere((_, value) => value == null);
     return map;

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_client.dart';
 import '../../../core/api/envelope.dart';
 import '../../../core/api/paginated.dart';
+import '../../../core/money.dart';
 import '../../../core/providers.dart';
 import '../models/contribution.dart';
 import '../models/group_health.dart';
@@ -96,7 +97,7 @@ class BeelsRepository {
   }) {
     return <String, dynamic>{
       'name': name,
-      'amount': amount,
+      'amount': nairaToKobo(amount),
       'recurrence_type': recurrenceType,
       // Backend rule: day_of_week is only meaningful for weekly beels and
       // day_of_month for monthly ones; sending both for other recurrences
@@ -125,8 +126,9 @@ class BeelsRepository {
   }) {
     return <String, dynamic>{
       'name': name,
-      'amount': amount,
-      'amount_per_contributor': amountPerContributor,
+      'amount': nairaToKobo(amount),
+      'amount_per_contributor':
+          amountPerContributor == null ? null : nairaToKobo(amountPerContributor),
       'expected_contributors': expectedContributors,
       'recurrence_type': recurrenceType,
       if (recurrenceType == 'weekly') 'day_of_week': dayOfWeek,

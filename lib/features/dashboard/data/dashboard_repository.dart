@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:beels_mobile/core/api/api_client.dart';
 import 'package:beels_mobile/core/api/envelope.dart';
 import 'package:beels_mobile/core/api/paginated.dart';
+import 'package:beels_mobile/core/money.dart';
 import 'package:beels_mobile/core/providers.dart';
 
 /// Aggregated organizer stats from `GET /analytics`.
@@ -25,8 +26,9 @@ class DashboardAnalytics {
     final map =
         json is Map ? json.cast<String, dynamic>() : const <String, dynamic>{};
     return DashboardAnalytics(
-      totalDeposited: _toNum(map['total_deposited']),
-      totalWithdrawn: _toNum(map['total_withdrawn']),
+      // Money sums arrive in kobo; the two totals are counts.
+      totalDeposited: koboToNaira(map['total_deposited']) ?? 0,
+      totalWithdrawn: koboToNaira(map['total_withdrawn']) ?? 0,
       totalContributions: _toNum(map['total_contributions']),
       totalTransactions: _toNum(map['total_transactions']),
     );
@@ -124,7 +126,7 @@ extension DashboardTransactionRow on Map<String, dynamic> {
 
   bool get isIncoming => txnType == 'deposit';
 
-  num get txnAmount => _toNum(this['amount']);
+  num get txnAmount => koboToNaira(this['amount']) ?? 0;
 
   String get txnStatus => (this['status'] ?? '').toString();
 
