@@ -33,9 +33,11 @@ void main() {
         ],
       );
 
+      // The app speaks naira; the payload must be kobo (v0.15.2 money
+      // convention), so 60000 naira leaves as 6000000 kobo.
       expect(payload, {
         'name': 'Family Savings',
-        'amount': 60000,
+        'amount': 6000000,
         'recurrence_type': 'weekly',
         'day_of_week': 'monday',
         'contributors': [
@@ -44,7 +46,7 @@ void main() {
             'last_name': 'Obi',
             'email': 'ada@example.com',
             'phone_number': '08012345678',
-            'amount': 60000,
+            'amount': 6000000,
           },
         ],
         'beneficiaries': [
@@ -53,7 +55,7 @@ void main() {
             'type': 'bank_transfer',
             'account_number': '0123456789',
             'bank_code': '058',
-            'amount': 60000,
+            'amount': 6000000,
           },
         ],
       });
@@ -104,7 +106,7 @@ void main() {
         ],
       );
 
-      expect(perContributor['amount_per_contributor'], 2500);
+      expect(perContributor['amount_per_contributor'], 250000);
       expect(perContributor.containsKey('expected_contributors'), isFalse);
 
       final expected = BeelsRepository.buildOpenPayload(
@@ -178,7 +180,8 @@ void main() {
       expect(page.total, 2);
       expect(page.lastPage, 1);
       expect(page.items.first.name, 'First');
-      expect(page.items.first.unitAmount, 5000);
+      // 5000 kobo on the wire parses as naira in the model layer.
+      expect(page.items.first.unitAmount, 50.0);
       expect(page.items.last.status, 'pending');
     });
 
