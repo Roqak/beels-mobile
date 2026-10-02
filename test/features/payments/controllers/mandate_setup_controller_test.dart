@@ -6,6 +6,7 @@ import 'package:beels_mobile/features/payments/controllers/mandate_setup_control
 import 'package:beels_mobile/features/payments/data/payments_repository.dart';
 import 'package:beels_mobile/features/payments/models/bank.dart';
 import 'package:beels_mobile/features/payments/models/payment_mandate.dart';
+import 'package:beels_mobile/features/payments/models/payment_options.dart';
 
 class _FakePaymentsRepository implements PaymentsRepository {
   int nameEnquiryCalls = 0;
@@ -61,6 +62,14 @@ class _FakePaymentsRepository implements PaymentsRepository {
 
   @override
   Future<String> initializePayment(String paymentId) async => '';
+
+  @override
+  Future<PaymentOptions> getPaymentOptions(String paymentId) async =>
+      const PaymentOptions();
+
+  @override
+  Future<DebitRequest> payByDirectDebit(String paymentId, int mandateId) async =>
+      const DebitRequest();
 }
 
 void main() {

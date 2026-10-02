@@ -218,4 +218,78 @@ void main() {
       expect(await repository.initializePayment('x'), '');
     });
   });
+
+  group('getPaymentOptions', () {
+    test('parses options with transfer and debit accounts', () async {
+      client.handlers['/contributions/pay/PID/options'] = () => {
+            'statusCode': 200,
+            'data': {
+              'contributor': {'first_name': 'Ada'},
+              'beel': {'name': 'Rent in Advance'},
+              'amount_due': 30000,
+              'amount_paid': 10000,
+              'transfer': {
+                'bank_name': 'GTBank',
+                'account_number': '0123456789',
+                'reference': 'PID',
+              },
+              'direct_debit': {
+                'available': true,
+                'accounts': [
+                  {
+                    'id': 5,
+                    'bank_name': 'GTBank',
+                    'account_number_masked': '••••6789',
+                  },
+                  {'id': 6},
+                ],
+              },
+            },
+          };
+
+      final options = await repository.getPaymentOptions('PID');
+
+      expect(options.beelName, 'Rent in Advance');
+      expect(options.contributorFirstName, 'Ada');
+      expect(options.amountDue, 30000);
+      expect(options.amountPaid, 10000);
+      expect(options.outstanding, 20000);
+      expect(options.transferBankName, 'GTBank');
+      expect(options.transferAccountNumber, '0123456789');
+      expect(options.transferReference, 'PID');
+      expect(options.directDebitAvailable, isTrue);
+      expect(options.debitAccounts, hasLength(2));
+      expect(options.debitAccounts.first.id, 5);
+      expect(options.debitAccounts.first.bankName, 'GTBank');
+      expect(options.debitAccounts.first.accountNumberMasked, '••••6789');
+      // Accounts without bank names degrade, they do not crash.
+      expect(options.debitAccounts.last.bankName, 'Linked account');
+    });
+
+    test('throws when the payment reference is unknown', () async {
+      client.handlers['/contributions/pay/BAD/options'] = () => {'data': null};
+
+      await expectLater(
+        repository.getPaymentOptions('BAD'),
+        throwsA(isA<ApiException>()),
+      );
+    });
+  });
+
+  group('payByDirectDebit', () {
+    test('posts the mandate id and returns the receipt', () async {
+      client.handlers['/contributions/pay/PID/direct-debit'] = () => {
+            'statusCode': 200,
+            'message': 'Payment received. The account was debited and this Beel is updated.',
+            'data': {'reference': 'debit-ref-1', 'amount': 20000},
+          };
+
+      final receipt = await repository.payByDirectDebit('PID', 5);
+
+      expect(client.calls.last.body, {'mandate_id': 5});
+      expect(receipt.reference, 'debit-ref-1');
+      expect(receipt.amount, 20000);
+      expect(receipt.message, contains('Payment received'));
+    });
+  });
 }

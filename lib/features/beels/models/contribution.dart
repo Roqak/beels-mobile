@@ -312,6 +312,7 @@ class Participation {
     this.lastPaymentAt,
     this.status = '',
     this.nextOccurrence,
+    this.paymentId,
   });
 
   final int? id;
@@ -327,6 +328,10 @@ class Participation {
   final DateTime? lastPaymentAt;
   final String status;
   final DateTime? nextOccurrence;
+
+  /// Credentials for the payment link of this contribution — what the native
+  /// pay-now flow needs to load payment options and take the debit.
+  final String? paymentId;
 
   factory Participation.fromJson(dynamic json) {
     final map = _asMap(json);
@@ -345,6 +350,7 @@ class Participation {
       nextOccurrence: _nullableDate(
         map['next_occurrence'] ?? contribution['next_occurrence'],
       ),
+      paymentId: _nullableString(map['payment_id']),
     );
   }
 }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../../core/api/api_exception.dart';
@@ -81,19 +82,22 @@ class MyParticipationScreen extends ConsumerWidget {
   }
 }
 
-class _ParticipationTile extends StatelessWidget {
+class _ParticipationTile extends ConsumerWidget {
   const _ParticipationTile({required this.participation});
 
   final Participation participation;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final next = participation.nextOccurrence;
     final last = participation.lastPaymentAt;
     final paid = participation.amountPaid ?? 0;
     final expected = participation.unitAmount ?? 0;
     final outstanding = participation.outstanding;
     final pending = participation.pendingCount ?? 0;
+    final canPayNow = participation.paymentId != null &&
+        outstanding != null &&
+        outstanding > 0;
 
     return SurfaceCard(
       padding: const EdgeInsets.all(14),
@@ -138,6 +142,24 @@ class _ParticipationTile extends StatelessWidget {
                 .bodySmall
                 ?.copyWith(color: BeelsColors.ink2),
           ),
+          if (canPayNow) ...[
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.centerRight,
+              child: OutlinedButton.icon(
+                onPressed: () async {
+                  final updated = await context.push(
+                    '/pay/${participation.paymentId}',
+                  );
+                  if (updated == true) {
+                    ref.invalidate(myParticipationProvider);
+                  }
+                },
+                icon: const Icon(Icons.flash_on, size: 18),
+                label: const Text('Pay now'),
+              ),
+            ),
+          ],
         ],
       ),
     );

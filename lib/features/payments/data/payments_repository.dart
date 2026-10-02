@@ -5,6 +5,8 @@ import '../../../core/api/envelope.dart';
 import '../../../core/providers.dart';
 import '../models/bank.dart';
 import '../models/payment_mandate.dart';
+import '../models/payment_options.dart';
+import '../../../core/api/api_exception.dart';
 
 /// Backend access for Flutterwave payments and direct-debit mandates.
 class PaymentsRepository {
@@ -84,6 +86,27 @@ class PaymentsRepository {
       return data['url'] as String;
     }
     return '';
+  }
+
+  /// GET /contributions/pay/:paymentId/options — public: how a contributor
+  /// can pay (transfer details, and linked debit accounts when enabled).
+  Future<PaymentOptions> getPaymentOptions(String paymentId) async {
+    final json = await _client.get('/contributions/pay/$paymentId/options');
+    final data = json is Map ? json['data'] : null;
+    if (data is! Map) {
+      throw const ApiException('Payment reference not found.', statusCode: 404);
+    }
+    return PaymentOptions.fromJson(data);
+  }
+
+  /// POST /contributions/pay/:paymentId/direct-debit — public: debits a
+  /// linked (mandate) account immediately and fulfils the payment.
+  Future<DebitRequest> payByDirectDebit(String paymentId, int mandateId) async {
+    final json = await _client.post(
+      '/contributions/pay/$paymentId/direct-debit',
+      body: {'mandate_id': mandateId},
+    );
+    return DebitRequest.fromJson(json);
   }
 }
 

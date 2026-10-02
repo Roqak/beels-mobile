@@ -19,6 +19,7 @@ import '../features/groups/screens/group_detail_screen.dart';
 import '../features/groups/screens/groups_screen.dart';
 import '../features/payments/screens/mandate_list_screen.dart';
 import '../features/payments/screens/mandate_setup_screen.dart';
+import '../features/payments/screens/pay_now_screen.dart';
 import '../features/beels/screens/my_participation_screen.dart';
 import '../features/profile/screens/profile_screen.dart';
 import '../features/shell/app_shell.dart';
@@ -150,6 +151,13 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/participation',
         builder: (context, state) => const MyParticipationScreen(),
+      ),
+      // Native pay-now: payment options for a contributor payment link,
+      // including an instant debit against a linked (mandate) account.
+      GoRoute(
+        path: '/pay/:paymentId',
+        builder: (context, state) =>
+            PayNowScreen(paymentId: state.pathParameters['paymentId'] ?? ''),
       ),
       GoRoute(
         path: '/mandates',

@@ -14,6 +14,7 @@ import 'package:beels_mobile/features/beels/models/group_health.dart';
 import 'package:beels_mobile/features/beels/models/invite.dart';
 import 'package:beels_mobile/features/beels/screens/beel_detail_screen.dart';
 import 'package:beels_mobile/features/payments/data/payments_repository.dart';
+import 'package:beels_mobile/features/payments/models/payment_options.dart';
 
 import 'package:beels_mobile/features/payments/models/bank.dart';
 import 'package:beels_mobile/features/payments/models/payment_mandate.dart';
@@ -140,6 +141,14 @@ class _FakePaymentsRepository implements PaymentsRepository {
 
   @override
   Future<void> revokeMandate(int id) async {}
+
+  @override
+  Future<PaymentOptions> getPaymentOptions(String paymentId) async =>
+      const PaymentOptions();
+
+  @override
+  Future<DebitRequest> payByDirectDebit(String paymentId, int mandateId) async =>
+      const DebitRequest();
 }
 
 class _FakeBeelsRepository implements BeelsRepository {
