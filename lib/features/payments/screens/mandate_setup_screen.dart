@@ -227,7 +227,7 @@ class _MandateSetupScreenState extends ConsumerState<MandateSetupScreen> {
       ref.invalidate(mandatesControllerProvider);
       HapticFeedback.mediumImpact();
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Direct debit mandate set up.')),
+        const SnackBar(content: Text('Direct debit mandate submitted. It activates once your bank approves.')),
       );
       context.pop();
     } catch (_) {
