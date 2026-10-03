@@ -63,6 +63,35 @@ class BeelDraftController extends AutoDisposeNotifier<BeelDraft> {
   void setName(String v) => _set(state.copyWith(name: v));
   void setAmount(String v) => _set(state.copyWith(amount: v));
 
+  /// Switches between one typed total and itemised payouts. Each way keeps
+  /// the money already entered: a lone account that was implicitly taking the
+  /// typed total gets it as its item amount, and going back to a total
+  /// carries the items' sum over as the typed target.
+  void setAmountMode(AmountMode mode) {
+    if (mode == state.amountMode) return;
+    if (mode == AmountMode.itemised) {
+      final target = state.target;
+      final only =
+          state.beneficiaries.length == 1 ? state.beneficiaries.first : null;
+      _set(state.copyWith(
+        amountMode: mode,
+        beneficiaries: only != null &&
+                !only.hasPlanPrice &&
+                only.amount.trim().isEmpty &&
+                target != null &&
+                target > 0
+            ? [only.copyWith(amount: _text(target))]
+            : null,
+      ));
+      return;
+    }
+    final sum = state.target;
+    _set(state.copyWith(
+      amountMode: mode,
+      amount: sum != null ? _text(sum) : null,
+    ));
+  }
+
   // -- schedule -----------------------------------------------------------
 
   void setRecurrence(String v) => _set(state.copyWith(recurrenceType: v));
@@ -205,12 +234,16 @@ class BeelDraftController extends AutoDisposeNotifier<BeelDraft> {
       bankName: account.bankName,
       serviceNumber: account.serviceNumber,
       serviceIdentifier: account.serviceIdentifier,
+      providerId: account.providerId,
+      providerName: account.providerName,
+      planName: account.planName,
       amount: account.amount,
     );
     var existing = state.beneficiaries;
     final target = state.target;
-    if (existing.length == 1 &&
-        existing.first.wantsAmount &&
+    if (!state.isItemised &&
+        existing.length == 1 &&
+        !existing.first.hasPlanPrice &&
         existing.first.amount.trim().isEmpty &&
         target != null) {
       final taken = parseMoney(added.amount) ?? 0;
@@ -223,16 +256,22 @@ class BeelDraftController extends AutoDisposeNotifier<BeelDraft> {
     return id;
   }
 
-  /// Gives every amount-carrying account an equal share of the target.
+  /// Shares what plans do not already take equally between the accounts
+  /// with a typed amount.
   void splitBeneficiariesEvenly() {
     final target = state.target;
-    final rows = state.beneficiaries.where((b) => b.wantsAmount).toList();
+    final rows = state.beneficiaries.where((b) => !b.hasPlanPrice).toList();
     if (target == null || target <= 0 || rows.isEmpty) return;
-    final parts = splitEvenly(target, rows.length);
+    final planned = state.beneficiaries
+        .where((b) => b.hasPlanPrice)
+        .fold<num>(0, (sum, b) => sum + (parseMoney(b.amount) ?? 0));
+    final rest = target - planned;
+    if (rest <= 0) return;
+    final parts = splitEvenly(rest, rows.length);
     var i = 0;
     _set(state.copyWith(beneficiaries: [
       for (final b in state.beneficiaries)
-        b.wantsAmount ? b.copyWith(amount: _text(parts[i++])) : b,
+        b.hasPlanPrice ? b : b.copyWith(amount: _text(parts[i++])),
     ]));
   }
 

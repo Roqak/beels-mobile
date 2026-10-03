@@ -31,6 +31,24 @@ class ReviewStep extends ConsumerWidget {
     final d = ref.watch(beelDraftProvider);
     final next = nextRun(d, now ?? DateTime.now());
     final target = d.target ?? 0;
+    final payout = _Section(
+      title: d.isItemised ? 'Items' : 'Who gets paid',
+      onEdit: () => onEdit(3),
+      children: [
+        for (final b in d.beneficiaries)
+          _Line(
+            b.name.trim().isEmpty ? kBeneficiaryTypes[b.type]! : b.name.trim(),
+            d.effectiveBeneficiaryAmount(b) == null
+                ? null
+                : formatNaira(d.effectiveBeneficiaryAmount(b)!),
+            subtitle: b.isBank
+                ? '${b.bankName.isEmpty ? 'Bank' : b.bankName} · ${_mask(b.accountNumber)}'
+                : [kBeneficiaryTypes[b.type], b.billLabel]
+                    .where((p) => p != null && p.isNotEmpty)
+                    .join(' · '),
+          ),
+      ],
+    );
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -109,6 +127,10 @@ class ReviewStep extends ConsumerWidget {
           ),
         ),
         const SizedBox(height: 16),
+        if (d.isItemised) ...[
+          payout,
+          const SizedBox(height: 12),
+        ],
         _Section(
           title: 'Schedule',
           onEdit: () => onEdit(1),
@@ -135,25 +157,10 @@ class ReviewStep extends ConsumerWidget {
                     ),
                 ],
         ),
-        const SizedBox(height: 12),
-        _Section(
-          title: 'Who gets paid',
-          onEdit: () => onEdit(3),
-          children: [
-            for (final b in d.beneficiaries)
-              _Line(
-                b.name.trim().isEmpty
-                    ? kBeneficiaryTypes[b.type]!
-                    : b.name.trim(),
-                d.effectiveBeneficiaryAmount(b) == null
-                    ? null
-                    : formatNaira(d.effectiveBeneficiaryAmount(b)!),
-                subtitle: b.isBank
-                    ? '${b.bankName.isEmpty ? 'Bank' : b.bankName} · ${_mask(b.accountNumber)}'
-                    : '${kBeneficiaryTypes[b.type]} · ${b.serviceIdentifier}',
-              ),
-          ],
-        ),
+        if (!d.isItemised) ...[
+          const SizedBox(height: 12),
+          payout,
+        ],
       ],
     );
   }

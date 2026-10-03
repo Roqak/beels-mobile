@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/api/api_exception.dart';
 import '../../../../core/contacts/contact_picker.dart';
+import '../../../../core/money.dart';
 import '../../../../core/money_input.dart';
 import '../../../../core/theme.dart';
 import '../../../../core/widgets/contact_pick_button.dart';
@@ -12,8 +13,11 @@ import '../../../../core/widgets/primary_button.dart';
 import '../../../payments/data/payments_repository.dart';
 import '../../../payments/models/bank.dart';
 import '../../../payments/widgets/bank_picker.dart';
+import '../../controllers/beels_controllers.dart';
+import '../../models/bill_provider.dart';
 import '../beel_draft.dart';
 import '../beel_draft_controller.dart';
+import 'bill_pickers.dart';
 
 const _sheetPadding = EdgeInsets.fromLTRB(20, 4, 20, 20);
 
@@ -356,7 +360,6 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
   final _name = TextEditingController();
   final _account = TextEditingController();
   final _serviceNumber = TextEditingController();
-  final _serviceId = TextEditingController();
   final _amount = TextEditingController();
   Map<String, String> _errors = const {};
   _Verify _verify = _Verify.idle;
@@ -374,6 +377,13 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
         e.serviceNumber.isNotEmpty;
   }
 
+  /// Itemised beels: every account is an item with a label and its own
+  /// amount, and together they set the target.
+  bool get _itemised => ref.read(beelDraftProvider).isItemised;
+
+  /// Whether the amount must be typed (it is implicit for a lone account).
+  bool get _needsAmount => _itemised || _others > 0;
+
   /// Other accounts already in the draft (so the amount is a real choice).
   int get _others => ref
       .read(beelDraftProvider)
@@ -387,10 +397,9 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
     _name.text = _b.name;
     _account.text = _b.accountNumber;
     _serviceNumber.text = _b.serviceNumber;
-    _serviceId.text = _b.serviceIdentifier;
     _amount.text = _b.amount.isNotEmpty ? _b.amount : _defaultAmount();
     if (widget.showErrors && widget.editing != null) {
-      _errors = validateBeneficiary(_b, amountRequired: _others > 0);
+      _errors = validateBeneficiary(_b, amountRequired: _needsAmount);
     }
   }
 
@@ -399,18 +408,17 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
     _name.dispose();
     _account.dispose();
     _serviceNumber.dispose();
-    _serviceId.dispose();
     _amount.dispose();
     super.dispose();
   }
 
   /// A sensible starting amount when this account joins others.
   String _defaultAmount() {
-    if (_editing) return '';
+    if (_editing || _itemised) return '';
     final d = ref.read(beelDraftProvider);
     final target = d.target;
     if (target == null || target <= 0 || d.beneficiaries.isEmpty) return '';
-    final rows = d.beneficiaries.where((b) => b.wantsAmount).toList();
+    final rows = d.beneficiaries.where((b) => !b.hasPlanPrice).toList();
     final implicit = rows.where((b) => b.amount.trim().isEmpty).length;
     num? suggest;
     if (implicit > 0) {
@@ -448,7 +456,9 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
         _verify = _Verify.verified;
         _verifiedName = name;
         final current = _name.text.trim();
-        if (current.isEmpty || current == _autoName) {
+        // An item's name is its label ("Cleaner"); the verified name only
+        // shows in the check row.
+        if (!_itemised && (current.isEmpty || current == _autoName)) {
           _autoName = name;
           _name.text = name;
           _b = _b.copyWith(name: name);
@@ -467,10 +477,10 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
       name: _name.text.trim(),
       accountNumber: _account.text.trim(),
       serviceNumber: _serviceNumber.text.trim(),
-      serviceIdentifier: _serviceId.text.trim(),
-      amount: _amount.text.trim(),
+      // A plan's price was set when the plan was picked.
+      amount: _b.hasPlanPrice ? _b.amount : _amount.text.trim(),
     );
-    final needsAmount = _others > 0;
+    final needsAmount = _needsAmount;
     final errors = validateBeneficiary(value, amountRequired: needsAmount);
     if (errors.isNotEmpty) {
       HapticFeedback.heavyImpact();
@@ -478,7 +488,7 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
       return;
     }
     // Keep a single account's amount implicit so it always equals the target.
-    final stored = (needsAmount || !value.wantsAmount)
+    final stored = (needsAmount || value.hasPlanPrice)
         ? value
         : value.copyWith(amount: '');
     ref.read(beelDraftProvider.notifier).upsertBeneficiary(stored);
@@ -488,7 +498,32 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final showAmount = _b.wantsAmount && _others > 0;
+    final itemised = _itemised;
+    final showAmount = !_b.hasPlanPrice && _needsAmount;
+    final plans = _b.hasPlanPrice && _b.providerId.isNotEmpty
+        ? ref
+                .watch(billProvidersProvider(_b.type))
+                .valueOrNull
+                ?.where((p) => p.id == _b.providerId)
+                .firstOrNull
+                ?.plans ??
+            const <BillPlan>[]
+        : const <BillPlan>[];
+    final nameField = TextField(
+      controller: _name,
+      textCapitalization:
+          itemised ? TextCapitalization.sentences : TextCapitalization.words,
+      textInputAction:
+          itemised || showAmount ? TextInputAction.next : TextInputAction.done,
+      onSubmitted: itemised || showAmount ? null : (_) => _save(),
+      decoration: InputDecoration(
+        labelText: itemised
+            ? 'What is it for?'
+            : (_b.isBank ? 'Account name' : 'Name'),
+        hintText: itemised ? 'e.g. Cleaner, Light for pumping' : null,
+        errorText: _errors['name'],
+      ),
+    );
     return Padding(
       padding:
           EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
@@ -499,7 +534,9 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
-              _editing ? 'Edit account' : 'Add account',
+              itemised
+                  ? (_editing ? 'Edit item' : 'Add item')
+                  : (_editing ? 'Edit account' : 'Add account'),
               style: TextStyle(
                 fontSize: 20,
                 fontWeight: FontWeight.w800,
@@ -507,6 +544,10 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
                 color: BeelsColors.ink0,
               ),
             ),
+            if (itemised) ...[
+              const SizedBox(height: 14),
+              nameField,
+            ],
             const SizedBox(height: 10),
             FilterChipBar<String>(
               padding: EdgeInsets.zero,
@@ -516,7 +557,16 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
                   FilterOption(e.key, e.value),
               ],
               onChanged: (type) => setState(() {
-                _b = _b.copyWith(type: type);
+                // Providers and plans belong to one type; a plan's price
+                // goes with its plan.
+                _b = _b.copyWith(
+                  type: type,
+                  providerId: '',
+                  providerName: '',
+                  planName: '',
+                  serviceIdentifier: '',
+                  amount: _b.hasPlanPrice ? '' : null,
+                );
                 _verify = _Verify.idle;
                 _errors = const {};
               }),
@@ -567,29 +617,54 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
                 ),
               ),
               const SizedBox(height: 12),
-              TextField(
-                controller: _serviceId,
-                textInputAction: TextInputAction.next,
-                decoration: InputDecoration(
-                  labelText: _b.type == 'electricity'
-                      ? 'Electricity company (e.g. EKEDC)'
-                      : 'Provider (e.g. MTN, DSTV)',
+              BillProviderField(
+                type: _b.type,
+                selectedName: _b.providerName,
+                errorText: _b.hasPlanPrice
+                    ? _errors['provider']
+                    : _errors['service_identifier'],
+                onChanged: (provider) => setState(() {
+                  _errors = const {};
+                  _b = _b.copyWith(
+                    providerId: provider.id,
+                    providerName: provider.name,
+                    // Airtime and electricity are paid against the
+                    // provider; data and cable against a plan, chosen next.
+                    serviceIdentifier: _b.hasPlanPrice ? '' : provider.id,
+                    planName: '',
+                    amount: _b.hasPlanPrice ? '' : null,
+                  );
+                }),
+              ),
+              if (_b.hasPlanPrice && _b.providerId.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                BillPlanField(
+                  plans: plans,
+                  selectedName: _b.planName,
                   errorText: _errors['service_identifier'],
+                  onChanged: (plan) => setState(() {
+                    _errors = const {};
+                    _b = _b.copyWith(
+                      serviceIdentifier: plan.id,
+                      planName: plan.name,
+                      amount: _plain(plan.amount),
+                    );
+                    if (_name.text.trim().isEmpty) _name.text = plan.name;
+                  }),
                 ),
-              ),
+                if (_b.planName.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text(
+                    'Costs ${formatNaira(parseMoney(_b.amount) ?? 0)}. The plan sets the amount.',
+                    style: TextStyle(fontSize: 12.5, color: BeelsColors.ink2),
+                  ),
+                ],
+              ],
             ],
-            const SizedBox(height: 12),
-            TextField(
-              controller: _name,
-              textCapitalization: TextCapitalization.words,
-              textInputAction:
-                  showAmount ? TextInputAction.next : TextInputAction.done,
-              onSubmitted: showAmount ? null : (_) => _save(),
-              decoration: InputDecoration(
-                labelText: _b.isBank ? 'Account name' : 'Name',
-                errorText: _errors['name'],
-              ),
-            ),
+            if (!itemised) ...[
+              const SizedBox(height: 12),
+              nameField,
+            ],
             if (showAmount) ...[
               const SizedBox(height: 12),
               TextField(
@@ -600,7 +675,9 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
                 inputFormatters: const [ThousandsFormatter()],
                 onSubmitted: (_) => _save(),
                 decoration: InputDecoration(
-                  labelText: 'Amount for this account',
+                  labelText: itemised
+                      ? 'How much it costs'
+                      : 'Amount for this account',
                   errorText: _errors['amount'],
                   prefixText: '₦ ',
                 ),
@@ -608,7 +685,8 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
             ],
             const SizedBox(height: 18),
             PrimaryButton(
-              label: _editing ? 'Save' : 'Add account',
+              label:
+                  _editing ? 'Save' : (itemised ? 'Add item' : 'Add account'),
               onPressed: _save,
             ),
             if (_editing &&
@@ -623,7 +701,7 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
                   Navigator.of(context).pop();
                 },
                 icon: const Icon(Icons.delete_outline_rounded, size: 18),
-                label: const Text('Remove account'),
+                label: Text(itemised ? 'Remove item' : 'Remove account'),
               ),
           ],
         ),
@@ -683,7 +761,9 @@ class _AccountSheetState extends ConsumerState<AccountSheet> {
         return Padding(
           padding: const EdgeInsets.only(top: 10),
           child: Text(
-            'We could not verify this account. Check the number, or type the name yourself.',
+            _itemised
+                ? 'We could not verify this account. Check the number and bank.'
+                : 'We could not verify this account. Check the number, or type the name yourself.',
             style: TextStyle(fontSize: 12.5, color: BeelsColors.ink2),
           ),
         );

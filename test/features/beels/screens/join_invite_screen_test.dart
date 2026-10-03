@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:beels_mobile/features/beels/models/bill_provider.dart';
 import 'package:beels_mobile/core/api/api_exception.dart';
 import 'package:beels_mobile/core/api/paginated.dart';
 import 'package:beels_mobile/features/auth/controllers/auth_controller.dart';
@@ -22,6 +23,9 @@ class _FakeAuthController extends AuthController {
 }
 
 class _FakeBeelsRepository implements BeelsRepository {
+  @override
+  Future<List<BillProvider>> billProviders(String type) async => const [];
+
   _FakeBeelsRepository({this.preview, this.acceptResult, this.acceptError});
 
   final InvitePreview? preview;

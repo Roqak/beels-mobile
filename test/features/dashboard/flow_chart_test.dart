@@ -3,9 +3,11 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'package:beels_mobile/features/dashboard/widgets/flow_chart.dart';
 
-Map<String, dynamic> _row(String type, num amount, DateTime at) => {
+/// An API-shaped transaction row. [naira] is given in naira for readability;
+/// the row carries kobo, as the backend sends it.
+Map<String, dynamic> _row(String type, num naira, DateTime at) => {
       'type': type,
-      'amount': amount,
+      'amount': naira * 100,
       'status': 'successful',
       'created_at': at.toIso8601String(),
     };

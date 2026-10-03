@@ -5,6 +5,7 @@ import '../../../core/api/envelope.dart';
 import '../../../core/api/paginated.dart';
 import '../../../core/money.dart';
 import '../../../core/providers.dart';
+import '../models/bill_provider.dart';
 import '../models/contribution.dart';
 import '../models/group_health.dart';
 import '../models/invite.dart';
@@ -27,6 +28,15 @@ class BeelsRepository {
   /// Parses the paginated contributions envelope.
   static Paginated<Contribution> parseListResponse(dynamic json) =>
       Paginated.parse(json, Contribution.fromJson);
+
+  /// GET /bills-payment/:type — providers for a non-bank payout (`airtime`,
+  /// `data`, `cable`, `electricity`), with plans where the type has them.
+  Future<List<BillProvider>> billProviders(String type) async {
+    final json = await _client.get('/bills-payment/$type');
+    return envelopeList(json, BillProvider.fromJson)
+        .where((p) => p.id.isNotEmpty)
+        .toList();
+  }
 
   /// GET /contributions/:id — single beel with contributors + beneficiaries.
   Future<Contribution> get(int id) async {

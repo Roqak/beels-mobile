@@ -12,16 +12,16 @@ void main() {
           {
             'id': 1,
             'type': 'deposit',
-            'amount': 5000,
+            'amount': 500000,
             'status': 'successful',
             'created_at': '2026-09-10T08:00:00.000Z',
             'deposit': {
               'transaction_reference': 'DEP-0001',
               'contributor': {
-                'unit_amount': 5000,
+                'unit_amount': 500000,
                 'contribution': {
                   'name': 'Family Savings',
-                  'total_amount': 60000
+                  'total_amount': 6000000
                 },
               },
             },
@@ -29,7 +29,7 @@ void main() {
           {
             'id': 2,
             'type': 'withdrawal',
-            'amount': 3000,
+            'amount': 300000,
             'status': 'pending',
             'withdrawal': {
               'transaction_reference': 'WDR-0001',

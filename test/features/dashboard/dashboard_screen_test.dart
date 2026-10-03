@@ -36,7 +36,7 @@ class _FakeDashboardRepository implements DashboardRepository {
           {
             'id': 1,
             'type': 'deposit',
-            'amount': 5000,
+            'amount': 500000, // kobo
             'status': 'completed',
             'created_at': '2026-05-04T09:15:00.000Z',
             'deposit': {
@@ -48,7 +48,7 @@ class _FakeDashboardRepository implements DashboardRepository {
           {
             'id': 2,
             'type': 'withdrawal',
-            'amount': 2500,
+            'amount': 250000, // kobo
             'status': 'pending',
             'created_at': '2026-05-05T18:40:00.000Z',
             'withdrawal': {

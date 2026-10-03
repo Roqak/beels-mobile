@@ -84,8 +84,8 @@ void main() {
             'statusCode': 200,
             'message': 'Analytics Fetched',
             'data': {
-              'total_deposited': 150000,
-              'total_withdrawn': 40000.5,
+              'total_deposited': 15000000, // kobo
+              'total_withdrawn': 4000050, // kobo
               'total_contributions': 12,
               'total_transactions': 57,
             },
@@ -107,7 +107,7 @@ void main() {
             'statusCode': 200,
             'message': 'Analytics Fetched',
             'data': {
-              'total_deposited': '25000',
+              'total_deposited': '2500000', // kobo
               'total_withdrawn': null,
             },
           };
@@ -131,7 +131,7 @@ void main() {
               {
                 'id': 1,
                 'type': 'deposit',
-                'amount': 5000,
+                'amount': 500000, // kobo
                 'status': 'completed',
                 'created_at': '2026-05-04T09:15:00.000Z',
                 'deposit': {
@@ -144,7 +144,7 @@ void main() {
               {
                 'id': 2,
                 'type': 'withdrawal',
-                'amount': '2500',
+                'amount': '250000', // kobo
                 'status': 'pending',
                 'created_at': '2026-05-05T18:40:00.000Z',
                 'withdrawal': {
@@ -198,12 +198,12 @@ void main() {
             'data': [
               {
                 'type': 'withdrawal',
-                'amount': 900,
+                'amount': 90000,
                 'withdrawal': {
                   'transaction_reference': 'WD-99001',
                 },
               },
-              {'type': 'deposit', 'amount': 700},
+              {'type': 'deposit', 'amount': 70000},
             ],
             'current_page': 1,
             'per_page': 5,

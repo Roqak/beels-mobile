@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/api/api_exception.dart';
 import '../../../core/api/paginated.dart';
 import '../data/beels_repository.dart';
+import '../models/bill_provider.dart';
 import '../models/contribution.dart';
 import '../models/group_health.dart';
 
@@ -226,3 +227,10 @@ final groupHealthProvider =
     rethrow;
   }
 });
+
+/// Bills-payment providers for one payout type, fetched when a sheet needs
+/// them and kept while it is open.
+final billProvidersProvider =
+    FutureProvider.autoDispose.family<List<BillProvider>, String>(
+  (ref, type) => ref.watch(beelsRepositoryProvider).billProviders(type),
+);

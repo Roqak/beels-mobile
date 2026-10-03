@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:beels_mobile/features/beels/models/bill_provider.dart';
 import 'package:beels_mobile/core/api/api_exception.dart';
 import 'package:beels_mobile/core/api/paginated.dart';
 import 'package:beels_mobile/features/beels/data/beels_repository.dart';
@@ -11,6 +12,9 @@ import 'package:beels_mobile/features/beels/models/invite.dart';
 import 'package:beels_mobile/features/beels/screens/my_participation_screen.dart';
 
 class _FakeBeelsRepository implements BeelsRepository {
+  @override
+  Future<List<BillProvider>> billProviders(String type) async => const [];
+
   _FakeBeelsRepository({this.rows = const [], this.error});
 
   final List<Participation> rows;

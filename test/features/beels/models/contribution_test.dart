@@ -8,8 +8,8 @@ void main() {
       final beel = Contribution.fromJson({
         'id': 7,
         'name': 'Family Savings',
-        'unit_amount': 5000,
-        'total_amount': 60000,
+        'unit_amount': 500000,
+        'total_amount': 6000000,
         'status': 'active',
         'recurrence_type': 'weekly',
         'day_of_week': 'monday',
@@ -24,8 +24,8 @@ void main() {
             'last_name': 'Obi',
             'email': 'ada@example.com',
             'phone_number': '08012345678',
-            'unit_amount': '5000',
-            'amount_paid': 10000,
+            'unit_amount': '500000',
+            'amount_paid': 1000000,
             'status': 'active',
             'bank_name': 'GTBank',
             'payment_id': 'JYLCWKtfdHVzihITWPSq',
@@ -37,7 +37,7 @@ void main() {
             'name': 'Mama',
             'type': 'bank_transfer',
             'status': 'settled',
-            'amount': 60000,
+            'amount': 6000000,
             'account_number': '0123456789',
             'bank_code': '058',
           },
@@ -83,8 +83,8 @@ void main() {
         'contribution_mode': 'open_link',
         'status': 'pending',
         'payment_link_token': 'tok_abc',
-        'amount_per_contributor': '2500.5',
-        'total_amount': 25000,
+        'amount_per_contributor': '250050',
+        'total_amount': 2500000,
       });
 
       expect(beel.isOpenLink, isTrue);
@@ -122,10 +122,10 @@ void main() {
     test('accepts numeric values as strings', () {
       final beel = Contribution.fromJson({
         'name': 'String numbers',
-        'unit_amount': '5000.5',
+        'unit_amount': '500050',
         'occurrences': '12',
         'day_of_month': '15',
-        'total_amount': '60000',
+        'total_amount': '6000000',
       });
 
       expect(beel.unitAmount, 5000.5);
@@ -140,8 +140,8 @@ void main() {
       final participation = Participation.fromJson({
         'contributor_id': 42,
         'status': 'active',
-        'expected_amount': 5000,
-        'amount_paid': '15000',
+        'expected_amount': 500000,
+        'amount_paid': '1500000',
         'next_occurrence': '2026-10-01T00:00:00.000Z',
         'contribution': {
           'id': 7,
@@ -149,7 +149,7 @@ void main() {
           'next_occurrence': '2026-10-02T00:00:00.000Z',
         },
         'payments': [
-          {'id': 1, 'amount': 5000},
+          {'id': 1, 'amount': 500000},
         ],
       });
 
@@ -244,7 +244,7 @@ void main() {
         'type': 'bank_transfer',
         'account_number': '0123456789',
         'bank_code': '058',
-        'amount': 60000,
+        'amount': 6000000, // naira in, kobo on the wire
       });
     });
 
@@ -280,7 +280,7 @@ void main() {
         'last_name': 'Obi',
         'email': 'ada@example.com',
         'phone_number': '08012345678',
-        'amount': 5000,
+        'amount': 500000, // naira in, kobo on the wire
       });
     });
   });
@@ -393,4 +393,3 @@ void main() {
     });
   });
 }
-

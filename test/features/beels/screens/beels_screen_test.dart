@@ -13,8 +13,8 @@ class _FakeBeelsListController extends BeelsListController {
           Contribution.fromJson({
             'id': 1,
             'name': 'Family Savings',
-            'unit_amount': 5000,
-            'total_amount': 60000,
+            'unit_amount': 500000,
+            'total_amount': 6000000,
             'status': 'active',
             'recurrence_type': 'weekly',
             'day_of_week': 'monday',
@@ -24,8 +24,8 @@ class _FakeBeelsListController extends BeelsListController {
           Contribution.fromJson({
             'id': 2,
             'name': 'Birthday Fund',
-            'unit_amount': 2500,
-            'total_amount': 25000,
+            'unit_amount': 250000,
+            'total_amount': 2500000,
             'status': 'pending',
             'recurrence_type': 'one_time',
             'contribution_mode': 'open_link',
@@ -60,7 +60,7 @@ class _MixedController extends BeelsListController {
           Contribution.fromJson({
             'id': i + 1,
             'name': 'Beel ${i + 1}',
-            'unit_amount': 1000,
+            'unit_amount': 100000,
             'status': list[i],
             'recurrence_type': 'one_time',
             'contribution_mode': 'closed',

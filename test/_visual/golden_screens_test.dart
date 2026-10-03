@@ -78,7 +78,7 @@ class _FakeDashboardController extends DashboardController {
               {
                 'id': 41,
                 'type': 'deposit',
-                'amount': 15000,
+                'amount': 1500000,
                 'status': 'completed',
                 'created_at': '2026-09-18T09:15:00.000Z',
                 'deposit': {
@@ -90,7 +90,7 @@ class _FakeDashboardController extends DashboardController {
               {
                 'id': 40,
                 'type': 'withdrawal',
-                'amount': 8000,
+                'amount': 800000,
                 'status': 'pending',
                 'created_at': '2026-09-17T18:40:00.000Z',
                 'withdrawal': {
@@ -100,7 +100,7 @@ class _FakeDashboardController extends DashboardController {
               {
                 'id': 39,
                 'type': 'deposit',
-                'amount': 5000,
+                'amount': 500000,
                 'status': 'completed',
                 'created_at': '2026-09-16T12:05:00.000Z',
                 'deposit': {
@@ -128,8 +128,8 @@ class _FakeBeelsListController extends BeelsListController {
           Contribution.fromJson({
             'id': 27,
             'name': 'Family Savings',
-            'unit_amount': 5000,
-            'total_amount': 60000,
+            'unit_amount': 500000,
+            'total_amount': 6000000,
             'status': 'active',
             'recurrence_type': 'weekly',
             'day_of_week': 'monday',
@@ -140,8 +140,8 @@ class _FakeBeelsListController extends BeelsListController {
           Contribution.fromJson({
             'id': 26,
             'name': 'Birthday Fund',
-            'unit_amount': 2500,
-            'total_amount': 25000,
+            'unit_amount': 250000,
+            'total_amount': 2500000,
             'status': 'pending',
             'recurrence_type': 'one_time',
             'contribution_mode': 'open_link',
@@ -165,9 +165,9 @@ class _FakeBeelDetailController extends BeelDetailController {
   FutureOr<Contribution> build(int arg) => Contribution.fromJson({
         'id': 27,
         'name': 'Family Savings',
-        'unit_amount': '5000',
-        'total_amount': '60000',
-        'amount_paid': '25000',
+        'unit_amount': '500000',
+        'total_amount': '6000000',
+        'amount_paid': '2500000',
         'status': 'active',
         'recurrence_type': 'weekly',
         'day_of_week': 'monday',
@@ -180,8 +180,8 @@ class _FakeBeelDetailController extends BeelDetailController {
             'first_name': 'Ada',
             'last_name': 'Okafor',
             'email': 'ada@beels.test',
-            'unit_amount': '5000',
-            'amount_paid': '15000',
+            'unit_amount': '500000',
+            'amount_paid': '1500000',
             'status': 'active',
           },
           {
@@ -189,8 +189,8 @@ class _FakeBeelDetailController extends BeelDetailController {
             'first_name': 'Bode',
             'last_name': 'Aliu',
             'email': 'bode@beels.test',
-            'unit_amount': '5000',
-            'amount_paid': '10000',
+            'unit_amount': '500000',
+            'amount_paid': '1000000',
             'status': 'active',
           },
         ],
@@ -201,7 +201,7 @@ class _FakeBeelDetailController extends BeelDetailController {
             'type': 'bank_transfer',
             'account_number': '0123456789',
             'bank_code': '058',
-            'amount': '30000',
+            'amount': '3000000',
             'status': 'pending',
           },
           {
@@ -210,7 +210,7 @@ class _FakeBeelDetailController extends BeelDetailController {
             'type': 'bank_transfer',
             'account_number': '0234567891',
             'bank_code': '058',
-            'amount': '30000',
+            'amount': '3000000',
             'status': 'pending',
           },
         ],
@@ -311,9 +311,10 @@ class _FakeGroupDetail extends GroupDetailController {
 
 final _goldenNow = DateTime(2026, 9, 21);
 
-Map<String, dynamic> _flowRow(String type, num amount, int daysAgo) => {
+/// API-shaped activity row: [naira] reads in naira, the row carries kobo.
+Map<String, dynamic> _flowRow(String type, num naira, int daysAgo) => {
       'type': type,
-      'amount': amount,
+      'amount': naira * 100,
       'status': 'successful',
       'created_at':
           _goldenNow.subtract(Duration(days: daysAgo)).toIso8601String(),

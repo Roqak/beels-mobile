@@ -8,20 +8,20 @@ void main() {
       final transaction = Transaction.fromJson({
         'id': 11,
         'type': 'deposit',
-        'amount': 5000,
+        'amount': 500000,
         'status': 'successful',
         'created_at': '2026-09-10T08:45:00.000Z',
         'deposit': {
           'transaction_reference': 'DEP-0011',
-          'amount': 5000,
+          'amount': 500000,
           'contributor': {
             'id': 3,
-            'unit_amount': 5000,
+            'unit_amount': 500000,
             'contribution': {
               'id': 7,
               'name': 'Family Savings',
-              'total_amount': 60000,
-              'unit_amount': 5000,
+              'total_amount': 6000000,
+              'unit_amount': 500000,
             },
           },
         },
@@ -41,14 +41,14 @@ void main() {
     test('parses a withdrawal row with nested contribution', () {
       final transaction = Transaction.fromJson({
         'type': 'withdrawal',
-        'amount': '12000.75',
+        'amount': '1200075',
         'status': 'pending',
         'withdrawal': {
           'transaction_reference': 'WDR-0002',
           'contribution': {
             'name': 'Birthday Fund',
-            'unit_amount': '12000.75',
-            'total_amount': 24000,
+            'unit_amount': '1200075',
+            'total_amount': 2400000,
           },
         },
       });
@@ -77,7 +77,7 @@ void main() {
     test('falls back to top-level amount when payment payload lacks it', () {
       final transaction = Transaction.fromJson({
         'type': 'deposit',
-        'amount': 2500,
+        'amount': 250000,
         'deposit': {'transaction_reference': 'DEP-0009'},
       });
 

@@ -195,21 +195,84 @@ void main() {
       expect(validatePayout(ok), isEmpty);
     });
 
-    test('service-only payouts carry no amount and skip the sum check', () {
+    test('a lone electricity payout takes the whole target', () {
       const d = BeelDraft(
         amount: '5000',
         beneficiaries: [
           DraftBeneficiary(
             id: 1,
             type: 'electricity',
-            name: 'IKEDC',
+            name: 'Estate meter',
             serviceNumber: '1234567',
-            serviceIdentifier: 'ikeja',
+            providerId: '29',
+            providerName: 'IKEDC',
+            serviceIdentifier: '29',
           ),
         ],
       );
       expect(validatePayout(d), isEmpty);
-      expect(d.toBeneficiaryInputs().single.amount, isNull);
+      final input = d.toBeneficiaryInputs().single;
+      expect(input.amount, 5000);
+      expect(input.serviceIdentifier, '29'); // the provider id, not a name
+    });
+
+    test('data and cable need a provider, then a plan that sets the price', () {
+      const noProvider = BeelDraft(
+        amount: '4400',
+        beneficiaries: [
+          DraftBeneficiary(
+              id: 1, type: 'cable', name: 'DSTV', serviceNumber: '7012345678'),
+        ],
+      );
+      expect(validatePayout(noProvider)['beneficiary_0_provider'],
+          'Choose a provider');
+
+      const noPlan = BeelDraft(
+        amount: '4400',
+        beneficiaries: [
+          DraftBeneficiary(
+            id: 1,
+            type: 'cable',
+            name: 'DSTV',
+            serviceNumber: '7012345678',
+            providerId: '36',
+            providerName: 'DSTV',
+          ),
+        ],
+      );
+      expect(validatePayout(noPlan)['beneficiary_0_service_identifier'],
+          'Choose a plan');
+      // A plan is never stretched to the target.
+      expect(noPlan.effectiveBeneficiaryAmount(noPlan.beneficiaries.single),
+          isNull);
+
+      const planned = BeelDraft(
+        amount: '4400',
+        beneficiaries: [
+          DraftBeneficiary(
+            id: 1,
+            type: 'cable',
+            name: 'DSTV',
+            serviceNumber: '7012345678',
+            providerId: '36',
+            providerName: 'DSTV',
+            serviceIdentifier: '70',
+            planName: 'DSTV PADI',
+            amount: '4400',
+          ),
+        ],
+      );
+      expect(validatePayout(planned), isEmpty);
+      final input = planned.toBeneficiaryInputs().single;
+      expect(input.serviceIdentifier, '70'); // the plan id
+      expect(input.amount, 4400);
+      expect(planned.beneficiaries.single.billLabel, 'DSTV · DSTV PADI');
+
+      // A plan that does not match the target is caught here, not by the
+      // backend.
+      final short = planned.copyWith(amount: '5000');
+      expect(validatePayout(short)['payout'],
+          'Payouts add up to ₦4,400, but the target is ₦5,000');
     });
   });
 
@@ -474,8 +537,14 @@ void main() {
         recurrenceType: 'weekly',
         contributors: [DraftContributor(id: 1, firstName: 'A')],
         beneficiaries: [
-          DraftBeneficiary(id: 0, name: 'A', accountNumber: '1', bankCode: '058'),
-          DraftBeneficiary(id: 1, name: 'B', accountNumber: '2', bankCode: '044', amount: '50.05'),
+          DraftBeneficiary(
+              id: 0, name: 'A', accountNumber: '1', bankCode: '058'),
+          DraftBeneficiary(
+              id: 1,
+              name: 'B',
+              accountNumber: '2',
+              bankCode: '044',
+              amount: '50.05'),
         ],
         nextId: 2,
       ));
@@ -493,12 +562,21 @@ void main() {
         dayOfWeek: 'friday',
         dayOfMonth: 5,
         contributors: [
-          DraftContributor(id: 7, firstName: 'Ada', lastName: 'Okafor',
-              email: 'ada@x.ng', phone: '0801', amount: '2500'),
+          DraftContributor(
+              id: 7,
+              firstName: 'Ada',
+              lastName: 'Okafor',
+              email: 'ada@x.ng',
+              phone: '0801',
+              amount: '2500'),
         ],
         beneficiaries: [
-          DraftBeneficiary(id: 9, type: 'airtime', name: 'Ada',
-              serviceNumber: '0802', amount: '5000'),
+          DraftBeneficiary(
+              id: 9,
+              type: 'airtime',
+              name: 'Ada',
+              serviceNumber: '0802',
+              amount: '5000'),
         ],
         contributorSplit: ContributorSplit.custom,
         openSplit: OpenSplit.fixed,
@@ -536,4 +614,99 @@ void main() {
     });
   });
 
+  group('itemised amounts', () {
+    DraftBeneficiary item(int id, String label, String amount,
+            {String type = 'bank_transfer'}) =>
+        DraftBeneficiary(
+          id: id,
+          type: type,
+          name: label,
+          accountNumber: '7039742994',
+          bankCode: '999992',
+          serviceNumber: type == 'bank_transfer' ? '' : '08012345678',
+          serviceIdentifier: type == 'bank_transfer' ? '' : 'MTN',
+          amount: amount,
+        );
+
+    test('the target is the sum of the items, to the kobo', () {
+      final d = BeelDraft(
+        amountMode: AmountMode.itemised,
+        amount: '999', // a stale typed total is ignored
+        beneficiaries: [
+          item(1, 'Cleaner', '23,000'),
+          item(2, 'Light for pumping', '10000'),
+        ],
+      );
+      expect(d.target, 33000);
+      expect(
+          validateBasics(const BeelDraft(
+              name: 'Estate dues', amountMode: AmountMode.itemised)),
+          isEmpty);
+      expect(validatePayout(d), isEmpty);
+      final inputs = d.toBeneficiaryInputs();
+      expect(inputs.map((b) => b.name), ['Cleaner', 'Light for pumping']);
+      expect(inputs.map((b) => b.amount), [23000, 10000]);
+    });
+
+    test('splits the derived total between people exactly', () {
+      final d = BeelDraft(
+        amountMode: AmountMode.itemised,
+        beneficiaries: [
+          item(1, 'Cleaner', '23000'),
+          item(2, 'Light for pumping', '10000'),
+        ],
+        contributors: [for (var i = 0; i < 14; i++) _person(i, amount: '')],
+      );
+      final shares = d.evenShares;
+      expect(shares.length, 14);
+      expect(shares.first, 2357.15);
+      expect(shares.last, 2357.14);
+      expect((d.contributorTotal * 100).round(), 3300000);
+      expect(validatePeople(d), isEmpty);
+    });
+
+    test('a lone item never stands in for the target', () {
+      final d = BeelDraft(
+        amountMode: AmountMode.itemised,
+        beneficiaries: [item(1, 'Cleaner', '')],
+      );
+      expect(d.target, isNull);
+      expect(d.effectiveBeneficiaryAmount(d.beneficiaries.first), isNull);
+      expect(validatePayout(d)['beneficiary_0_amount'], 'Enter an amount');
+    });
+
+    test('bills are items too; a plan adds its price', () {
+      final d = BeelDraft(
+        amountMode: AmountMode.itemised,
+        beneficiaries: [
+          item(1, 'Cleaner', '23000'),
+          const DraftBeneficiary(
+            id: 2,
+            type: 'cable',
+            name: 'Clubhouse TV',
+            serviceNumber: '7012345678',
+            providerId: '36',
+            providerName: 'DSTV',
+            serviceIdentifier: '70',
+            planName: 'DSTV PADI',
+            amount: '4400',
+          ),
+        ],
+      );
+      expect(d.target, 27400);
+      expect(validatePayout(d), isEmpty);
+    });
+
+    test('survives a save and restore', () {
+      final d = BeelDraft(
+        name: 'Estate dues',
+        amountMode: AmountMode.itemised,
+        beneficiaries: [item(1, 'Cleaner', '23000')],
+      );
+      final restored = draftFromJson(draftToJson(d));
+      expect(restored.isItemised, isTrue);
+      expect(restored.target, 23000);
+      expect(draftFromJson(draftToJson(const BeelDraft())).isItemised, isFalse);
+    });
+  });
 }

@@ -7,10 +7,15 @@ void main() {
     test('converts share_amount from kobo to naira', () {
       final invite = BeelInvite.fromJson({
         'token': 'abc123',
-        'join_url': 'https://beels-frontend-production.up.railway.app/join/abc123',
+        'join_url':
+            'https://beels-frontend-production.up.railway.app/join/abc123',
         'share_amount': 250000,
         'max_uses': 5,
-        'expires_at': '2026-10-03T10:00:00.000Z',
+        // Always in the future so the invite never ages into "expired".
+        'expires_at': DateTime.now()
+            .add(const Duration(days: 1))
+            .toUtc()
+            .toIso8601String(),
         'slots_left': 5,
       });
 
@@ -91,12 +96,14 @@ void main() {
       );
       expect(
         joinTokenFromUri(
-          Uri.parse('https://beels-frontend-production.up.railway.app/pay/join/x'),
+          Uri.parse(
+              'https://beels-frontend-production.up.railway.app/pay/join/x'),
         ),
         isNull,
       );
       expect(
-        joinTokenFromUri(Uri.parse('https://beels-frontend-production.up.railway.app/join')),
+        joinTokenFromUri(
+            Uri.parse('https://beels-frontend-production.up.railway.app/join')),
         isNull,
       );
     });

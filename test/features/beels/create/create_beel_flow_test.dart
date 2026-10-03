@@ -5,7 +5,9 @@ import 'package:go_router/go_router.dart';
 
 import 'package:beels_mobile/core/api/api_exception.dart';
 import 'package:beels_mobile/core/contacts/contact_picker.dart';
+import 'package:beels_mobile/features/beels/controllers/beels_controllers.dart';
 import 'package:beels_mobile/features/beels/data/beels_repository.dart';
+import 'package:beels_mobile/features/beels/models/bill_provider.dart';
 import 'package:beels_mobile/features/beels/models/contribution.dart';
 import 'package:beels_mobile/features/beels/screens/create_beel_screen.dart';
 import 'package:beels_mobile/features/payments/controllers/mandates_controller.dart';
@@ -167,6 +169,15 @@ Future<_Harness> _pump(WidgetTester tester,
               Bank(id: 2, name: 'Access Bank', cbnCode: '044'),
             ]),
         contactPickerProvider.overrideWithValue(_FakePicker()),
+        billProvidersProvider.overrideWith((ref, type) async => switch (type) {
+              'cable' => const [
+                  BillProvider(id: '36', name: 'DSTV', plans: [
+                    BillPlan(id: '70', name: 'DSTV PADI', amount: 4400),
+                    BillPlan(id: '71', name: 'DSTV YANGA', amount: 6000),
+                  ]),
+                ],
+              _ => const [BillProvider(id: '17', name: 'MTN')],
+            }),
       ],
       child: MaterialApp.router(routerConfig: router),
     ),
@@ -618,7 +629,9 @@ void main() {
       await tester.pumpAndSettle();
 
       final people = h.beels.closed!['contributors'] as List;
-      expect(people.map((c) => (c as Map)['amount']), [30000, 30000, 30000]);
+      // The API speaks kobo.
+      expect(
+          people.map((c) => (c as Map)['amount']), [3000000, 3000000, 3000000]);
     });
   });
 
@@ -730,6 +743,146 @@ void main() {
     });
   });
 
+  group('itemised', () {
+    Future<void> addItem(
+      WidgetTester tester, {
+      required String label,
+      required String bank,
+      required String account,
+      required String amount,
+    }) async {
+      await _enter(tester, 'What is it for?', label);
+      await tester.tap(find.text('Choose a bank'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text(bank));
+      await tester.pumpAndSettle();
+      await _enter(tester, 'Account number', account);
+      await tester.pumpAndSettle();
+      await _enter(tester, 'How much it costs', amount);
+      await tester.tap(find.widgetWithText(FilledButton, 'Add item'));
+      await tester.pumpAndSettle();
+    }
+
+    testWidgets('items come first, add up to the target, and pay directly',
+        (tester) async {
+      final h = await _pump(tester);
+      await tester.enterText(find.byType(TextField).at(0), 'Estate dues');
+      await tester.tap(find.text('List items'));
+      await tester.pumpAndSettle();
+      // No total to type in this mode.
+      expect(find.byType(TextField), findsOneWidget);
+      await _tapContinue(tester);
+
+      // Items are step 2, before the schedule and the people.
+      expect(find.text('Step 2 of 5'), findsOneWidget);
+      expect(find.text('What is the money for?'), findsOneWidget);
+      await tester.tap(find.text('Add item'));
+      await tester.pumpAndSettle();
+      // Verification must not overwrite the label.
+      await addItem(tester,
+          label: 'Cleaner',
+          bank: 'GTBank',
+          account: '0123456789',
+          amount: '23000');
+      expect(find.text('Cleaner'), findsOneWidget);
+      expect(find.text('Total ₦23,000 across 1 item'), findsOneWidget);
+
+      await tester.tap(find.text('Add another item'));
+      await tester.pumpAndSettle();
+      // Every payout type can be an item.
+      expect(find.text('Data'), findsOneWidget);
+      await addItem(tester,
+          label: 'Light for pumping',
+          bank: 'Access Bank',
+          account: '2034567890',
+          amount: '10000');
+      expect(find.text('Total ₦33,000 across 2 items'), findsOneWidget);
+      await _tapContinue(tester);
+
+      expect(find.text('When does it repeat?'), findsOneWidget);
+      await _tapContinue(tester);
+
+      expect(find.text('Who is paying?'), findsOneWidget);
+      await _addPerson(tester);
+      await _addPerson(tester,
+          first: 'Bode', phone: '08023456789', email: 'bode@beels.test');
+      await _addPerson(tester,
+          first: 'Chi', phone: '08034567890', email: 'chi@beels.test');
+      expect(find.textContaining('₦33,000 ÷ 3 = ₦11,000 each'), findsOneWidget);
+      await _tapContinue(tester);
+
+      expect(find.text('Step 5 of 5'), findsOneWidget);
+      expect(find.text('Items'), findsOneWidget);
+      // Review edits jump to where the items step now sits.
+      await tester.tap(find.bySemanticsLabel('Edit Items'));
+      await tester.pumpAndSettle();
+      expect(find.text('What is the money for?'), findsOneWidget);
+      for (var i = 0; i < 3; i++) {
+        await _tapContinue(tester);
+      }
+      expect(find.text('Step 5 of 5'), findsOneWidget);
+
+      await tester.tap(find.text('Create beel'));
+      await tester.pumpAndSettle();
+
+      final payload = h.beels.closed!;
+      expect(payload['amount'], 3300000); // kobo
+      final items = (payload['beneficiaries'] as List).cast<Map>();
+      expect(items.map((b) => b['name']), ['Cleaner', 'Light for pumping']);
+      expect(items.map((b) => b['amount']), [2300000, 1000000]);
+      expect(
+          items.map((b) => b['account_number']), ['0123456789', '2034567890']);
+      expect((payload['contributors'] as List).map((c) => (c as Map)['amount']),
+          [1100000, 1100000, 1100000]);
+    });
+  });
+
+  testWidgets('a cable plan is an item priced by its plan', (tester) async {
+    final h = await _pump(tester);
+    await tester.enterText(find.byType(TextField).at(0), 'Clubhouse');
+    await tester.tap(find.text('List items'));
+    await tester.pumpAndSettle();
+    await _tapContinue(tester);
+
+    await tester.tap(find.text('Add item'));
+    await tester.pumpAndSettle();
+    await _enter(tester, 'What is it for?', 'Clubhouse TV');
+    await tester.tap(find.text('Cable TV'));
+    await tester.pumpAndSettle();
+    await _enter(tester, 'Phone or account number', '7012345678');
+    await tester.tap(find.text('Choose cable provider'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('DSTV'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Choose a plan'));
+    await tester.pumpAndSettle();
+    expect(find.text('₦6,000'), findsOneWidget); // prices are listed
+    await tester.tap(find.text('DSTV PADI'));
+    await tester.pumpAndSettle();
+    // The plan sets the price; there is no amount to type.
+    expect(find.textContaining('Costs ₦4,400'), findsOneWidget);
+    expect(_field('How much it costs'), findsNothing);
+    await tester.tap(find.widgetWithText(FilledButton, 'Add item'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Cable TV · DSTV · DSTV PADI'), findsOneWidget);
+    expect(find.text('Total ₦4,400 across 1 item'), findsOneWidget);
+    await _tapContinue(tester);
+    await _tapContinue(tester);
+    await _addPerson(tester);
+    await _tapContinue(tester);
+    await tester.tap(find.text('Create beel'));
+    await tester.pumpAndSettle();
+
+    final b = (h.beels.closed!['beneficiaries'] as List).single as Map;
+    expect(b['type'], 'cable');
+    expect(b['name'], 'Clubhouse TV');
+    expect(b['service_identifier'], '70'); // the plan id the backend checks
+    expect(b['service_number'], '7012345678');
+    expect(b['amount'], 440000); // kobo, equal to the plan price
+    expect(h.beels.closed!['amount'], 440000);
+  });
+
   testWidgets('full closed flow: review, create, finish', (tester) async {
     final h = await _pump(tester);
     await _basics(tester, name: 'Family rent', amount: '60000');
@@ -754,14 +907,15 @@ void main() {
 
     final payload = h.beels.closed!;
     expect(payload['name'], 'Family rent');
-    expect(payload['amount'], 60000);
+    // The API speaks kobo.
+    expect(payload['amount'], 6000000);
     expect(payload['recurrence_type'], 'weekly');
     expect(payload['day_of_week'], 'friday');
-    expect((payload['contributors'] as List).single['amount'], 60000);
+    expect((payload['contributors'] as List).single['amount'], 6000000);
     final b = (payload['beneficiaries'] as List).single as Map;
     expect(b['bank_code'], '058');
     expect(b['account_number'], '0123456789');
-    expect(b['amount'], 60000); // a single payout takes the whole target
+    expect(b['amount'], 6000000); // a single payout takes the whole target
 
     expect(find.text('Your beel is live'), findsOneWidget);
     expect(find.text('View my beels'), findsOneWidget);

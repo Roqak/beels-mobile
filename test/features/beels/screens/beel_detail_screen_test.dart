@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
+import 'package:beels_mobile/features/beels/models/bill_provider.dart';
 import 'package:beels_mobile/core/api/api_exception.dart';
 import 'package:beels_mobile/core/api/paginated.dart';
 import 'package:beels_mobile/features/beels/controllers/beels_controllers.dart';
@@ -152,6 +153,9 @@ class _FakePaymentsRepository implements PaymentsRepository {
 }
 
 class _FakeBeelsRepository implements BeelsRepository {
+  @override
+  Future<List<BillProvider>> billProviders(String type) async => const [];
+
   GroupHealth? health;
   final List<String> intervenedKeys = <String>[];
   final List<({String identifier, String bankCode, String accountNumber})>

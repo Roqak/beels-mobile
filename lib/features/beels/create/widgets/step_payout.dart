@@ -24,8 +24,9 @@ class PayoutStep extends ConsumerWidget {
     'bank': 'bank',
     'account': 'account number',
     'service_number': 'number',
-    'service_identifier': 'provider',
+    'service_identifier': 'provider or plan',
     'amount': 'amount',
+    'provider': 'provider',
   };
 
   static bool _isBlank(DraftBeneficiary b) =>
@@ -42,7 +43,8 @@ class PayoutStep extends ConsumerWidget {
     final accounts = draft.beneficiaries;
     final onlyBlank = accounts.length == 1 && _isBlank(accounts.first);
     final many = accounts.length > 1;
-    final amountRows = accounts.where((b) => b.wantsAmount).length;
+    final amountRows = accounts.where((b) => !b.hasPlanPrice).length;
+    final itemised = draft.isItemised;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -54,7 +56,9 @@ class PayoutStep extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Add the account that should receive the money.',
+                  itemised
+                      ? 'Add the first item, like a cleaner or a light bill, and the account it should be paid to.'
+                      : 'Add the account that should receive the money.',
                   style: TextStyle(
                     fontSize: 15,
                     height: 1.4,
@@ -65,8 +69,12 @@ class PayoutStep extends ConsumerWidget {
                 FilledButton.icon(
                   onPressed: () =>
                       showAccountSheet(context, editing: accounts.first),
-                  icon: const Icon(Icons.account_balance_rounded, size: 20),
-                  label: const Text('Add payout account'),
+                  icon: Icon(
+                      itemised
+                          ? Icons.add_rounded
+                          : Icons.account_balance_rounded,
+                      size: 20),
+                  label: Text(itemised ? 'Add item' : 'Add payout account'),
                 ),
               ],
             ),
@@ -80,7 +88,8 @@ class PayoutStep extends ConsumerWidget {
                   if (i > 0) Divider(indent: 64, color: BeelsColors.border),
                   _AccountRow(
                     account: accounts[i],
-                    showAmount: many,
+                    showAmount: many || itemised,
+                    blankLabel: itemised ? 'New item' : 'New account',
                     amount: draft.effectiveBeneficiaryAmount(accounts[i]),
                     errorFields: [
                       for (final k in errors.keys)
@@ -107,12 +116,14 @@ class PayoutStep extends ConsumerWidget {
                     showAccountSheet(context);
                   },
                   icon: const Icon(Icons.add_rounded, size: 18),
-                  label: const Text('Split to another account'),
+                  label: Text(itemised
+                      ? 'Add another item'
+                      : 'Split to another account'),
                 ),
               ),
             ],
           ),
-          if (many && amountRows >= 2 && (draft.target ?? 0) > 0)
+          if (!itemised && many && amountRows >= 2 && (draft.target ?? 0) > 0)
             Align(
               alignment: Alignment.centerLeft,
               child: TextButton.icon(
@@ -121,8 +132,9 @@ class PayoutStep extends ConsumerWidget {
                   notifier.splitBeneficiariesEvenly();
                 },
                 icon: const Icon(Icons.balance_rounded, size: 18),
-                label: Text(
-                    'Split ${formatNaira(draft.target!)} equally between $amountRows'),
+                label: Text(amountRows < accounts.length
+                    ? 'Split what plans leave equally between $amountRows'
+                    : 'Split ${formatNaira(draft.target!)} equally between $amountRows'),
               ),
             ),
         ],
@@ -155,6 +167,7 @@ class _AccountRow extends StatelessWidget {
   const _AccountRow({
     required this.account,
     required this.showAmount,
+    required this.blankLabel,
     required this.amount,
     required this.errorFields,
     this.rowKey,
@@ -162,6 +175,7 @@ class _AccountRow extends StatelessWidget {
 
   final DraftBeneficiary account;
   final bool showAmount;
+  final String blankLabel;
   final num? amount;
   final List<String> errorFields;
   final GlobalKey? rowKey;
@@ -172,7 +186,9 @@ class _AccountRow extends StatelessWidget {
     final subtitle = account.isBank
         ? '${account.bankName.isEmpty ? 'Bank' : account.bankName}'
             '${account.accountNumber.length >= 4 ? ' · •••• ${account.accountNumber.substring(account.accountNumber.length - 4)}' : ''}'
-        : '${kBeneficiaryTypes[account.type]} · ${account.serviceIdentifier}';
+        : [kBeneficiaryTypes[account.type], account.billLabel]
+            .where((p) => p != null && p.isNotEmpty)
+            .join(' · ');
     return KeyedSubtree(
       key: rowKey ?? ValueKey('account-${account.id}'),
       child: Pressable(
@@ -206,7 +222,7 @@ class _AccountRow extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      account.name.isEmpty ? 'New account' : account.name,
+                      account.name.isEmpty ? blankLabel : account.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(

@@ -24,6 +24,13 @@ import '../models/contribution.dart';
 
 const _stepCount = 5;
 
+// Step kinds, in the default order. Itemised beels ask for the items (where
+// the money goes and how much) right after the basics, because the items are
+// what set the target that people then split.
+const _basics = 0, _schedule = 1, _people = 2, _payout = 3, _review = 4;
+const _defaultOrder = [_basics, _schedule, _people, _payout, _review];
+const _itemisedOrder = [_basics, _payout, _schedule, _people, _review];
+
 /// Guided "create a beel" flow: one decision per step, live totals, inline
 /// errors, and a proper finish. All state lives in [beelDraftProvider].
 class CreateBeelScreen extends ConsumerStatefulWidget {
@@ -55,16 +62,22 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
     super.dispose();
   }
 
+  List<int> _order(BeelDraft d) =>
+      d.isItemised ? _itemisedOrder : _defaultOrder;
+
+  /// Which step kind is showing at the current position.
+  int _kind(BeelDraft d) => _order(d)[_step];
+
   (String, String?) _titles(BeelDraft d) {
-    switch (_step) {
-      case 0:
+    switch (_kind(d)) {
+      case _basics:
         return (
           'What are you collecting for?',
           'Choose how people join, then name it.'
         );
-      case 1:
+      case _schedule:
         return ('When does it repeat?', 'Pick how often collection happens.');
-      case 2:
+      case _people:
         return d.isOpen
             ? (
                 'What does each person pay?',
@@ -76,7 +89,13 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
                     ? 'Add the people. We split the target between them.'
                     : 'Add each person and what they owe. The total must match your target.'
               );
-      case 3:
+      case _payout:
+        if (d.isItemised) {
+          return (
+            'What is the money for?',
+            'Add each item and where its money goes. We add them up.'
+          );
+        }
         return (
           'Where should the money go?',
           'We check bank accounts so nothing goes to the wrong place.'
@@ -90,12 +109,12 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
   }
 
   Map<String, String> _validate(BeelDraft d) {
-    switch (_step) {
-      case 0:
+    switch (_kind(d)) {
+      case _basics:
         return validateBasics(d);
-      case 2:
+      case _people:
         return validatePeople(d);
-      case 3:
+      case _payout:
         return validatePayout(d);
       default:
         return const {};
@@ -312,7 +331,7 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
                       switchInCurve: Curves.easeOutQuart,
                       child: KeyedSubtree(
                         key: ValueKey(_step),
-                        child: _stepBody(),
+                        child: _stepBody(draft),
                       ),
                     ),
                   ],
@@ -338,13 +357,17 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
   Widget _pinned(BeelDraft draft) {
     num? assigned;
     String? noun;
-    if (_step == 2 && !draft.isOpen && draft.sharesEvenly) {
+    final kind = _kind(draft);
+    if (kind == _people && !draft.isOpen && draft.sharesEvenly) {
       return _evenSummary(draft);
     }
-    if (_step == 2 && !draft.isOpen) {
+    if (kind == _payout && draft.isItemised) {
+      return _itemsSummary(draft);
+    }
+    if (kind == _people && !draft.isOpen) {
       assigned = draft.contributorTotal;
       noun = 'assigned';
-    } else if (_step == 3 && draft.beneficiaries.length > 1) {
+    } else if (kind == _payout && draft.beneficiaries.length > 1) {
       assigned = draft.payoutTotal;
       noun = 'paid out';
     }
@@ -402,19 +425,58 @@ class _CreateBeelScreenState extends ConsumerState<CreateBeelScreen> {
     );
   }
 
-  Widget _stepBody() {
-    switch (_step) {
-      case 0:
+  /// Itemised beels have nothing to reconcile: pin the running total.
+  Widget _itemsSummary(BeelDraft draft) {
+    final count = draft.beneficiaries
+        .where((b) => (parseMoney(b.amount) ?? 0) > 0)
+        .length;
+    final total = draft.target;
+    final text = total == null
+        ? 'Add items to see the total'
+        : 'Total ${formatNaira(total)} across $count ${count == 1 ? 'item' : 'items'}';
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: BeelsColors.panel,
+        border: Border(top: BorderSide(color: BeelsColors.border)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 12, 20, 12),
+        child: Row(
+          children: [
+            Icon(Icons.receipt_long_rounded,
+                size: 18, color: BeelsColors.accent),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                text,
+                style: TextStyle(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: BeelsColors.ink0,
+                  fontFeatures: const [FontFeature.tabularFigures()],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _stepBody(BeelDraft draft) {
+    switch (_kind(draft)) {
+      case _basics:
         return BasicsStep(errors: _errors, scroller: _scroller);
-      case 1:
+      case _schedule:
         return ScheduleStep(now: widget.now);
-      case 2:
+      case _people:
         return PeopleStep(errors: _errors, scroller: _scroller);
-      case 3:
+      case _payout:
         return PayoutStep(errors: _errors, scroller: _scroller);
       default:
         return ReviewStep(
-          onEdit: _goTo,
+          // Review links name step kinds; map them to where they sit now.
+          onEdit: (kind) => _goTo(_order(draft).indexOf(kind)),
           submitError: _submitError,
           now: widget.now,
         );

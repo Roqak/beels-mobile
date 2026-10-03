@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/theme.dart';
+import '../../../../core/widgets/filter_chip_bar.dart';
 import '../beel_draft.dart';
 import '../beel_draft_controller.dart';
 import 'create_widgets.dart';
@@ -77,13 +79,38 @@ class _BasicsStepState extends ConsumerState<BasicsStep> {
           field: 'amount',
           scroller: widget.scroller,
           error: widget.errors['amount'],
-          helper: draft.isOpen
-              ? 'The total across everyone who joins.'
-              : 'The total across everyone you add.',
-          child: BigAmountField(
-            controller: _amount,
-            onChanged: notifier.setAmount,
-            hasError: widget.errors.containsKey('amount'),
+          helper: draft.isItemised
+              ? null
+              : draft.isOpen
+                  ? 'The total across everyone who joins.'
+                  : 'The total across everyone you add.',
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              FilterChipBar<AmountMode>(
+                padding: EdgeInsets.zero,
+                value: draft.amountMode,
+                options: const [
+                  FilterOption(AmountMode.total, 'One total'),
+                  FilterOption(AmountMode.itemised, 'List items'),
+                ],
+                onChanged: notifier.setAmountMode,
+              ),
+              const SizedBox(height: 8),
+              if (draft.isItemised)
+                Text(
+                  'Next, add each item (like a cleaner or a light bill), what '
+                  'it costs and where its money goes. We add them up for you.',
+                  style: TextStyle(
+                      fontSize: 13, height: 1.4, color: BeelsColors.ink2),
+                )
+              else
+                BigAmountField(
+                  controller: _amount,
+                  onChanged: notifier.setAmount,
+                  hasError: widget.errors.containsKey('amount'),
+                ),
+            ],
           ),
         ),
       ],

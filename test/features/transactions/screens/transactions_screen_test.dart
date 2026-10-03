@@ -14,16 +14,16 @@ class _FakeTransactionsListController extends TransactionsListController {
           Transaction.fromJson({
             'id': 1,
             'type': 'deposit',
-            'amount': 5000,
+            'amount': 500000,
             'status': 'successful',
             'created_at': '2026-09-10T08:45:00.000Z',
             'deposit': {
               'transaction_reference': 'DEP-0001',
               'contributor': {
-                'unit_amount': 5000,
+                'unit_amount': 500000,
                 'contribution': {
                   'name': 'Family Savings',
-                  'total_amount': 60000
+                  'total_amount': 6000000
                 },
               },
             },
@@ -42,7 +42,7 @@ class _TwoWayController extends TransactionsListController {
           Transaction.fromJson({
             'id': 1,
             'type': 'deposit',
-            'amount': 5000,
+            'amount': 500000,
             'status': 'successful',
             'created_at': '2026-09-10T08:45:00.000Z',
             'deposit': {
@@ -54,7 +54,7 @@ class _TwoWayController extends TransactionsListController {
           Transaction.fromJson({
             'id': 2,
             'type': 'withdrawal',
-            'amount': 2500,
+            'amount': 250000,
             'status': 'pending',
             'created_at': '2026-09-10T09:45:00.000Z',
             'withdrawal': {

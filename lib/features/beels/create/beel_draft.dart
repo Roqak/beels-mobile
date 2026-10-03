@@ -10,6 +10,10 @@ enum OpenSplit { fixed, even }
 /// (derived from the target) or typed per person.
 enum ContributorSplit { even, custom }
 
+/// How the target is set: typed as one total, or added up from items that
+/// each say where their money goes.
+enum AmountMode { total, itemised }
+
 /// Beneficiary kinds the backend accepts, in display order.
 const kBeneficiaryTypes = <String, String>{
   'bank_transfer': 'Bank transfer',
@@ -92,6 +96,9 @@ class DraftBeneficiary {
     this.bankName = '',
     this.serviceNumber = '',
     this.serviceIdentifier = '',
+    this.providerId = '',
+    this.providerName = '',
+    this.planName = '',
     this.amount = '',
   });
 
@@ -102,13 +109,30 @@ class DraftBeneficiary {
   final String bankCode;
   final String bankName;
   final String serviceNumber;
+
+  /// What the backend pays against: the plan id for data and cable, the
+  /// provider id for airtime and electricity.
   final String serviceIdentifier;
+
+  /// The chosen bills provider (network, cable company, distributor).
+  final String providerId;
+  final String providerName;
+
+  /// The chosen data bundle or cable package, for display.
+  final String planName;
   final String amount;
 
   bool get isBank => type == 'bank_transfer';
 
-  /// Only bank transfers and airtime carry an amount.
-  bool get wantsAmount => type == 'bank_transfer' || type == 'airtime';
+  /// Data and cable are bought as a plan, so the plan sets the amount; every
+  /// other type takes a typed (or implied) amount.
+  bool get hasPlanPrice => type == 'data' || type == 'cable';
+
+  /// "MTN · 1GB 30 days" for bills; empty for bank transfers.
+  String get billLabel => [
+        if (providerName.isNotEmpty) providerName,
+        if (planName.isNotEmpty) planName,
+      ].join(' · ');
 
   DraftBeneficiary copyWith({
     String? type,
@@ -118,6 +142,9 @@ class DraftBeneficiary {
     String? bankName,
     String? serviceNumber,
     String? serviceIdentifier,
+    String? providerId,
+    String? providerName,
+    String? planName,
     String? amount,
   }) =>
       DraftBeneficiary(
@@ -129,6 +156,9 @@ class DraftBeneficiary {
         bankName: bankName ?? this.bankName,
         serviceNumber: serviceNumber ?? this.serviceNumber,
         serviceIdentifier: serviceIdentifier ?? this.serviceIdentifier,
+        providerId: providerId ?? this.providerId,
+        providerName: providerName ?? this.providerName,
+        planName: planName ?? this.planName,
         amount: amount ?? this.amount,
       );
 }
@@ -139,6 +169,7 @@ class BeelDraft {
     this.mode = BeelMode.closed,
     this.name = '',
     this.amount = '',
+    this.amountMode = AmountMode.total,
     this.recurrenceType = 'one_time',
     this.dayOfWeek = 'monday',
     this.dayOfMonth = 1,
@@ -154,6 +185,7 @@ class BeelDraft {
   final BeelMode mode;
   final String name;
   final String amount;
+  final AmountMode amountMode;
   final String recurrenceType;
   final String dayOfWeek;
   final int dayOfMonth;
@@ -165,7 +197,18 @@ class BeelDraft {
   final String expectedContributors;
   final int nextId;
 
-  num? get target => parseMoney(amount);
+  bool get isItemised => amountMode == AmountMode.itemised;
+
+  /// The total to collect: what was typed, or the sum of the items.
+  num? get target {
+    if (!isItemised) return parseMoney(amount);
+    var kobo = 0;
+    for (final b in beneficiaries) {
+      final a = parseMoney(b.amount);
+      if (a != null && a > 0) kobo += _kobo(a);
+    }
+    return kobo > 0 ? kobo / 100 : null;
+  }
 
   bool get isOpen => mode == BeelMode.open;
 
@@ -213,18 +256,21 @@ class BeelDraft {
   /// Target minus what contributors are assigned (negative = over-assigned).
   num get contributorRemaining => (target ?? 0) - contributorTotal;
 
-  /// A beneficiary's amount: what was typed, or the whole target when there
-  /// is a single bank/airtime beneficiary (nothing to split).
+  /// A beneficiary's amount: what was typed or the plan's price, or the whole
+  /// target when there is a single typed-amount beneficiary (nothing to
+  /// split).
   num? effectiveBeneficiaryAmount(DraftBeneficiary b) {
-    if (!b.wantsAmount) return null;
     final typed = parseMoney(b.amount);
     if (typed != null) return typed;
-    if (beneficiaries.length == 1) return target;
+    // Items define the target, so none can stand in for it; a plan has its
+    // own price.
+    if (beneficiaries.length == 1 && !isItemised && !b.hasPlanPrice) {
+      return target;
+    }
     return null;
   }
 
-  /// Sum of beneficiary amounts, or null when some row has none (services
-  /// carry no amount, so the total cannot be checked).
+  /// Sum of beneficiary amounts, or null when some row has none yet.
   num? get payoutTotal {
     var kobo = 0;
     for (final b in beneficiaries) {
@@ -251,6 +297,7 @@ class BeelDraft {
     BeelMode? mode,
     String? name,
     String? amount,
+    AmountMode? amountMode,
     String? recurrenceType,
     String? dayOfWeek,
     int? dayOfMonth,
@@ -266,6 +313,7 @@ class BeelDraft {
         mode: mode ?? this.mode,
         name: name ?? this.name,
         amount: amount ?? this.amount,
+        amountMode: amountMode ?? this.amountMode,
         recurrenceType: recurrenceType ?? this.recurrenceType,
         dayOfWeek: dayOfWeek ?? this.dayOfWeek,
         dayOfMonth: dayOfMonth ?? this.dayOfMonth,
@@ -308,6 +356,7 @@ class BeelDraft {
 Map<String, String> validateBasics(BeelDraft d) {
   final errors = <String, String>{};
   if (d.name.trim().isEmpty) errors['name'] = 'Give your beel a name';
+  if (d.isItemised) return errors; // the items step sets the target
   final t = d.target;
   if (t == null || t <= 0) errors['amount'] = 'Enter the target amount';
   return errors;
@@ -387,11 +436,18 @@ Map<String, String> validateBeneficiary(
     }
   } else {
     if (b.serviceNumber.trim().isEmpty) errors['service_number'] = 'Required';
-    if (b.serviceIdentifier.trim().isEmpty) {
-      errors['service_identifier'] = 'Required';
+    if (b.hasPlanPrice) {
+      if (b.providerId.trim().isEmpty) {
+        errors['provider'] = 'Choose a provider';
+      } else if (b.serviceIdentifier.trim().isEmpty) {
+        errors['service_identifier'] = 'Choose a plan';
+      }
+    } else if (b.serviceIdentifier.trim().isEmpty) {
+      errors['service_identifier'] = 'Choose a provider';
     }
   }
-  if (b.wantsAmount && amountRequired) {
+  // A plan's price is its amount; it is only missing with the plan.
+  if (amountRequired && !b.hasPlanPrice) {
     final a = parseMoney(b.amount);
     if (a == null || a <= 0) errors['amount'] = 'Enter an amount';
   }
@@ -408,19 +464,20 @@ Map<String, String> validatePayout(BeelDraft d) {
   for (var i = 0; i < d.beneficiaries.length; i++) {
     final b = d.beneficiaries[i];
     // A single account receives the whole target without typing it.
-    final needsAmount =
-        d.beneficiaries.length > 1 || d.effectiveBeneficiaryAmount(b) == null;
-    validateBeneficiary(b, amountRequired: b.wantsAmount && needsAmount)
-        .forEach(
-            (field, message) => errors['beneficiary_${i}_$field'] = message);
-    if (b.wantsAmount && !errors.containsKey('beneficiary_${i}_amount')) {
+    final needsAmount = d.isItemised ||
+        d.beneficiaries.length > 1 ||
+        d.effectiveBeneficiaryAmount(b) == null;
+    validateBeneficiary(b, amountRequired: needsAmount).forEach(
+        (field, message) => errors['beneficiary_${i}_$field'] = message);
+    if (!b.hasPlanPrice && !errors.containsKey('beneficiary_${i}_amount')) {
       final a = d.effectiveBeneficiaryAmount(b);
       if (a == null || a <= 0) {
         errors['beneficiary_${i}_amount'] = 'Enter an amount';
       }
     }
   }
-  if (errors.isEmpty) {
+  // Itemised: the target is the sum, so there is nothing to reconcile.
+  if (errors.isEmpty && !d.isItemised) {
     final total = d.payoutTotal;
     if (total != null && _kobo(total) != _kobo(d.target ?? 0)) {
       errors['payout'] =
@@ -524,12 +581,12 @@ Map<String, dynamic> draftToJson(BeelDraft d) => {
       'mode': d.mode == BeelMode.open ? 'open' : 'closed',
       'name': d.name,
       'amount': d.amount,
+      'amount_mode': d.isItemised ? 'itemised' : 'total',
       'recurrence_type': d.recurrenceType,
       'day_of_week': d.dayOfWeek,
       'day_of_month': d.dayOfMonth,
-      'contributor_split': d.contributorSplit == ContributorSplit.even
-          ? 'even'
-          : 'custom',
+      'contributor_split':
+          d.contributorSplit == ContributorSplit.even ? 'even' : 'custom',
       'open_split': d.openSplit == OpenSplit.even ? 'even' : 'fixed',
       'per_contributor': d.perContributor,
       'expected_contributors': d.expectedContributors,
@@ -556,6 +613,9 @@ Map<String, dynamic> draftToJson(BeelDraft d) => {
             'bank_name': b.bankName,
             'service_number': b.serviceNumber,
             'service_identifier': b.serviceIdentifier,
+            'provider_id': b.providerId,
+            'provider_name': b.providerName,
+            'plan_name': b.planName,
             'amount': b.amount,
           },
       ],
@@ -589,6 +649,9 @@ BeelDraft draftFromJson(dynamic json) {
             bankName: '${b['bank_name'] ?? ''}',
             serviceNumber: '${b['service_number'] ?? ''}',
             serviceIdentifier: '${b['service_identifier'] ?? ''}',
+            providerId: '${b['provider_id'] ?? ''}',
+            providerName: '${b['provider_name'] ?? ''}',
+            planName: '${b['plan_name'] ?? ''}',
             amount: '${b['amount'] ?? ''}',
           ))
       .toList();
@@ -596,13 +659,15 @@ BeelDraft draftFromJson(dynamic json) {
     mode: json['mode'] == 'open' ? BeelMode.open : BeelMode.closed,
     name: '${json['name'] ?? ''}',
     amount: '${json['amount'] ?? ''}',
+    amountMode: json['amount_mode'] == 'itemised'
+        ? AmountMode.itemised
+        : AmountMode.total,
     recurrenceType: '${json['recurrence_type'] ?? 'one_time'}',
     dayOfWeek: '${json['day_of_week'] ?? 'monday'}',
     dayOfMonth: (json['day_of_month'] as num?)?.toInt() ?? 1,
     contributors: contributors,
-    beneficiaries: beneficiaries.isEmpty
-        ? const [DraftBeneficiary(id: 0)]
-        : beneficiaries,
+    beneficiaries:
+        beneficiaries.isEmpty ? const [DraftBeneficiary(id: 0)] : beneficiaries,
     contributorSplit: splitFor('${json['contributor_split'] ?? 'even'}'),
     openSplit: openFor('${json['open_split'] ?? 'even'}'),
     perContributor: '${json['per_contributor'] ?? ''}',
