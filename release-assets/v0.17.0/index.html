@@ -1,0 +1,354 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+@font-face { font-family: Brico; src: url("../../assets/google_fonts/BricolageGrotesque-Bold.ttf"); font-weight: 700; }
+@font-face { font-family: Brico; src: url("../../assets/google_fonts/BricolageGrotesque-SemiBold.ttf"); font-weight: 600; }
+@font-face { font-family: Inter; src: url("../../assets/google_fonts/Inter-Regular.ttf"); font-weight: 400; }
+@font-face { font-family: Inter; src: url("../../assets/google_fonts/Inter-Medium.ttf"); font-weight: 500; }
+@font-face { font-family: Inter; src: url("../../assets/google_fonts/Inter-SemiBold.ttf"); font-weight: 600; }
+@font-face { font-family: Inter; src: url("../../assets/google_fonts/Inter-Bold.ttf"); font-weight: 700; }
+:root {
+  --accent: #3D35CC; --accentSoft: #ECEBFB; --dye: #17163F; --dyeMid: #25236B; --dyeLine: #5450C4;
+  --turmeric: #F0A81E; --turmericSoft: #FCF1D8; --turmericInk: #7A5200;
+  --surface: #FCFCFE; --panel: #FFFFFF; --fieldFill: #F4F4F8; --border: #E3E3EA;
+  --ink0: #21222D; --ink1: #5B5D6B; --ink2: #6B6D7C; --ok: #1F7A4D; --okSoft: #EAF6F0;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 1080px; height: 1920px; overflow: hidden; background: var(--dye); }
+body { font-family: Inter, sans-serif; color: var(--ink0); -webkit-font-smoothing: antialiased; }
+#stage { position: relative; width: 1080px; height: 1920px; overflow: hidden; }
+.scene { position: absolute; inset: 0; opacity: 0; }
+canvas.adire { position: absolute; inset: 0; }
+.brico { font-family: Brico, sans-serif; }
+.num { font-variant-numeric: tabular-nums; }
+.abs { position: absolute; }
+
+/* scene 1 + outro */
+.dye { background: var(--dye); color: #fff; }
+.mark { font-family: Brico; font-weight: 700; font-size: 84px; line-height: 1; letter-spacing: -3px; }
+.mark .dot { width: 20px; height: 20px; border-radius: 50%; background: var(--turmeric); margin-bottom: 22px; }
+.mark em { font-style: normal; font-family: Inter; font-weight: 600; font-size: 34px; letter-spacing: 0; color: rgba(255,255,255,0.7); margin-left: 18px; }
+.pill { display: inline-block; padding: 12px 26px; border-radius: 999px; background: rgba(255,255,255,0.14); font-weight: 600; font-size: 30px; }
+
+/* scene 2 */
+.light { background: var(--surface); }
+.caption { font-family: Brico; font-weight: 700; font-size: 76px; line-height: 1.05; letter-spacing: -2px; color: var(--ink0); }
+.sub { font-size: 34px; line-height: 1.4; color: var(--ink1); }
+.bubble { background: #FFFFFF; border: 1px solid var(--border); border-radius: 34px 34px 34px 8px; padding: 40px 44px; box-shadow: 0 30px 60px -30px rgba(23,22,63,0.25); font-size: 36px; line-height: 1.5; }
+.bubble .who { font-weight: 700; color: var(--accent); font-size: 30px; margin-bottom: 10px; }
+.bubble .line { opacity: 0; }
+.bubble .time { text-align: right; font-size: 24px; color: var(--ink2); margin-top: 10px; }
+.strike { position: relative; }
+
+/* phone */
+#phone { position: absolute; left: 110px; top: 470px; width: 860px; height: 1380px; border-radius: 86px; background: #0E0D26; padding: 22px; box-shadow: 0 60px 120px -40px rgba(23,22,63,0.55); }
+#screen { position: relative; width: 100%; height: 100%; border-radius: 66px; overflow: hidden; background: var(--surface); }
+.screen { position: absolute; inset: 0; opacity: 0; padding: 70px 48px 0; }
+.appbar { display: flex; align-items: center; gap: 26px; font-weight: 600; font-size: 34px; margin-bottom: 30px; }
+.appbar .x { width: 40px; height: 40px; border-radius: 12px; border: 4px solid var(--ink0); }
+.progress { display: flex; gap: 10px; margin-bottom: 30px; }
+.progress span { flex: 1; height: 8px; border-radius: 4px; background: var(--border); }
+.progress span.on { background: var(--accent); }
+.stepno { font-size: 26px; color: var(--ink2); font-weight: 500; }
+.title { font-family: Brico; font-weight: 700; font-size: 54px; line-height: 1.08; letter-spacing: -1.2px; margin: 8px 0 12px; }
+.lead { font-size: 27px; color: var(--ink1); line-height: 1.4; margin-bottom: 34px; }
+.label { font-size: 26px; font-weight: 600; color: var(--ink1); margin-bottom: 14px; }
+.chips { display: flex; gap: 14px; flex-wrap: wrap; }
+.chip { padding: 18px 30px; border-radius: 999px; border: 2px solid var(--border); font-weight: 600; font-size: 28px; color: var(--ink1); background: var(--panel); }
+.chip.sel { background: var(--dye); border-color: var(--dye); color: #fff; }
+.field { background: var(--fieldFill); border-radius: 22px; padding: 30px 32px; font-size: 32px; }
+.card { background: var(--panel); border: 2px solid var(--border); border-radius: 30px; overflow: hidden; }
+.row { display: flex; align-items: center; gap: 24px; padding: 26px 28px; border-top: 2px solid var(--border); }
+.row:first-child { border-top: none; }
+.ico { width: 72px; height: 72px; border-radius: 20px; background: var(--accentSoft); display: grid; place-items: center; flex: none; }
+.ico i { width: 30px; height: 30px; border: 4px solid var(--accent); border-radius: 6px; display: block; }
+.row .t { font-weight: 700; font-size: 31px; }
+.row .s { font-size: 24px; color: var(--ink2); margin-top: 4px; }
+.row .amt { margin-left: auto; font-weight: 700; font-size: 31px; color: var(--ink1); }
+.pinned { position: absolute; left: 0; right: 0; bottom: 0; background: var(--panel); border-top: 2px solid var(--border); padding: 30px 48px 60px; }
+.pinned .line { display: flex; align-items: center; gap: 16px; font-weight: 700; font-size: 30px; }
+.pinned .badge { width: 34px; height: 34px; border-radius: 10px; background: var(--accentSoft); border: 3px solid var(--accent); }
+.btn { margin-top: 26px; height: 100px; border-radius: 50px; background: var(--accent); color: #fff; display: grid; place-items: center; font-weight: 700; font-size: 32px; }
+.people { display: grid; grid-template-columns: repeat(5, 1fr); gap: 22px 18px; }
+.av { display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.av b { width: 112px; height: 112px; border-radius: 50%; display: grid; place-items: center; font-family: Brico; font-size: 38px; color: var(--dye); }
+.av span { font-size: 22px; color: var(--ink1); font-weight: 600; }
+.note { margin-top: 30px; background: var(--turmericSoft); color: var(--turmericInk); border-radius: 22px; padding: 24px 28px; font-size: 26px; line-height: 1.4; font-weight: 500; }
+.sheet { position: absolute; left: 0; right: 0; bottom: 0; background: var(--panel); border-radius: 50px 50px 0 0; padding: 44px 48px 60px; box-shadow: 0 -30px 60px -30px rgba(23,22,63,0.35); }
+.sheet h4 { font-family: Brico; font-size: 44px; margin-bottom: 26px; letter-spacing: -0.8px; }
+.dd { border: 2px solid var(--border); border-radius: 20px; padding: 18px 28px; margin-top: 18px; }
+.dd small { display: block; font-size: 22px; color: var(--ink2); }
+.dd div { font-size: 31px; font-weight: 600; margin-top: 2px; }
+.plans { margin-top: 18px; border: 2px solid var(--border); border-radius: 22px; overflow: hidden; }
+.plan { display: flex; justify-content: space-between; padding: 22px 28px; font-size: 29px; border-top: 2px solid var(--border); }
+.plan:first-child { border-top: none; }
+.plan b { font-variant-numeric: tabular-nums; }
+.plan.hl { background: var(--accentSoft); }
+.okline { margin-top: 18px; padding: 20px 26px; border-radius: 18px; background: var(--okSoft); color: var(--ok); font-weight: 700; font-size: 27px; }
+#cap { position: absolute; left: 90px; right: 90px; top: 130px; }
+</style>
+</head>
+<body>
+<div id="stage">
+
+  <!-- 1: title -->
+  <div class="scene dye" id="s1">
+    <canvas class="adire" id="adire1" width="1080" height="1920"></canvas>
+    <div class="abs" style="left:90px;top:150px" id="s1mark"><div class="mark"><div class="dot"></div>beels</div></div>
+    <div class="abs" style="left:90px;right:90px;top:760px" id="s1text">
+      <div class="pill" id="s1pill">New in v0.17.0</div>
+      <div class="brico" style="font-weight:700;font-size:132px;line-height:1.0;letter-spacing:-4px;margin-top:40px" id="s1h">Collect for<br>the things,<br>not just<br>a number.</div>
+    </div>
+  </div>
+
+  <!-- 2: the familiar message -->
+  <div class="scene light" id="s2">
+    <div class="abs" style="left:90px;right:90px;top:170px" id="s2cap">
+      <div class="caption">Every month,<br>the same message.</div>
+    </div>
+    <div class="abs" style="left:90px;right:150px;top:640px" id="s2bubble">
+      <div class="bubble">
+        <div class="who">Estate secretary</div>
+        <div class="line" data-i="0">Good morning everyone. Happy new month</div>
+        <div class="line" data-i="1" style="margin-top:18px">Below is the breakdown for the month:</div>
+        <div class="line" data-i="2">&bull; Cleaner: <b class="num">₦23,000</b></div>
+        <div class="line" data-i="3">&bull; Light for pumping: <b class="num">₦10,000</b></div>
+        <div class="line" data-i="4" style="margin-top:18px">Total: <b class="num">₦33,000 / 14 = ₦2,357.14</b></div>
+        <div class="time">7:02</div>
+      </div>
+    </div>
+    <div class="abs" style="left:90px;right:90px;top:1500px" id="s2tag">
+      <div class="caption" style="color:var(--accent)">Now Beels does<br>the maths.</div>
+    </div>
+  </div>
+
+  <!-- 3-5: phone scenes -->
+  <div class="scene light" id="sp">
+    <div id="cap"><div class="caption" id="capText"></div></div>
+    <div id="phone"><div id="screen">
+
+      <!-- step 1 toggle -->
+      <div class="screen" id="p1">
+        <div class="appbar"><div class="x"></div>New beel</div>
+        <div class="progress"><span class="on"></span><span></span><span></span><span></span><span></span></div>
+        <div class="stepno">Step 1 of 5</div>
+        <div class="title">What are you collecting for?</div>
+        <div class="lead">Choose how people join, then name it.</div>
+        <div class="label">Name your beel</div>
+        <div class="field" style="margin-bottom:34px">Estate dues · June</div>
+        <div class="label">How much do you want to collect?</div>
+        <div class="chips"><div class="chip" id="cTotal">One total</div><div class="chip" id="cItems">List items</div></div>
+        <div class="lead" style="margin-top:22px" id="p1hint">Next, add each item, what it costs and where its money goes. We add them up for you.</div>
+      </div>
+
+      <!-- items -->
+      <div class="screen" id="p2">
+        <div class="appbar"><div class="x"></div>New beel</div>
+        <div class="progress"><span class="on"></span><span class="on"></span><span></span><span></span><span></span></div>
+        <div class="stepno">Step 2 of 5</div>
+        <div class="title">What is the money for?</div>
+        <div class="lead">Add each item and where its money goes. We add them up.</div>
+        <div class="card">
+          <div class="row" id="it1"><div class="ico"><i></i></div><div><div class="t">Cleaner</div><div class="s">GTBank · •••• 4821</div></div><div class="amt num">₦23,000</div></div>
+          <div class="row" id="it2"><div class="ico"><i></i></div><div><div class="t">Light for pumping</div><div class="s">Electricity · IKEDC</div></div><div class="amt num">₦10,000</div></div>
+        </div>
+        <div class="pinned">
+          <div class="line num"><div class="badge"></div><span id="totalText">Total ₦0 across 0 items</span></div>
+          <div class="btn">Continue</div>
+        </div>
+      </div>
+
+      <!-- people -->
+      <div class="screen" id="p3">
+        <div class="appbar"><div class="x"></div>New beel</div>
+        <div class="progress"><span class="on"></span><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+        <div class="stepno">Step 4 of 5</div>
+        <div class="title">Who is paying?</div>
+        <div class="lead">Add the people. We split the target between them.</div>
+        <div class="people" id="people"></div>
+        <div class="note" id="p3note">4 people pay 1 kobo more, so it adds up to exactly ₦33,000.</div>
+        <div class="pinned">
+          <div class="line num"><div class="badge"></div><span id="splitText">₦33,000 ÷ 14 = about ₦2,357.14 each</span></div>
+          <div class="btn">Continue</div>
+        </div>
+      </div>
+
+      <!-- bills sheet -->
+      <div class="screen" id="p4" style="background:#C9C8D6">
+        <div class="sheet" id="sheet">
+          <h4>Add item</h4>
+          <div class="field" style="font-size:30px">Clubhouse TV</div>
+          <div class="chips" style="margin-top:22px;gap:10px">
+            <div class="chip" style="padding:14px 22px;font-size:25px">Bank transfer</div>
+            <div class="chip" style="padding:14px 22px;font-size:25px">Airtime</div>
+            <div class="chip" style="padding:14px 22px;font-size:25px">Data</div>
+            <div class="chip" id="cCable" style="padding:14px 22px;font-size:25px">Cable TV</div>
+            <div class="chip" style="padding:14px 22px;font-size:25px">Electricity</div>
+          </div>
+          <div class="dd" id="ddProv"><small>Cable provider</small><div>DSTV</div></div>
+          <div class="plans" id="plans">
+            <div class="plan" id="pl1"><span>DSTV PADI</span><b>₦4,400</b></div>
+            <div class="plan" id="pl2"><span>DSTV YANGA</span><b>₦6,000</b></div>
+            <div class="plan" id="pl3"><span>DSTV CONFAM</span><b>₦11,000</b></div>
+          </div>
+          <div class="okline" id="okline">Costs ₦4,400. The plan sets the amount.</div>
+          <div class="btn">Add item</div>
+        </div>
+      </div>
+
+    </div></div>
+  </div>
+
+  <!-- 6: outro -->
+  <div class="scene dye" id="s6">
+    <canvas class="adire" id="adire6" width="1080" height="1920"></canvas>
+    <div class="abs" style="left:90px;right:90px;top:560px" id="s6text">
+      <div class="brico" style="font-weight:700;font-size:104px;line-height:1.02;letter-spacing:-3px">Each item paid<br>straight to where<br>it belongs.</div>
+      <div style="font-size:38px;line-height:1.45;color:rgba(255,255,255,0.78);margin-top:40px">Bank accounts, airtime, data, cable TV and electricity, when the beel pays out.</div>
+    </div>
+    <div class="abs" style="left:90px;right:90px;top:1460px" id="s6foot">
+      <div class="mark"><div class="dot"></div>beels<em>v0.17.0</em></div>
+      <div style="margin-top:28px;font-size:30px;color:rgba(255,255,255,0.7)">Android · github.com/Roqak/beels-mobile/releases</div>
+    </div>
+  </div>
+
+</div>
+<script>
+const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+const seg = (t, a, b) => clamp((t - a) / (b - a));
+const easeOut = x => 1 - Math.pow(1 - x, 4);
+const easeInOut = x => x < 0.5 ? 8 * x ** 4 : 1 - Math.pow(-2 * x + 2, 4) / 2;
+const $ = id => document.getElementById(id);
+const fmt = n => '₦' + Math.round(n).toLocaleString('en-NG');
+
+// window into a scene: fades in over `f` after a, out over `f` before b
+const win = (t, a, b, f = 0.45) => Math.min(easeOut(seg(t, a, a + f)), 1 - seg(t, b - f, b));
+
+function rise(el, p, dist = 50) {
+  el.style.opacity = p;
+  el.style.transform = `translateY(${(1 - p) * dist}px)`;
+}
+
+function adire(canvas, progress, cell = 64) {
+  const g = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  g.clearRect(0, 0, W, H);
+  const maxD = Math.hypot(W, H);
+  g.lineWidth = 2.6;
+  let row = 0;
+  for (let y = cell / 2; y < H + cell; y += cell * 0.86, row++) {
+    const shift = row % 2 ? cell / 2 : 0;
+    let col = 0;
+    for (let x = -cell + shift; x < W + cell; x += cell, col++) {
+      const d = Math.hypot(x - W, y) / maxD;
+      const a = clamp(0.8 * (1 - d * 1.75), 0, 0.8) * progress;
+      if (a <= 0.02) continue;
+      g.strokeStyle = g.fillStyle = `rgba(84,80,196,${a})`;
+      const r = cell * 0.28 * (0.6 + 0.4 * progress);
+      if ((row + col) % 2 === 0) {
+        g.beginPath(); g.arc(x, y, r, 0, Math.PI * 2); g.stroke();
+        g.beginPath(); g.arc(x, y, r * 0.32, 0, Math.PI * 2); g.fill();
+      } else {
+        g.beginPath(); g.moveTo(x, y - r); g.lineTo(x + r, y); g.lineTo(x, y + r); g.lineTo(x - r, y); g.closePath(); g.stroke();
+      }
+    }
+  }
+}
+
+// people grid
+const names = ['Ada','Bode','Chi','Dayo','Efe','Femi','Gbenga','Halima','Ife','Jide','Kemi','Lola','Musa','Nneka'];
+const tints = ['#ECEBFB','#FCF1D8','#EAF6F0','#F4F4F8'];
+$('people').innerHTML = names.map((n, i) =>
+  `<div class="av" id="av${i}"><b style="background:${tints[i % 4]}">${n[0]}</b><span>${n}</span></div>`).join('');
+
+const T = 30;
+window.render = function (t) {
+  // Scene 1: 0 – 4
+  const s1 = win(t, 0, 4.0, 0.01);
+  $('s1').style.opacity = s1;
+  adire($('adire1'), easeOut(seg(t, 0, 1.6)));
+  rise($('s1mark'), easeOut(seg(t, 0.3, 1.0)), 30);
+  rise($('s1pill'), easeOut(seg(t, 0.6, 1.3)));
+  rise($('s1h'), easeOut(seg(t, 0.9, 1.9)), 80);
+
+  // Scene 2: 3.6 – 9
+  $('s2').style.opacity = win(t, 3.6, 9.0);
+  rise($('s2cap'), easeOut(seg(t, 3.8, 4.5)));
+  rise($('s2bubble'), easeOut(seg(t, 4.2, 4.9)), 70);
+  document.querySelectorAll('#s2 .line').forEach(el => {
+    const i = +el.dataset.i;
+    el.style.opacity = easeOut(seg(t, 4.7 + i * 0.45, 5.1 + i * 0.45));
+  });
+  rise($('s2tag'), easeOut(seg(t, 7.3, 8.0)), 60);
+
+  // Phone scenes: 8.6 – 25.6
+  const sp = win(t, 8.6, 25.6);
+  $('sp').style.opacity = sp;
+  const phoneIn = easeOut(seg(t, 8.6, 9.4));
+  $('phone').style.transform = `translateY(${(1 - phoneIn) * 260}px)`;
+
+  const caps = [
+    [8.6, 15.6, 'List the items.<br>We add them up.'],
+    [15.6, 20.6, 'Split to the kobo.<br>Always adds up.'],
+    [20.6, 25.6, 'Data, cable TV and<br>electricity too.'],
+  ];
+  let capOpacity = 0;
+  for (const [a, b, html] of caps) {
+    if (t >= a && t < b) {
+      if ($('capText').innerHTML !== html) $('capText').innerHTML = html;
+      capOpacity = win(t, a, b, 0.4);
+    }
+  }
+  rise($('capText'), capOpacity, 30);
+
+  // p1: step 1, choose List items (8.6 – 11.2)
+  $('p1').style.opacity = win(t, 8.6, 11.2, 0.3);
+  const picked = t >= 9.9;
+  $('cTotal').classList.toggle('sel', !picked);
+  $('cItems').classList.toggle('sel', picked);
+  $('cItems').style.transform = `scale(${1 + 0.06 * Math.sin(Math.PI * seg(t, 9.75, 10.15))})`;
+  rise($('p1hint'), easeOut(seg(t, 10.0, 10.5)), 20);
+
+  // p2: items (11 – 15.8)
+  $('p2').style.opacity = win(t, 10.9, 15.8, 0.3);
+  const i1 = easeOut(seg(t, 11.6, 12.2)), i2 = easeOut(seg(t, 12.9, 13.5));
+  $('it1').style.opacity = i1; $('it1').style.transform = `translateX(${(1 - i1) * 80}px)`;
+  $('it2').style.opacity = i2; $('it2').style.transform = `translateX(${(1 - i2) * 80}px)`;
+  const total = 23000 * easeInOut(seg(t, 11.7, 12.6)) + 10000 * easeInOut(seg(t, 13.0, 13.9));
+  const count = (t >= 11.7 ? 1 : 0) + (t >= 13.0 ? 1 : 0);
+  $('totalText').textContent = `Total ${fmt(total)} across ${count} ${count === 1 ? 'item' : 'items'}`;
+
+  // p3: people (15.6 – 20.8)
+  $('p3').style.opacity = win(t, 15.6, 20.8, 0.3);
+  names.forEach((_, i) => {
+    const p = easeOut(seg(t, 16.1 + i * 0.12, 16.5 + i * 0.12));
+    const el = $('av' + i);
+    el.style.opacity = p;
+    el.style.transform = `scale(${0.6 + 0.4 * p})`;
+  });
+  rise($('p3note'), easeOut(seg(t, 18.2, 18.8)), 30);
+
+  // p4: bills sheet (20.6 – 25.6)
+  $('p4').style.opacity = win(t, 20.6, 25.6, 0.3);
+  const sh = easeOut(seg(t, 20.8, 21.5));
+  $('sheet').style.transform = `translateY(${(1 - sh) * 1100}px)`;
+  $('cCable').classList.toggle('sel', t >= 21.9);
+  rise($('ddProv'), easeOut(seg(t, 22.2, 22.7)), 20);
+  rise($('plans'), easeOut(seg(t, 22.7, 23.2)), 20);
+  $('pl1').classList.toggle('hl', t >= 23.6);
+  rise($('okline'), easeOut(seg(t, 23.8, 24.3)), 20);
+
+  // Scene 6: 25.4 – 30
+  $('s6').style.opacity = easeOut(seg(t, 25.4, 25.9));
+  adire($('adire6'), easeOut(seg(t, 25.4, 27.0)));
+  rise($('s6text'), easeOut(seg(t, 25.8, 26.7)), 80);
+  rise($('s6foot'), easeOut(seg(t, 26.6, 27.4)), 40);
+};
+window.DURATION = T;
+document.fonts.ready.then(() => { window.ready = true; });
+render(new URLSearchParams(location.search).has('t') ? +new URLSearchParams(location.search).get('t') : 0);
+</script>
+</body>
+</html>
